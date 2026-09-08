@@ -49,7 +49,13 @@ except ImportError:
     _JOBLIB_AVAILABLE = False
     logger.warning("joblib not available — model persistence disabled.")
 
-import numpy as np
+try:
+    import numpy as np
+    _NUMPY_AVAILABLE = True
+except ImportError:
+    np = None
+    _NUMPY_AVAILABLE = False
+    logger.warning("numpy not available — ML array operations disabled.")
 
 from app.services.ml.model_registry import BaseCrowdModel
 from app.services.ml.evaluation import (
@@ -88,7 +94,9 @@ class XGBoostCrowdModel(BaseCrowdModel):
         self._is_trained = False
         self._backend = "unavailable"
 
-        if _USING_XGBOOST:
+        if not _NUMPY_AVAILABLE:
+            self._backend = "unavailable"
+        elif _USING_XGBOOST:
             self._backend = "xgboost"
         elif _USING_SKLEARN:
             self._backend = "sklearn_gbr"
@@ -127,7 +135,8 @@ class XGBoostCrowdModel(BaseCrowdModel):
 
         try:
             feature_vector = self._dict_to_vector(features)
-            pred = float(self._model.predict(np.array([feature_vector]))[0])
+            x_input = np.array([feature_vector]) if np is not None else [feature_vector]
+            pred = float(self._model.predict(x_input)[0])
             return round(max(0.0, min(100.0, pred)), 1)
         except Exception as e:
             raise RuntimeError(f"XGBoostCrowdModel prediction failed: {e}")
@@ -160,6 +169,9 @@ class XGBoostCrowdModel(BaseCrowdModel):
         Returns:
             Full training report with metrics.
         """
+        if not _NUMPY_AVAILABLE or np is None:
+            return {"error": "numpy is required for ML model training"}
+
         if self._backend == "unavailable":
             return {"error": "No ML library available (xgboost or scikit-learn required)"}
 
@@ -291,7 +303,7 @@ class XGBoostCrowdModel(BaseCrowdModel):
             logger.error(f"Failed to save ML model: {e}")
 
     def _try_load(self) -> None:
-        if not _JOBLIB_AVAILABLE or not os.path.exists(self._model_path):
+        if not _NUMPY_AVAILABLE or not _JOBLIB_AVAILABLE or not os.path.exists(self._model_path):
             return
         try:
             payload = joblib.load(self._model_path)
