@@ -6,20 +6,30 @@ from app.data.seed_data import HOMESTAYS_DATA
 from app.models.homestay import (
     Homestay, HomestayBookingRequest, HomestayBookingResponse, TripDetailsResponse
 )
+from app.services.demand_aggregation_service import demand_aggregation_service
+from app.models.demand import DemandEventType
 
 router = APIRouter(tags=["Homestays & Bookings"])
 
 # Simple in-memory booking store for demo session
 BOOKINGS_DB = {}
 
+# In‑memory store for trip start timestamps (idempotent trip start)
+STARTED_TRIPS: dict[str, datetime] = {}
+
 @router.get("/homestays", response_model=List[Homestay])
 def list_homestays(
     destination_id: Optional[str] = Query(None, description="Filter by destination id, e.g., 'kalimpong'"),
     max_price: Optional[int] = Query(None, description="Filter by maximum price per night")
 ):
-    """Lists verified rural homestays with direct host community support."""
+    """Lists **verified** rural homestays.
+    The endpoint returns only homestays where `verified` is true (authoritative verification).
+    Supports optional filtering by `destination_id` and `max_price`.
+    """
     results: List[Homestay] = []
     for h in HOMESTAYS_DATA:
+        if not h["verified"]:
+            continue
         if destination_id and h["destination_id"] != destination_id.lower().strip():
             continue
         if max_price and h["price_per_night_inr"] > max_price:
@@ -81,6 +91,17 @@ def create_booking(req: HomestayBookingRequest):
     )
 
     BOOKINGS_DB[booking_id] = booking_response
+    # Record booking event
+    demand_aggregation_service.record_event(
+        event_type=DemandEventType.BOOKING.value,
+        destination_id=matched_homestay.destination_id,
+        session_id=booking_id,
+        metadata={
+            "rooms": 1,
+            "guests": req.number_of_guests,
+            "total_amount": total,
+        },
+    )
     return booking_response
 
 @router.get("/trips/{trip_id}", response_model=TripDetailsResponse)

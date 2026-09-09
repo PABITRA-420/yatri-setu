@@ -3,9 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Destination, CrowdResponse } from '@/types';
-import { fetchDestinationDetails, fetchDestinationCrowd } from '@/lib/api';
+import { Destination, CrowdResponse, Homestay } from '@/types';
+import { fetchDestinationDetails, fetchDestinationCrowd, fetchHomestays } from '@/lib/api';
 import { CrowdGauge } from '@/components/CrowdGauge';
+import { HomestayCard } from '@/components/HomestayCard';
+import { EmptyState } from '@/components/EmptyState';
 import { formatINR, getCrowdBadgeStyle } from '@/lib/utils';
 import { 
   MapPin, 
@@ -18,7 +20,8 @@ import {
   Mountain, 
   Thermometer, 
   CheckCircle2, 
-  Home
+  Home,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function DestinationDetailsPage() {
@@ -28,6 +31,8 @@ export default function DestinationDetailsPage() {
 
   const [destination, setDestination] = useState<Destination | null>(null);
   const [crowd, setCrowd] = useState<CrowdResponse | null>(null);
+  const [homestays, setHomestays] = useState<Homestay[]>([]);
+  const [homestaysLoading, setHomestaysLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +47,16 @@ export default function DestinationDetailsPage() {
       setLoading(false);
     }
     load();
+  }, [id]);
+
+  useEffect(() => {
+    async function loadHomestays() {
+      setHomestaysLoading(true);
+      const data = await fetchHomestays(id);
+      setHomestays(data);
+      setHomestaysLoading(false);
+    }
+    loadHomestays();
   }, [id]);
 
   if (loading || !destination) {
@@ -223,6 +238,45 @@ export default function DestinationDetailsPage() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Verified Homestays in This Destination */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                    Panchayat Verified
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Verified Stays in {destination.name}
+                </h2>
+              </div>
+              <Link
+                href={`/homestays?destination_id=${destination.id}`}
+                className="text-xs font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-colors"
+              >
+                View all <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            {homestaysLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-pulse">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-72 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+                ))}
+              </div>
+            ) : homestays.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {homestays.slice(0, 4).map((hs) => (
+                  <HomestayCard key={hs.id} homestay={hs} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -7,6 +7,8 @@ from app.models.host import (
     AvailabilityRecord, HostEarningBreakdown, HostOnboardingRequest,
     VoiceDraftRequest, VoiceDraftResponse
 )
+from app.services.demand_aggregation_service import demand_aggregation_service
+from app.models.demand import DemandEventType
 
 # Seed sample host "Pemba Sherpa" from Kalimpong for immediate demonstration
 SEED_PEMBA_HOST = Host(
@@ -345,6 +347,21 @@ class HostService:
                 record.price_override_inr = price_override
 
         self.availability_store[homestay_id][date_str] = record
+        # Record availability event after successful update
+        # Retrieve destination_id from listing if available
+        listing = self.listings.get(homestay_id)
+        dest_id = listing.destination_id if listing else None
+        demand_aggregation_service.record_event(
+            event_type=DemandEventType.AVAILABILITY.value,
+            destination_id=dest_id,
+            session_id=None,
+            metadata={
+                "destination_id": dest_id,
+                "homestay_id": homestay_id,
+                "date": date_str,
+                "available_capacity": 1 if record.is_available else 0,
+            },
+        )
         return record
 
     def parse_voice_listing(self, req: VoiceDraftRequest) -> VoiceDraftResponse:
