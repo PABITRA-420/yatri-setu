@@ -9,64 +9,64 @@ interface CrowdFactorBreakdownProps {
 
 export const CrowdFactorBreakdown: React.FC<CrowdFactorBreakdownProps> = ({ factors, crowdScore }) => {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+    <div className="bg-white dark:bg-[#121824] rounded-3xl p-6 sm:p-8 border border-stone-200/80 dark:border-white/10 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-stone-100 dark:border-white/5">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400">
             <BarChart3 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-base text-slate-900 dark:text-white">
+            <h3 className="font-extrabold text-base text-stone-950 dark:text-white tracking-tight">
               Deterministic Multi-Factor Scoring
             </h3>
-            <p className="text-xs text-slate-500">
-              Formula: 35% Historical + 25% Booking + 15% Season + 10% Holiday + 10% Weather + 5% Traffic
+            <p className="text-xs text-stone-500">
+              Formula: 35% Historical + 25% Booking + 15% Season + 10% Holiday + 10% Weather + 5% Road Choke
             </p>
           </div>
         </div>
 
-        <span className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-          Rule-Based Model
+        <span className="text-[11px] font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 self-start sm:self-auto border border-stone-200/60 dark:border-white/5">
+          SIH Deterministic Model
         </span>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {factors.map((factor) => {
-          let barColor = 'bg-emerald-500';
-          if (factor.raw_value > 75) barColor = 'bg-rose-500';
-          else if (factor.raw_value > 50) barColor = 'bg-orange-500';
+          let barColor = 'bg-emerald-600';
+          if (factor.raw_value > 75) barColor = 'bg-rose-600';
+          else if (factor.raw_value > 50) barColor = 'bg-amber-600';
           else if (factor.raw_value > 25) barColor = 'bg-amber-500';
 
           return (
             <div key={factor.key} className="group">
               <div className="flex items-center justify-between text-xs mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-stone-900 dark:text-stone-200">
                     {factor.name}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-bold text-stone-400 bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded-md">
                     Weight: {factor.weight_percentage}%
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                <div className="flex items-center gap-3">
+                  <span className="text-stone-400 font-mono text-xs">
                     Raw: {factor.raw_value}/100
                   </span>
-                  <span className="font-bold text-slate-900 dark:text-white font-mono text-[11px]">
+                  <span className="font-extrabold text-stone-950 dark:text-white font-mono text-xs">
                     +{factor.weighted_contribution.toFixed(1)} pts
                   </span>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-stone-100 dark:bg-stone-800/80 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
+                  className={`h-full rounded-full transition-all duration-1000 ease-out ${barColor}`}
                   style={{ width: `${factor.raw_value}%` }}
                 />
               </div>
 
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 leading-relaxed">
                 {factor.description}
               </p>
             </div>
@@ -74,15 +74,16 @@ export const CrowdFactorBreakdown: React.FC<CrowdFactorBreakdownProps> = ({ fact
         })}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
+      <div className="mt-8 pt-5 border-t border-stone-100 dark:border-white/5 flex items-center justify-between text-xs text-stone-500">
         <div className="flex items-center gap-1.5">
-          <Info className="w-4 h-4 text-amber-500" />
-          <span>Sum of weighted contributions matches total index:</span>
+          <Info className="w-4 h-4 text-amber-600" />
+          <span>Sum of weighted contributions matches aggregate crowd index:</span>
         </div>
-        <span className="font-mono font-bold text-slate-900 dark:text-white">
+        <span className="font-mono font-extrabold text-base text-stone-950 dark:text-white">
           {crowdScore} / 100
         </span>
       </div>
     </div>
   );
 };
+

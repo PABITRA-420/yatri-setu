@@ -21,18 +21,16 @@ export const CrowdGauge: React.FC<CrowdGaugeProps> = ({
   const badge = getCrowdBadgeStyle(level);
 
   // SVG Gauge calculations
-  const strokeWidth = size === 'lg' ? 12 : size === 'md' ? 10 : 8;
-  const radius = size === 'lg' ? 70 : size === 'md' ? 55 : 40;
+  const strokeWidth = size === 'lg' ? 10 : size === 'md' ? 8 : 6;
+  const radius = size === 'lg' ? 76 : size === 'md' ? 58 : 42;
   const circumference = 2 * Math.PI * radius;
-  // Use a 270 degree arc for gauge look
   const strokeDashoffset = circumference - (score / 100) * circumference;
-
   const dimension = (radius + strokeWidth) * 2;
 
-  let strokeColor = '#10B981'; // LOW
-  if (level === 'MEDIUM') strokeColor = '#F59E0B';
-  else if (level === 'HIGH') strokeColor = '#F97316';
-  else if (level === 'VERY HIGH') strokeColor = '#E11D48';
+  let strokeColor = '#059669'; // Emerald
+  if (level === 'MEDIUM') strokeColor = '#D97706'; // Warm Amber
+  else if (level === 'HIGH') strokeColor = '#EA580C'; // Orange
+  else if (level === 'VERY HIGH') strokeColor = '#DC2626'; // Deep Rose/Crimson
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -50,7 +48,7 @@ export const CrowdGauge: React.FC<CrowdGaugeProps> = ({
             stroke="currentColor"
             strokeWidth={strokeWidth}
             fill="transparent"
-            className="text-slate-100 dark:text-slate-800"
+            className="text-stone-200 dark:text-stone-800/80"
           />
           {/* Active Meter */}
           <circle
@@ -63,40 +61,41 @@ export const CrowdGauge: React.FC<CrowdGaugeProps> = ({
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             fill="transparent"
-            className="transition-all duration-1000 ease-out"
+            className="transition-all duration-1000 ease-out drop-shadow-xs"
           />
         </svg>
 
         {/* Center Score Display */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="flex items-baseline">
-            <span className="font-black text-3xl sm:text-4xl text-slate-900 dark:text-white tracking-tight">
+            <span className="font-extrabold text-3xl sm:text-4xl text-stone-950 dark:text-white tracking-tight font-mono">
               {score}
             </span>
-            <span className="text-xs font-semibold text-slate-400 ml-0.5">/100</span>
+            <span className="text-xs font-semibold text-stone-400 ml-0.5">/100</span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-0.5">
             Crowd Index
           </span>
         </div>
       </div>
 
       {/* Classification Tag */}
-      <div className="mt-3 flex items-center gap-2">
-        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border flex items-center gap-1.5 ${badge.bg} ${badge.border}`}>
+      <div className="mt-4 flex items-center gap-2">
+        <div className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1.5 ${badge.bg} ${badge.border}`}>
           <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
-          <span>{level} CROWD</span>
+          <span>{level} FOOTFALL</span>
         </div>
       </div>
 
       {showSubtext && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 max-w-xs">
-          {level === 'VERY HIGH' && '⚠️ Severe bottlenecks and critical hotel saturation. Consider nearby alternatives.'}
-          {level === 'HIGH' && 'High tourist concentration. Expect queues at viewpoints.'}
-          {level === 'MEDIUM' && 'Balanced visitor flow with smooth mountain connectivity.'}
-          {level === 'LOW' && '✨ Peaceful rural tranquility with minimal ecological footfall.'}
+        <p className="text-xs text-stone-500 dark:text-stone-400 mt-2.5 max-w-xs leading-relaxed">
+          {level === 'VERY HIGH' && '⚠️ Critical choke points and hotel saturation. We advise immediate diversion.'}
+          {level === 'HIGH' && 'Elevated tourist density. Viewpoint queues exceed typical seasonal averages.'}
+          {level === 'MEDIUM' && 'Balanced footfall with smooth transit and comfortable lodge availability.'}
+          {level === 'LOW' && '✨ Peaceful rural tranquility with minimal ecological footprint.'}
         </p>
       )}
     </div>
   );
 };
+

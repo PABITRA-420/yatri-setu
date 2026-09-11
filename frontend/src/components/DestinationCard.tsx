@@ -12,47 +12,51 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({ destination })
   const badge = getCrowdBadgeStyle(destination.crowd_level);
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col justify-between">
+    <div className="neo-card group relative flex flex-col justify-between rounded-3xl bg-white dark:bg-[#121824] border border-stone-200/80 dark:border-white/10 overflow-hidden">
       <div>
-        {/* Visual Cover */}
-        <div className="relative h-48 sm:h-52 w-full overflow-hidden">
+        {/* Visual Cover with Subtle Zoom */}
+        <div className="relative h-60 sm:h-64 w-full overflow-hidden bg-stone-900">
           <img
             src={destination.hero_image}
             alt={destination.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.96] group-hover:brightness-100"
+            loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent" />
 
-          {/* Crowd Tag Top Right */}
-          <div className="absolute top-3 right-3">
-            <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider backdrop-blur-md border flex items-center gap-1.5 shadow-md ${badge.bg} ${badge.border}`}>
-              <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
+          {/* Crowd Tag Top Right - Controlled Glass Pill */}
+          <div className="absolute top-3.5 right-3.5">
+            <div className={`glass-pill px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm ${badge.text}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
               <span>{destination.crowd_score}/100 {destination.crowd_level}</span>
             </div>
           </div>
 
-          {/* State / Region bottom left */}
-          <div className="absolute bottom-3 left-3 flex items-center gap-1 text-white text-xs font-semibold">
+          {/* Region & State Overlay */}
+          <div className="absolute bottom-3.5 left-4 flex items-center gap-1 text-white text-xs font-medium tracking-wide">
             <MapPin className="w-3.5 h-3.5 text-amber-400" />
-            <span>{destination.region}, {destination.state}</span>
+            <span className="drop-shadow-sm">{destination.region}, {destination.state}</span>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-5">
-          <h3 className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight group-hover:text-amber-600 transition-colors">
-            {destination.name}
-          </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+        {/* Content Section */}
+        <div className="p-6">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-extrabold text-xl text-stone-950 dark:text-white tracking-tight group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
+              {destination.name}
+            </h3>
+          </div>
+
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">
             {destination.tagline}
           </p>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 mt-3">
+          {/* Smart Information Chips */}
+          <div className="flex flex-wrap gap-1.5 mt-4">
             {destination.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md"
+                className="text-[10px] font-semibold bg-stone-100 dark:bg-stone-800/80 text-stone-600 dark:text-stone-300 px-2.5 py-1 rounded-md border border-stone-200/60 dark:border-white/5"
               >
                 {tag}
               </span>
@@ -61,13 +65,13 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({ destination })
         </div>
       </div>
 
-      {/* Footer / Price & Link */}
-      <div className="px-5 pb-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+      {/* Footer / Price & Clean Action Buttons */}
+      <div className="px-6 pb-6 pt-3 border-t border-stone-100 dark:border-white/5 flex items-center justify-between">
         <div>
-          <span className="text-[10px] uppercase font-bold text-slate-400 block">
+          <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">
             Avg Daily Budget
           </span>
-          <span className="font-bold text-sm text-slate-900 dark:text-white">
+          <span className="font-bold text-sm text-stone-950 dark:text-white font-mono">
             {formatINR(destination.avg_cost_per_day_inr)}
           </span>
         </div>
@@ -75,7 +79,7 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({ destination })
         <div className="flex items-center gap-2">
           <Link
             href={`/destinations/${destination.id}/crowd`}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-slate-600 hover:text-amber-600 transition-colors"
+            className="p-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-amber-100/60 dark:hover:bg-amber-950/40 text-stone-600 dark:text-stone-300 hover:text-amber-700 dark:hover:text-amber-400 transition-all border border-stone-200/80 dark:border-white/10"
             title="Check Crowd Heatmap"
           >
             <Flame className="w-4 h-4" />
@@ -83,7 +87,7 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({ destination })
 
           <Link
             href={`/destinations/${destination.id}`}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-amber-600 dark:hover:bg-amber-500 dark:hover:text-white text-xs font-bold transition-all"
+            className="btn-neo-primary flex items-center gap-1.5 px-4 py-2 text-xs font-bold transition-all"
           >
             <span>Explore</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -93,3 +97,4 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({ destination })
     </div>
   );
 };
+

@@ -11,7 +11,8 @@ import {
   HeartHandshake,
   CalendarCheck,
   Leaf,
-  Award
+  Award,
+  ArrowUpRight
 } from 'lucide-react';
 
 interface HomestayCardProps {
@@ -25,81 +26,73 @@ export const HomestayCard: React.FC<HomestayCardProps> = ({ homestay, onBookClic
   const isSustainableStay = homestay.sustainable_stay_badge ?? true;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between group">
+    <div className="neo-card group relative flex flex-col justify-between rounded-3xl bg-white dark:bg-[#121824] border border-stone-200/80 dark:border-white/10 overflow-hidden">
       <div>
-        {/* Cover Photo */}
-        <div className="relative h-52 w-full overflow-hidden">
+        {/* Cover Photography */}
+        <div className="relative h-60 w-full overflow-hidden bg-stone-900">
           <img
             src={homestay.images[0]}
             alt={homestay.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.95] group-hover:brightness-100"
+            loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent" />
 
-          {/* Verification & Sustainability Badges Stack */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+          {/* Verification & Badges Stack */}
+          <div className="absolute top-3.5 left-3.5 flex flex-col gap-1.5 z-10">
             {isPanchayatVerified && (
-              <div className="px-2.5 py-1 rounded-full bg-emerald-700/90 text-white font-bold text-[10px] tracking-wide backdrop-blur-md flex items-center gap-1 shadow-sm border border-emerald-400/30">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
-                <span>PANCHAYAT VERIFIED</span>
-              </div>
-            )}
-            {isHostVerified && (
-              <div className="px-2 py-0.5 rounded-full bg-blue-700/90 text-white font-semibold text-[9px] tracking-wide backdrop-blur-md flex items-center gap-1 shadow-sm border border-blue-400/30">
-                <Award className="w-3 h-3 text-blue-200" />
-                <span>HOST VERIFIED</span>
+              <div className="glass-pill px-3 py-1 rounded-full text-emerald-700 dark:text-emerald-400 font-bold text-[10px] tracking-wider uppercase flex items-center gap-1.5 shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Panchayat Verified</span>
               </div>
             )}
             {isSustainableStay && (
-              <div className="px-2 py-0.5 rounded-full bg-teal-800/90 text-teal-100 font-semibold text-[9px] tracking-wide backdrop-blur-md flex items-center gap-1 shadow-sm border border-teal-400/30">
-                <Leaf className="w-3 h-3 text-teal-300" />
-                <span>SUSTAINABLE STAY</span>
+              <div className="glass-pill px-2.5 py-0.5 rounded-full text-stone-700 dark:text-stone-300 font-semibold text-[9px] tracking-wide flex items-center gap-1 shadow-sm">
+                <Leaf className="w-3 h-3 text-emerald-600" />
+                <span>Sustainable</span>
               </div>
             )}
           </div>
 
           {/* Rating Badge */}
-          <div className="absolute top-3 right-3">
-            <div className="px-2.5 py-1 rounded-full bg-slate-900/80 text-white font-bold text-xs backdrop-blur-md flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+          <div className="absolute top-3.5 right-3.5">
+            <div className="glass-pill px-3 py-1 rounded-full text-stone-900 dark:text-white font-bold text-xs flex items-center gap-1.5 shadow-sm">
+              <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{homestay.rating}</span>
-              <span className="text-[10px] text-slate-400">({homestay.reviews_count})</span>
+              <span className="text-[10px] text-stone-400">({homestay.reviews_count})</span>
             </div>
           </div>
 
-          {/* Location Bottom Left */}
-          <div className="absolute bottom-3 left-3 text-white text-xs font-semibold flex items-center gap-1">
+          {/* Destination Overlay */}
+          <div className="absolute bottom-3.5 left-4 text-white text-xs font-medium flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5 text-amber-400" />
-            <span>{homestay.destination_name}</span>
+            <span className="drop-shadow-sm">{homestay.destination_name}</span>
           </div>
         </div>
 
         {/* Content Details */}
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <h3 className="font-extrabold text-base text-slate-900 dark:text-white line-clamp-1">
-                {homestay.title}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                {homestay.tagline}
-              </p>
-            </div>
-          </div>
+        <div className="p-6">
+          <h3 className="font-extrabold text-lg text-stone-950 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors line-clamp-1">
+            {homestay.title}
+          </h3>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1 line-clamp-1 leading-relaxed">
+            {homestay.tagline}
+          </p>
 
-          {/* Host Mini Profile */}
-          <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          {/* Host Profile */}
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-stone-100 dark:border-white/5">
             <img
               src={homestay.host.avatar_url}
               alt={homestay.host.name}
-              className="w-9 h-9 rounded-full object-cover border border-amber-500/30"
+              className="w-10 h-10 rounded-full object-cover border border-stone-200 dark:border-white/10"
+              loading="lazy"
             />
             <div className="text-xs">
-              <span className="font-bold text-slate-900 dark:text-white block leading-none">
+              <span className="font-bold text-stone-900 dark:text-white block leading-tight">
                 Hosted by {homestay.host.name}
               </span>
-              <span className="text-[10px] text-slate-400">
-                {homestay.host.experience_years} yrs hosting • {homestay.host.languages.slice(0, 2).join(', ')}
+              <span className="text-[10px] text-stone-400 block mt-0.5">
+                {homestay.host.languages.slice(0, 2).join(', ')}
               </span>
             </div>
           </div>
@@ -110,7 +103,7 @@ export const HomestayCard: React.FC<HomestayCardProps> = ({ homestay, onBookClic
               <Sparkles className="w-3 h-3" />
               <span>Host Experience Included</span>
             </div>
-            <p className="text-slate-700 dark:text-slate-300 font-medium text-[11px] mt-0.5">
+            <p className="text-stone-700 dark:text-stone-300 font-medium text-[11px] mt-0.5">
               {homestay.special_activity}
             </p>
           </div>
@@ -136,24 +129,24 @@ export const HomestayCard: React.FC<HomestayCardProps> = ({ homestay, onBookClic
       </div>
 
       {/* Footer / Price and CTA */}
-      <div className="px-5 pb-5 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="px-6 pb-6 pt-3 border-t border-stone-100 dark:border-white/5 flex items-center justify-between">
         <div>
           <div className="flex items-baseline gap-1">
-            <span className="font-extrabold text-base text-slate-900 dark:text-white">
+            <span className="font-extrabold text-base text-stone-950 dark:text-white font-mono">
               {formatINR(homestay.price_per_night_inr)}
             </span>
-            <span className="text-xs text-slate-400">/ night</span>
+            <span className="text-xs text-stone-400">/ night</span>
           </div>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
+          <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium block">
             Direct host payment
           </span>
         </div>
 
         <Link
           href={`/booking/confirmation?homestay_id=${homestay.id}`}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 active:scale-95 transition-all"
+          className="btn-neo-primary flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold transition-all"
         >
-          <CalendarCheck className="w-4 h-4" />
+          <CalendarCheck className="w-3.5 h-3.5" />
           <span>Reserve Stay</span>
         </Link>
       </div>
