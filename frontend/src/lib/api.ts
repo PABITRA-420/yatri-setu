@@ -769,6 +769,7 @@ export async function createBooking(payload: {
   check_in_date: string;
   check_out_date: string;
   number_of_guests: number;
+  green_credits_applied?: number;
 }): Promise<HomestayBookingResponse> {
   try {
     const res = await fetch(`${API_BASE_URL}/bookings`, {
@@ -780,25 +781,39 @@ export async function createBooking(payload: {
     return await res.json();
   } catch (err) {
     console.warn('Using fallback booking response:', err);
-    const homestay = FALLBACK_HOMESTAYS[0];
-    const subtotal = homestay.price_per_night_inr * 3;
-    const community = Math.round(subtotal * 0.1);
+    const matchedHomestay = FALLBACK_HOMESTAYS.find(h => h.id === payload.homestay_id) || FALLBACK_HOMESTAYS[0];
+    
+    // Dynamic nights calculation
+    const d1 = new Date(payload.check_in_date);
+    const d2 = new Date(payload.check_out_date);
+    const diffTime = Math.abs(d2.getTime() - d1.getTime());
+    const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))) || 3;
+    
+    const subtotal = matchedHomestay.price_per_night_inr * nights;
+    const discount = payload.green_credits_applied ? Math.min(subtotal, payload.green_credits_applied * 10) : 0;
+    const discountedSubtotal = Math.max(0, subtotal - discount);
+    const community = Math.round(discountedSubtotal * 0.1);
+    const randNum = Math.floor(1000 + Math.random() * 9000);
+    const bookingId = `YS-BK-${randNum}`;
+
     return {
-      booking_id: 'YS-BK-DEMO89',
-      homestay,
+      booking_id: bookingId,
+      homestay: matchedHomestay,
       traveler_name: payload.traveler_name,
       traveler_phone: payload.traveler_phone,
       check_in_date: payload.check_in_date,
       check_out_date: payload.check_out_date,
       number_of_guests: payload.number_of_guests,
-      total_nights: 3,
+      total_nights: nights,
       subtotal_inr: subtotal,
+      discount_inr: discount,
+      green_credits_redeemed: payload.green_credits_applied || 0,
       community_fund_contribution_inr: community,
-      total_amount_inr: subtotal + community,
+      total_amount_inr: discountedSubtotal + community,
       status: 'CONFIRMED',
-      digital_pass_qr_payload: 'YATRI-SETU-VERIFIED:YS-BK-DEMO89:hs-kalimpong-01:STAMP_OK',
-      host_contact: '+91 98320 87123 (Pemba Sherpa)',
-      homestay_gps: '27.0667° N, 88.4667° E',
+      digital_pass_qr_payload: `YATRI-SETU-VERIFIED:${bookingId}:${matchedHomestay.id}:STAMP_OK`,
+      host_contact: matchedHomestay.host ? `+91 98320 87123 (${matchedHomestay.host.name})` : '+91 98320 87123',
+      homestay_gps: matchedHomestay.address || '27.0667° N, 88.4667° E',
       created_at: new Date().toISOString()
     };
   }

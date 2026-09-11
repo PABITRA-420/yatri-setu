@@ -288,6 +288,8 @@ export interface HomestayBookingResponse {
   number_of_guests: number;
   total_nights: number;
   subtotal_inr: number;
+  discount_inr?: number;
+  green_credits_redeemed?: number;
   community_fund_contribution_inr: number;
   total_amount_inr: number;
   platform_fee_inr?: number;

@@ -24,12 +24,66 @@ export default function SosSafetyScreen() {
   const [loading, setLoading] = useState(false);
   const [alertData, setAlertData] = useState<SosAlertResponse | null>(null);
   const [alarmSounding, setAlarmSounding] = useState(false);
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+  const oscRef = React.useRef<OscillatorNode | null>(null);
+  const lfoRef = React.useRef<OscillatorNode | null>(null);
 
   // Form State
   const [userName, setUserName] = useState('Aarav Sharma');
   const [userPhone, setUserPhone] = useState('+91 98765 43210');
   const [emergencyType, setEmergencyType] = useState('Medical Assistance / Trail Sprain');
   const [notes, setNotes] = useState('Slipped near Atisha Road ridge trail. Need localized physical support.');
+
+  const toggleSirenAudio = () => {
+    if (alarmSounding) {
+      // Stop siren
+      try {
+        oscRef.current?.stop();
+        lfoRef.current?.stop();
+        audioCtxRef.current?.close();
+      } catch (e) {
+        console.error(e);
+      }
+      audioCtxRef.current = null;
+      setAlarmSounding(false);
+    } else {
+      // Start real Web Audio siren
+      try {
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+
+        const osc = ctx.createOscillator();
+        const lfo = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const lfoGain = ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(650, ctx.currentTime);
+
+        lfo.type = 'sine';
+        lfo.frequency.setValueAtTime(2.5, ctx.currentTime); // 2.5 Hz siren wail
+
+        lfoGain.gain.setValueAtTime(250, ctx.currentTime);
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        lfo.start();
+
+        oscRef.current = osc;
+        lfoRef.current = lfo;
+        setAlarmSounding(true);
+      } catch (e) {
+        console.warn('Web Audio not supported or blocked:', e);
+        setAlarmSounding(true);
+      }
+    }
+  };
 
   const handleTriggerSOS = async () => {
     setLoading(true);
@@ -48,6 +102,15 @@ export default function SosSafetyScreen() {
   };
 
   const handleCancelSOS = () => {
+    if (alarmSounding) {
+      try {
+        oscRef.current?.stop();
+        lfoRef.current?.stop();
+        audioCtxRef.current?.close();
+      } catch (e) {
+        console.error(e);
+      }
+    }
     setIsAlertActive(false);
     setAlarmSounding(false);
   };
@@ -91,7 +154,7 @@ export default function SosSafetyScreen() {
               {/* Siren Toggle */}
               <button
                 type="button"
-                onClick={() => setAlarmSounding(!alarmSounding)}
+                onClick={toggleSirenAudio}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                   alarmSounding ? 'bg-amber-400 text-slate-900 shadow-lg' : 'bg-white/20 hover:bg-white/30 text-white'
                 }`}
