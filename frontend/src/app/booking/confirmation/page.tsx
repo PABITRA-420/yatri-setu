@@ -32,9 +32,26 @@ function BookingConfirmationContent() {
   const [checkInDate, setCheckInDate] = useState('2026-10-12');
   const [checkOutDate, setCheckOutDate] = useState('2026-10-15');
   const [numberOfGuests, setNumberOfGuests] = useState(2);
+  const [applyGreenCredits, setApplyGreenCredits] = useState(true);
 
   const [booking, setBooking] = useState<HomestayBookingResponse | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Dynamic calculations based on selected dates
+  const calculateNights = () => {
+    const d1 = new Date(checkInDate);
+    const d2 = new Date(checkOutDate);
+    const diff = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    return isNaN(diff) || diff < 1 ? 1 : diff;
+  };
+
+  const nights = calculateNights();
+  const nightlyRate = 2400; // Standard Pineview cottage rate
+  const dynamicSubtotal = nightlyRate * nights;
+  const greenCreditsDiscount = applyGreenCredits ? 300 : 0; // 30 Green Credits = ₹300 discount
+  const discountedSubtotal = Math.max(0, dynamicSubtotal - greenCreditsDiscount);
+  const dynamicCommunityFund = Math.round(discountedSubtotal * 0.1);
+  const dynamicTotal = discountedSubtotal + dynamicCommunityFund;
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +64,8 @@ function BookingConfirmationContent() {
       emergency_contact: emergencyContact,
       check_in_date: checkInDate,
       check_out_date: checkOutDate,
-      number_of_guests: numberOfGuests
+      number_of_guests: numberOfGuests,
+      green_credits_applied: applyGreenCredits ? 30 : 0
     });
     setBooking(res);
     setLoading(false);
@@ -127,6 +145,17 @@ function BookingConfirmationContent() {
                     <span>Stay Tariff ({booking.total_nights} Nights):</span>
                     <span className="font-semibold">{formatINR(booking.subtotal_inr)}</span>
                   </div>
+
+                  {booking.discount_inr ? (
+                    <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                      <span className="flex items-center gap-1">
+                        <Leaf className="w-3.5 h-3.5" />
+                        Green Credits Reward ({booking.green_credits_redeemed || 30} pts):
+                      </span>
+                      <span>-{formatINR(booking.discount_inr)}</span>
+                    </div>
+                  ) : null}
+
                   <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                     <span className="flex items-center gap-1">
                       <HeartHandshake className="w-3.5 h-3.5" />
@@ -135,7 +164,7 @@ function BookingConfirmationContent() {
                     <span>{formatINR(booking.community_fund_contribution_inr)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-white pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <span>Total Amount:</span>
+                    <span>Total Amount Paid:</span>
                     <span className="text-amber-600 dark:text-amber-400 font-black text-base">
                       {formatINR(booking.total_amount_inr)}
                     </span>
@@ -279,21 +308,68 @@ function BookingConfirmationContent() {
               </div>
             </div>
 
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-700 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-600 dark:text-slate-300">
-                <span>Tariff (₹2,400 × 3 Nights):</span>
-                <span className="font-semibold">₹7,200</span>
+            {/* Green Credits In-Platform Voucher Box */}
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  <Leaf className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                      Apply 30 Green Credits
+                    </span>
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                      Save ₹300
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Your sustainable travel reward applied directly to this booking
+                  </p>
+                </div>
               </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={applyGreenCredits}
+                  onChange={(e) => setApplyGreenCredits(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
+              </label>
+            </div>
+
+            {/* Dynamic Tariff Breakdown */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-700 space-y-2.5 text-xs">
+              <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                <span>Stay Tariff (₹{nightlyRate.toLocaleString('en-IN')} × {nights} {nights === 1 ? 'Night' : 'Nights'}):</span>
+                <span className="font-semibold">{formatINR(dynamicSubtotal)}</span>
+              </div>
+
+              {applyGreenCredits && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                  <span className="flex items-center gap-1.5">
+                    <Leaf className="w-3.5 h-3.5" />
+                    Green Credits In-Platform Discount:
+                  </span>
+                  <span>-{formatINR(greenCreditsDiscount)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
                 <span className="flex items-center gap-1">
                   <Leaf className="w-3.5 h-3.5" />
                   10% Village Forest & Panchayat Fund:
                 </span>
-                <span>+ ₹720</span>
+                <span>+{formatINR(dynamicCommunityFund)}</span>
               </div>
+
               <div className="flex justify-between text-sm font-bold text-slate-900 dark:text-white pt-2 border-t border-slate-200 dark:border-slate-700">
-                <span>Total Estimated Cost:</span>
-                <span className="text-amber-600 dark:text-amber-400 font-black text-base">₹7,920</span>
+                <span>Total Payable:</span>
+                <span className="text-amber-600 dark:text-amber-400 font-black text-base">
+                  {formatINR(dynamicTotal)}
+                </span>
               </div>
             </div>
 

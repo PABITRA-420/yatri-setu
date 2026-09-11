@@ -10,7 +10,8 @@ import {
   ArrowRight, 
   ShieldCheck,
   Compass,
-  ArrowUpRight
+  ArrowUpRight,
+  Leaf
 } from 'lucide-react';
 
 interface AlternativeCardProps {
@@ -42,6 +43,10 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
             <div className="glass-pill px-3 py-1 rounded-full text-stone-900 dark:text-white font-extrabold text-xs flex items-center gap-1.5 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span>{alternative.similarity_score}% SIMILARITY</span>
+            </div>
+            <div className="glass-pill px-2.5 py-0.5 rounded-full text-emerald-800 dark:text-emerald-300 font-bold text-[10px] shadow-sm flex items-center gap-1 bg-emerald-500/20 border border-emerald-500/30">
+              <Leaf className="w-3 h-3 text-emerald-500" />
+              <span>+15 Green Credits</span>
             </div>
             {alternative.eco_tag && (
               <div className="glass-pill px-2.5 py-0.5 rounded-full text-stone-800 dark:text-stone-200 font-semibold text-[10px] shadow-sm">
