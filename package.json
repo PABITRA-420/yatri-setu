@@ -1,0 +1,20 @@
+{
+  "name": "yatri-setu",
+  "version": "1.0.0",
+  "description": "**Smart India Hackathon 2026** • Core Milestone: Complete Tourist Experience",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kusalar/yatri-setu.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kusalar/yatri-setu/issues"
+  },
+  "homepage": "https://github.com/kusalar/yatri-setu#readme"
+}
