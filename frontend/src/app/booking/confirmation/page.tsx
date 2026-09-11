@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createBooking } from '@/lib/api';
-import { HomestayBookingResponse } from '@/types';
+import { createBooking, fetchHomestays } from '@/lib/api';
+import { HomestayBookingResponse, Homestay } from '@/types';
 import { formatINR } from '@/lib/utils';
 import { 
   CheckCircle2, 
@@ -34,10 +34,26 @@ function BookingConfirmationContent() {
   const [numberOfGuests, setNumberOfGuests] = useState(2);
   const [applyGreenCredits, setApplyGreenCredits] = useState(true);
 
+  const [homestayDetails, setHomestayDetails] = useState<Homestay | null>(null);
   const [booking, setBooking] = useState<HomestayBookingResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Dynamic calculations based on selected dates
+  useEffect(() => {
+    async function loadHomestay() {
+      try {
+        const stays = await fetchHomestays();
+        const found = stays.find(h => h.id === homestayId);
+        if (found) {
+          setHomestayDetails(found);
+        }
+      } catch (err) {
+        console.warn('Could not fetch homestay details:', err);
+      }
+    }
+    loadHomestay();
+  }, [homestayId]);
+
+  // Dynamic calculations based on selected dates & homestay rate
   const calculateNights = () => {
     const d1 = new Date(checkInDate);
     const d2 = new Date(checkOutDate);
@@ -46,7 +62,7 @@ function BookingConfirmationContent() {
   };
 
   const nights = calculateNights();
-  const nightlyRate = 2400; // Standard Pineview cottage rate
+  const nightlyRate = homestayDetails?.price_per_night_inr || 2400;
   const dynamicSubtotal = nightlyRate * nights;
   const greenCreditsDiscount = applyGreenCredits ? 300 : 0; // 30 Green Credits = ₹300 discount
   const discountedSubtotal = Math.max(0, dynamicSubtotal - greenCreditsDiscount);
@@ -221,7 +237,7 @@ function BookingConfirmationContent() {
               Reserve Verified Rural Homestay
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Simulate booking Pineview Orchid Retreat (Kalimpong) with digital pass generation and emergency contact link.
+              Simulate booking {homestayDetails ? `${homestayDetails.title} (${homestayDetails.destination_name})` : 'Pineview Orchid Retreat (Kalimpong)'} with digital pass generation and emergency contact link.
             </p>
           </div>
 
