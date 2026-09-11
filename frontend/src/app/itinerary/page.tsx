@@ -40,6 +40,7 @@ function ItineraryPlannerContent() {
   const [destinationId, setDestinationId] = useState(initialDest);
   const [durationDays, setDurationDays] = useState(3);
   const [travelerType, setTravelerType] = useState('Couple');
+  const [numberOfTravelers, setNumberOfTravelers] = useState(2);
   const [pace, setPace] = useState('Moderate');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([
     'Nature',
@@ -202,21 +203,55 @@ function ItineraryPlannerContent() {
             </div>
           </div>
 
-          {/* Traveler Type */}
+          {/* Traveler Type & Number of Persons */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              Party Type
-            </label>
-            <select
-              value={travelerType}
-              onChange={(e) => setTravelerType(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="Solo">Solo Explorer</option>
-              <option value="Couple">Couple / Partners</option>
-              <option value="Family">Family with Children</option>
-              <option value="Friends">Friends Group</option>
-            </select>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Party & Persons
+              </label>
+              <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">
+                {numberOfTravelers} {numberOfTravelers === 1 ? 'Person' : 'Persons'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={travelerType}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTravelerType(val);
+                  if (val === 'Solo') setNumberOfTravelers(1);
+                  else if (val === 'Couple') setNumberOfTravelers(2);
+                  else if (val === 'Family') setNumberOfTravelers(4);
+                  else if (val === 'Friends') setNumberOfTravelers(4);
+                }}
+                className="w-full px-2.5 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
+              >
+                <option value="Solo">Solo</option>
+                <option value="Couple">Couple</option>
+                <option value="Family">Family</option>
+                <option value="Friends">Friends</option>
+              </select>
+
+              <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-2 py-1 justify-between">
+                <button
+                  type="button"
+                  onClick={() => setNumberOfTravelers(Math.max(1, numberOfTravelers - 1))}
+                  className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 font-black text-xs hover:bg-amber-600 hover:text-white transition-colors"
+                >
+                  -
+                </button>
+                <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">
+                  {numberOfTravelers}p
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setNumberOfTravelers(Math.min(12, numberOfTravelers + 1))}
+                  className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 font-black text-xs hover:bg-amber-600 hover:text-white transition-colors"
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Travel Pace */}
@@ -315,15 +350,20 @@ function ItineraryPlannerContent() {
             </div>
 
             {/* Estimated Total Budget */}
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center min-w-[200px]">
-              <span className="text-[10px] uppercase font-bold text-slate-300 block mb-1">
-                Estimated Total Spend
-              </span>
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center min-w-[210px]">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <span className="text-[10px] uppercase font-bold text-slate-300">
+                  Estimated Total Spend
+                </span>
+                <span className="text-[10px] font-mono text-amber-300 font-bold">
+                  ({numberOfTravelers} {numberOfTravelers === 1 ? 'person' : 'persons'})
+                </span>
+              </div>
               <span className="text-2xl font-black text-amber-400">
-                {formatINR(itinerary.total_estimated_budget_inr)}
+                {formatINR(itinerary.total_estimated_budget_inr * numberOfTravelers)}
               </span>
               <span className="text-[10px] text-slate-300 block mt-0.5">
-                Excl. homestay stay
+                {formatINR(itinerary.total_estimated_budget_inr)} / person • Excl. homestay
               </span>
             </div>
           </div>
@@ -631,7 +671,7 @@ function ItineraryPlannerContent() {
           </div>
 
           {/* Interactive Day-by-Day Timeline */}
-          <ItineraryTimeline days={itinerary.days} />
+          <ItineraryTimeline days={itinerary.days} personMultiplier={numberOfTravelers} />
 
           {/* Next Step in SIH Demo Flow: Select Homestay */}
           <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">

@@ -17,9 +17,10 @@ import {
 
 interface ItineraryTimelineProps {
   days: ItineraryDay[];
+  personMultiplier?: number;
 }
 
-export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days }) => {
+export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days, personMultiplier = 1 }) => {
   const [activeDayIdx, setActiveDayIdx] = useState(0);
 
   if (!days || days.length === 0) {
@@ -61,7 +62,7 @@ export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days }) =>
           >
             <span>Day {day.day_number}</span>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeDayIdx === idx ? 'bg-amber-700/80 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
-              {formatINR(day.estimated_budget_inr)}
+              {formatINR(day.estimated_budget_inr * personMultiplier)}
             </span>
           </button>
         ))}
