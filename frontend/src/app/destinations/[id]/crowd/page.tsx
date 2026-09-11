@@ -54,38 +54,52 @@ export default function CrowdIntelligencePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      {/* Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-stone-200/80 dark:border-white/10">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-700 dark:text-amber-400">
-              <Flame className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                  SIH 2026 Core Innovation
-                </span>
-              </div>
-              <h1 className="text-3xl sm:text-5xl font-extrabold text-stone-950 dark:text-white tracking-tight">
-                Crowd Intelligence: {crowd.destination_name}
-              </h1>
-              <p className="text-xs sm:text-sm text-stone-500 mt-1">
-                Deterministic Multi-Factor Footfall Advisor & Capacity Management
-              </p>
-            </div>
-          </div>
+      {/* Hero Header with Blurred Background Image */}
+      <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-stone-200 dark:border-white/10">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/image2.png" 
+            alt="Forest backdrop" 
+            className="w-full h-full object-cover blur-[3px] scale-105 brightness-[0.7] dark:brightness-[0.4]"
+          />
+          {/* Gradient Overlay for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/50 to-stone-900/30"></div>
         </div>
 
-        {/* Primary CTA to view alternatives */}
-        <Link
-          href={`/destinations/${id}/alternatives`}
-          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs shadow-md transition-all self-start md:self-auto active:scale-97"
-        >
-          <Sparkles className="w-4 h-4 text-amber-300" />
-          <span>View Recommended Alternatives</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
+        {/* Header Content */}
+        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 p-8 sm:p-12">
+          <div>
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md text-amber-400 shadow-inner border border-white/20">
+                <Flame className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 drop-shadow-md">
+                    SIH 2026 Core Innovation
+                  </span>
+                </div>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight drop-shadow-lg">
+                  Crowd Intelligence: <br className="hidden sm:block" />{crowd.destination_name}
+                </h1>
+                <p className="text-xs sm:text-sm text-stone-200 mt-3 font-medium drop-shadow-md max-w-xl">
+                  Deterministic Multi-Factor Footfall Advisor & Capacity Management
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary CTA to view alternatives */}
+          <Link
+            href={`/destinations/${id}/alternatives`}
+            className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all self-start md:self-auto active:scale-95"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>View Recommended Alternatives</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Top Banner: Score Gauge & Live Real-time Status */}
