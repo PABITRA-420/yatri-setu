@@ -258,3 +258,17 @@ class SafetyIncidentModel(Base):
     longitude = Column(Float, nullable=True)
     resolved = Column(Boolean, default=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+# 17. First-Party Demand Event Entity (Milestone 7A)
+class DemandEventModel(Base):
+    __tablename__ = "demand_events"
+
+    id = Column(String(64), primary_key=True, index=True)
+    destination_id = Column(String(64), nullable=False, index=True)
+    event_type = Column(String(64), nullable=False, index=True) # search, booking, availability, trip_start, destination_selection, alternative_acceptance
+    session_id = Column(String(128), nullable=True, index=True)
+    user_id = Column(String(128), nullable=True, index=True)
+    metadata_json = Column(JSON, nullable=True)
+    source = Column(String(128), default="YATRI_SETU_NETWORK", nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)

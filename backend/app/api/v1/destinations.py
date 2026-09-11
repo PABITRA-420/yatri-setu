@@ -11,6 +11,8 @@ from app.services.alternative_engine import get_alternative_destinations
 from app.services.date_advisor import get_date_alternatives
 from app.services.flow_decision_engine import compute_destination_decision
 from app.services.weather_service import get_destination_weather, WeatherForecast
+from app.services.demand_aggregation_service import demand_aggregation_service
+from app.models.demand import DemandEventType
 
 router = APIRouter(prefix="/destinations", tags=["Destinations & Crowd Advisor"])
 
@@ -60,6 +62,18 @@ def list_destinations(
                 tags=d["tags"]
             )
         )
+    # Record a single search event per meaningful query
+    if query:
+        cleaned_query = query.strip()
+        if cleaned_query:
+            try:
+                demand_aggregation_service.record_event(
+                    event_type=DemandEventType.SEARCH.value,
+                    destination_id=None,
+                    metadata={"query": cleaned_query}
+                )
+            except Exception:
+                pass
     return summaries
 
 @router.get("/{destination_id}", response_model=Destination)
@@ -68,6 +82,14 @@ def get_destination_details(destination_id: str):
     norm_id = destination_id.lower().strip()
     for d in DESTINATIONS_DATA:
         if d["id"] == norm_id:
+            try:
+                demand_aggregation_service.record_event(
+                    event_type=DemandEventType.DESTINATION_SELECTION.value,
+                    destination_id=norm_id,
+                    metadata={"action": "view_details"}
+                )
+            except Exception:
+                pass
             return Destination(**d)
     raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
 
@@ -137,7 +159,7 @@ def post_destination_flow_decision(
 ):
     """POST variant for flow decision engine with structured preferences."""
     try:
-        return compute_destination_decision(
+        decision = compute_destination_decision(
             destination_id=destination_id,
             start_date=body.start_date,
             end_date=body.end_date,
@@ -145,6 +167,21 @@ def post_destination_flow_decision(
             interests=body.interests,
             group_size=body.group_size or 2
         )
+        if decision.recommended_action == "CHANGE_DESTINATION" and decision.alternative_destinations:
+            try:
+                top_alt = decision.alternative_destinations[0]
+                demand_aggregation_service.record_event(
+                    event_type=DemandEventType.ALTERNATIVE_ACCEPTANCE.value,
+                    destination_id=top_alt.id,
+                    metadata={
+                        "origin_destination_id": destination_id,
+                        "similarity_score": top_alt.similarity_score,
+                        "cost_diff_percent": top_alt.cost_difference_percent
+                    }
+                )
+            except Exception:
+                pass
+        return decision
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
     except ValueError as ve:
