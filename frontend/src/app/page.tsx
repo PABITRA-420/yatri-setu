@@ -254,7 +254,7 @@ export default function HomePage() {
             alt="Forest backdrop" 
             className="w-full h-full object-cover filter blur-[4px] brightness-[0.7] dark:brightness-[0.3]"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-stone-950 via-stone-950/50 to-stone-950/90 dark:from-stone-950 dark:via-stone-950/70 dark:to-[#0C0F14]"></div>
+          <div className="absolute inset-0 from-stone-950 via-stone-950/50 to-stone-950/90 dark:from-stone-950 dark:via-stone-950/70 dark:to-[#0C0F14]"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 mt-16">
@@ -306,7 +306,7 @@ export default function HomePage() {
             alt="Experience backdrop" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-stone-50/85 dark:bg-[#0C0F14]/85 backdrop-blur-[2px]"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-stone-950/90 via-stone-950/50 to-stone-950/90 dark:from-stone-950 dark:via-stone-950/70 dark:to-[#0C0F14]"></div>
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 pb-4 border-b border-stone-200/80 dark:border-white/10">
