@@ -68,9 +68,9 @@ function AlternativesContent() {
 
   if (loading || !altData || !dateData) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center animate-pulse">
-        <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-xl mx-auto mb-4" />
-        <div className="h-6 w-96 bg-slate-200 dark:bg-slate-800 rounded-lg mx-auto" />
+      <div className="max-w-7xl mx-auto px-4 py-24 text-center animate-pulse">
+        <div className="h-10 w-64 bg-stone-200 dark:bg-stone-800 rounded-2xl mx-auto mb-4" />
+        <div className="h-6 w-96 bg-stone-200 dark:bg-stone-800 rounded-xl mx-auto" />
       </div>
     );
   }
@@ -78,12 +78,12 @@ function AlternativesContent() {
   const isOvercrowded = altData.origin_crowd_score > 75;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Back Navigation */}
       <div>
         <Link
           href={`/destinations/${id}/crowd`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 mb-3"
+          className="inline-flex items-center gap-2 text-xs font-bold text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 mb-2 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to {altData.origin_destination_name} Crowd Intelligence</span>
@@ -91,49 +91,49 @@ function AlternativesContent() {
       </div>
 
       {/* Primary Flow Management Hero Banner */}
-      <div className={`rounded-3xl p-6 sm:p-8 text-white shadow-xl border-2 transition-all ${
+      <div className={`rounded-[2.5rem] p-8 sm:p-12 text-white shadow-2xl border transition-all ${
         isOvercrowded 
-          ? 'bg-gradient-to-r from-rose-950 via-slate-900 to-rose-950 border-rose-500/40' 
-          : 'bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 border-amber-500/30'
+          ? 'bg-stone-950 border-rose-900/40' 
+          : 'bg-stone-950 border-stone-800'
       }`}>
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="space-y-4 max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="px-3.5 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 font-mono">
                 <Flame className="w-3.5 h-3.5 animate-pulse" />
-                <span>Crowd Pressure Alert: {altData.origin_crowd_score}/100</span>
+                <span>Crowd Pressure: {altData.origin_crowd_score}/100</span>
               </span>
-              <span className="px-2.5 py-1 rounded-full bg-white/10 text-[11px] font-bold uppercase tracking-wide">
+              <span className="px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-widest text-stone-300">
                 SIH 2026 Tourist Flow Engine
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
               {isOvercrowded
-                ? `Your destination (${altData.origin_destination_name}) is under critical pressure.`
+                ? `Your destination (${altData.origin_destination_name}) is under critical congestion.`
                 : `Active Flow Advisory for ${altData.origin_destination_name}`}
             </h1>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
               Yatri Setu actively balances tourist distribution to safeguard Himalayan ecosystems. 
               Instead of competing with 91% hotel saturation and gridlocked mountain roads, choose between 
-              <strong> changing your destination</strong> or <strong>shifting your travel dates</strong>.
+              <strong className="text-white"> shifting to a serene destination</strong> or <strong className="text-white">adjusting your travel dates</strong>.
             </p>
           </div>
 
           {/* Recommended Flow Action Card */}
-          <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 text-center min-w-[260px] self-start lg:self-auto shrink-0 space-y-2">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-300 block">
+          <div className="glass-panel p-6 rounded-3xl text-center min-w-[280px] self-start lg:self-auto shrink-0 space-y-3">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700 dark:text-amber-400 block">
               Recommended Flow Action
             </span>
-            <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 text-white font-black text-sm tracking-wide shadow-md">
+            <div className="px-4 py-2.5 rounded-2xl bg-amber-400 text-stone-950 font-extrabold text-xs tracking-wide shadow-xs">
               {decision?.recommended_action === 'CHANGE_DESTINATION' 
                 ? 'A. CHANGE DESTINATION' 
                 : decision?.recommended_action === 'CHANGE_DATES'
                 ? 'B. CHANGE TRAVEL DATES'
                 : 'KEEP DESTINATION'}
             </div>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
               {decision?.recommended_action === 'CHANGE_DESTINATION'
                 ? 'Divert to Kalimpong (87% Match, 52% lower crowd)'
                 : 'Shift to calm mid-week or post-holiday dates'}
@@ -143,14 +143,14 @@ function AlternativesContent() {
       </div>
 
       {/* Dual Pathway Switcher / Tabs */}
-      <div className="flex items-center justify-center p-1.5 bg-slate-200/70 dark:bg-slate-800/80 rounded-2xl max-w-xl mx-auto border border-slate-300 dark:border-slate-700">
+      <div className="flex items-center justify-center p-1.5 bg-stone-200/70 dark:bg-stone-900 rounded-2xl max-w-lg mx-auto border border-stone-300/80 dark:border-white/10">
         <button
           type="button"
           onClick={() => setActiveTab('DESTINATION')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'DESTINATION'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#121824] text-stone-950 dark:text-white shadow-xs'
+              : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white'
           }`}
         >
           <Compass className="w-4 h-4 text-amber-600" />
@@ -160,13 +160,13 @@ function AlternativesContent() {
         <button
           type="button"
           onClick={() => setActiveTab('DATES')}
-          className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'DATES'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-md'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#121824] text-stone-950 dark:text-white shadow-xs'
+              : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white'
           }`}
         >
-          <Calendar className="w-4 h-4 text-emerald-600" />
+          <Calendar className="w-4 h-4 text-amber-600" />
           <span>Option B: Change Dates</span>
         </button>
       </div>
