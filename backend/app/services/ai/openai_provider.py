@@ -21,9 +21,9 @@ from app.models.itinerary import ItineraryContext, AIItineraryOutput
 logger = logging.getLogger(__name__)
 
 class OpenAIProvider(BaseAIProvider):
-    def __init__(self):
-        self.api_key = settings.OPENAI_API_KEY
-        self.model = settings.OPENAI_MODEL
+    def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
+        self.api_key = api_key or settings.OPENAI_API_KEY
+        self.model = model or settings.OPENAI_MODEL
         self._fallback_provider = MockAIProvider()
 
     @property
@@ -31,8 +31,8 @@ class OpenAIProvider(BaseAIProvider):
         return "openai"
 
     async def generate_itinerary(self, context: ItineraryContext) -> AIItineraryOutput:
-        if not self.api_key:
-            logger.warning("OPENAI_API_KEY is not set. Falling back to MockAIProvider.")
+        if not self.api_key or not self.api_key.strip():
+            logger.info("OPENAI_API_KEY is not set or empty. Safely falling back to MockAIProvider.")
             output = await self._fallback_provider.generate_itinerary(context)
             output.overview_note += " (Generated via Yatri Setu Himalayan Adaptive Engine; OpenAI key not configured)"
             return output
@@ -43,7 +43,7 @@ class OpenAIProvider(BaseAIProvider):
                 response = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers={
-                        "Authorization": f"Bearer {self.api_key}",
+                        "Authorization": f"Bearer {self.api_key.strip()}",
                         "Content-Type": "application/json"
                     },
                     json={
@@ -57,16 +57,29 @@ class OpenAIProvider(BaseAIProvider):
                     }
                 )
                 if response.status_code != 200:
-                    logger.error(f"OpenAI API returned status {response.status_code}: {response.text}")
-                    return await self._fallback_provider.generate_itinerary(context)
+                    status_reason = "rate limit (HTTP 429)" if response.status_code == 429 else f"HTTP {response.status_code}"
+                    logger.warning(f"OpenAI API returned status {response.status_code}. Falling back to MockAIProvider: {status_reason}")
+                    output = await self._fallback_provider.generate_itinerary(context)
+                    output.overview_note += f" (Generated via Yatri Setu Himalayan Adaptive Engine; OpenAI {status_reason} fallback)"
+                    return output
 
                 data = response.json()
                 content_text = data["choices"][0]["message"]["content"].strip()
-                return AIItineraryOutput.model_validate_json(content_text)
+                validated = AIItineraryOutput.model_validate_json(content_text)
+                if "(Enriched via OpenAI" not in validated.overview_note:
+                    validated.overview_note += f" (Enriched via OpenAI {self.model})"
+                return validated
 
+        except httpx.TimeoutException:
+            logger.warning("OpenAI API request timed out (30s). Falling back to MockAIProvider.")
+            output = await self._fallback_provider.generate_itinerary(context)
+            output.overview_note += " (Generated via Yatri Setu Himalayan Adaptive Engine; OpenAI timeout fallback)"
+            return output
         except Exception as e:
-            logger.exception(f"Error calling OpenAI API: {e}. Falling back to MockAIProvider.")
-            return await self._fallback_provider.generate_itinerary(context)
+            logger.warning(f"Error calling OpenAI API: {e}. Falling back to MockAIProvider.")
+            output = await self._fallback_provider.generate_itinerary(context)
+            output.overview_note += " (Generated via Yatri Setu Himalayan Adaptive Engine; provider error fallback)"
+            return output
 
     async def optimize_itinerary(
         self,

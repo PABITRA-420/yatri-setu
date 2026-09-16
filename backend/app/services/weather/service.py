@@ -88,6 +88,7 @@ class WeatherService:
                 stale_obs: WeatherObservation = cached_entry["observation"].model_copy()
                 stale_obs.cache_status = "STALE"
                 stale_obs.data_quality = "DEGRADED"
+                stale_obs.provenance_label = "MIXED — STALE TELEMETRY FALLBACK"
                 stale_obs.confidence = max(0.4, stale_obs.confidence * 0.7)
                 stale_obs.advisory += " [Notice: Displaying cached observation due to temporary telemetry delay]"
                 return stale_obs
@@ -97,6 +98,7 @@ class WeatherService:
             fallback_obs = demo.fetch_current(dest_clean)
             fallback_obs.cache_status = "STALE"
             fallback_obs.data_quality = "DEGRADED"
+            fallback_obs.provenance_label = "DEMO MODE — SYNTHETIC DATA"
             fallback_obs.confidence = 0.50
             return fallback_obs
 
@@ -137,6 +139,7 @@ class WeatherService:
                 confidence=obs.confidence,
                 source=obs.source,
                 provider_mode=obs.provider_mode,
+                provenance_label=obs.provenance_label,
                 observed_at=obs.observed_at
             )
 
@@ -197,6 +200,7 @@ class WeatherService:
             confidence=obs.confidence,
             source=obs.source,
             provider_mode=obs.provider_mode,
+            provenance_label=obs.provenance_label,
             observed_at=obs.observed_at
         )
 
