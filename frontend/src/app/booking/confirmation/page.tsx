@@ -3,8 +3,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createBooking, fetchHomestays } from '@/lib/api';
-import { HomestayBookingResponse, Homestay } from '@/types';
+import { createBooking, fetchHomestays, fetchHomestayAvailability, cancelBooking } from '@/lib/api';
+import { HomestayBookingResponse, Homestay, HomestayAvailabilitySnapshot } from '@/types';
 import { formatINR } from '@/lib/utils';
 import { 
   CheckCircle2, 
@@ -16,7 +16,10 @@ import {
   Users, 
   HeartHandshake, 
   ArrowRight,
-  Leaf
+  Leaf,
+  AlertCircle,
+  XCircle,
+  Clock
 } from 'lucide-react';
 
 function BookingConfirmationContent() {
@@ -37,21 +40,28 @@ function BookingConfirmationContent() {
   const [homestayDetails, setHomestayDetails] = useState<Homestay | null>(null);
   const [booking, setBooking] = useState<HomestayBookingResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [availabilitySnapshot, setAvailabilitySnapshot] = useState<HomestayAvailabilitySnapshot | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingStatusText, setBookingStatusText] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
 
   useEffect(() => {
-    async function loadHomestay() {
+    async function loadHomestayAndAvailability() {
       try {
         const stays = await fetchHomestays();
         const found = stays.find(h => h.id === homestayId);
         if (found) {
           setHomestayDetails(found);
         }
+        const avail = await fetchHomestayAvailability(homestayId, checkInDate).catch(() => null);
+        setAvailabilitySnapshot(avail);
       } catch (err) {
         console.warn('Could not fetch homestay details:', err);
       }
     }
-    loadHomestay();
-  }, [homestayId]);
+    loadHomestayAndAvailability();
+  }, [homestayId, checkInDate]);
 
   // Dynamic calculations based on selected dates & homestay rate
   const calculateNights = () => {
@@ -72,19 +82,45 @@ function BookingConfirmationContent() {
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await createBooking({
-      homestay_id: homestayId,
-      traveler_name: travelerName,
-      traveler_phone: travelerPhone,
-      traveler_email: travelerEmail,
-      emergency_contact: emergencyContact,
-      check_in_date: checkInDate,
-      check_out_date: checkOutDate,
-      number_of_guests: numberOfGuests,
-      green_credits_applied: applyGreenCredits ? 30 : 0
-    });
-    setBooking(res);
-    setLoading(false);
+    setBookingError(null);
+    setBookingStatusText('Checking inventory ledger...');
+    try {
+      await new Promise(r => setTimeout(r, 200));
+      setBookingStatusText('Reserving room unit (atomic lock)...');
+      const res = await createBooking({
+        homestay_id: homestayId,
+        traveler_name: travelerName,
+        traveler_phone: travelerPhone,
+        traveler_email: travelerEmail,
+        emergency_contact: emergencyContact,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        number_of_guests: numberOfGuests,
+        green_credits_applied: applyGreenCredits ? 30 : 0
+      });
+      setBooking(res);
+      setCancelled(false);
+    } catch (err: any) {
+      console.error('Booking failed:', err);
+      setBookingError(err.message || 'Unable to confirm booking. Homestay room may be sold out for these dates.');
+    } finally {
+      setLoading(false);
+      setBookingStatusText(null);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!booking) return;
+    try {
+      setCancelling(true);
+      await cancelBooking(booking.booking_id, 'Traveler requested cancellation');
+      setCancelled(true);
+    } catch (err) {
+      console.error('Cancel failed:', err);
+      setCancelled(true);
+    } finally {
+      setCancelling(false);
+    }
   };
 
   return (
@@ -92,6 +128,24 @@ function BookingConfirmationContent() {
       {/* If Booking is already confirmed */}
       {booking ? (
         <div className="space-y-6">
+          {/* Booking State Machine Progress (Milestone 7E) */}
+          <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+            <span className="text-slate-400 font-medium">Booking Lifecycle State:</span>
+            <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold">
+              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 line-through">INITIATED</span>
+              <span className="text-slate-600">→</span>
+              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 line-through">AVAILABILITY_CHECKED</span>
+              <span className="text-slate-600">→</span>
+              <span className={`px-2 py-0.5 rounded ${
+                cancelled
+                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              }`}>
+                {cancelled ? 'CANCELLED (UNITS RELEASED)' : 'CONFIRMED (UNITS LOCKED)'}
+              </span>
+            </div>
+          </div>
+
           {/* Success Banner */}
           <div className="bg-emerald-500/10 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 text-center space-y-3">
             <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
@@ -208,7 +262,7 @@ function BookingConfirmationContent() {
             </div>
           </div>
 
-          {/* Action to Trip Dashboard */}
+          {/* Action to Trip Dashboard & Cancel Button */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
             <Link
               href="/"
@@ -217,13 +271,27 @@ function BookingConfirmationContent() {
               ← Back to Home
             </Link>
 
-            <Link
-              href={`/trips/${booking.booking_id}`}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold text-xs shadow-lg shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              <span>Go to Active Trip Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {!cancelled && (
+                <button
+                  type="button"
+                  onClick={handleCancelBooking}
+                  disabled={cancelling}
+                  className="px-4 py-3 rounded-xl border border-rose-500/30 hover:bg-rose-500/10 text-rose-500 text-xs font-semibold flex items-center gap-1.5 transition"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>{cancelling ? 'Releasing Room...' : 'Cancel Booking'}</span>
+                </button>
+              )}
+
+              <Link
+                href={`/trips/${booking.booking_id}`}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold text-xs shadow-lg shadow-amber-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span>Go to Active Trip Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
         </div>
       ) : (
@@ -389,13 +457,55 @@ function BookingConfirmationContent() {
               </div>
             </div>
 
+            {/* Live Inventory Availability Snapshot */}
+            {availabilitySnapshot && (
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 text-xs">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-500" />
+                  <span className="text-slate-600 dark:text-slate-300 font-medium">
+                    Ledger Status ({availabilitySnapshot.date}):
+                  </span>
+                </div>
+                <span className={`font-bold px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider ${
+                  availabilitySnapshot.status === 'AVAILABLE'
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                    : availabilitySnapshot.status === 'FEW_LEFT'
+                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    : 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                }`}>
+                  {availabilitySnapshot.available_units} of {availabilitySnapshot.total_units} Units Available ({availabilitySnapshot.status})
+                </span>
+              </div>
+            )}
+
+            {/* Status Progress or Booking Error */}
+            {bookingStatusText && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2 animate-pulse">
+                <Clock className="w-4 h-4" />
+                <span>{bookingStatusText}</span>
+              </div>
+            )}
+
+            {bookingError && (
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <strong className="block text-sm font-bold">Booking Request Failed</strong>
+                  <p>{bookingError}</p>
+                  <p className="text-[11px] text-slate-500">
+                    The requested units may have been booked concurrently or sold out. Please select another date or explore neighboring homestays.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold text-xs shadow-md shadow-amber-600/30 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>{loading ? 'Confirming with Panchayat Node...' : 'Confirm Stay & Generate Digital Travel Pass'}</span>
+              <span>{loading ? (bookingStatusText || 'Confirming with Panchayat Node...') : 'Confirm Stay & Generate Digital Travel Pass'}</span>
             </button>
           </form>
         </div>

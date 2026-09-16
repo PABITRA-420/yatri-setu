@@ -105,6 +105,19 @@ export interface AlternativeRecommendation {
   matching_attributes: string[];
   key_experience: string;
   eco_tag: string;
+  // Milestone 7D Capacity & Network Intelligence
+  destination_id?: string;
+  current_pressure?: number;
+  expected_pressure?: number;
+  capacity_status?: string;
+  available_capacity?: number;
+  access_status?: string;
+  weather_summary?: string;
+  traffic_summary?: string;
+  homestay_availability?: string;
+  reasons?: string[];
+  provenance?: string;
+  last_updated?: string;
 }
 
 export interface AlternativesResponse {
@@ -1238,4 +1251,213 @@ export interface DestinationLiveConditions {
 }
 
 export type CircuitConditionsResponse = Record<string, DestinationLiveConditions>;
+
+// ==========================================
+// Milestone 7D: Capacity & Flow Simulation Types
+// ==========================================
+
+export type CapacityHealthStatus = 'HEALTHY' | 'LIMITED' | 'HIGH_UTILIZATION' | 'FULL' | 'UNKNOWN';
+export type CapacityDataStatus = 'AVAILABLE' | 'PARTIAL' | 'UNKNOWN';
+export type CapacityConfidence = 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+
+export interface DestinationCapacity {
+  destination_id: string;
+  destination_name: string;
+  listed_properties: number;
+  active_properties: number;
+  total_units: number;
+  available_units: number;
+  occupied_units: number;
+  reserved_units: number;
+  occupancy_rate: number;
+  estimated_daily_host_capacity: number;
+  capacity_health: CapacityHealthStatus;
+  capacity_data_status: CapacityDataStatus;
+  capacity_confidence: CapacityConfidence;
+  unit_type: string;
+  last_updated: string;
+  source: string;
+  provider_mode: string;
+  data_quality: string;
+}
+
+export interface DestinationNetworkEdge {
+  source_destination_id: string;
+  target_destination_id: string;
+  route_distance_km: number;
+  typical_travel_time_min: number;
+  alternative_type: string;
+  corridor_ids: string[];
+  seasonality: string;
+  transfer_feasibility: string;
+  active: boolean;
+  source: string;
+  data_quality: string;
+}
+
+export interface CandidateAllocation {
+  destination_id: string;
+  destination_name: string;
+  allocated_visitors: number;
+  allocation_percentage: number;
+  current_pressure: number;
+  projected_pressure: number;
+  capacity_status: string;
+  absorption_status: 'ACCEPTED' | 'PARTIAL' | 'REJECTED' | string;
+  available_capacity: number;
+  remaining_capacity: number;
+  notes: string;
+}
+
+export interface FlowScenarioRequest {
+  source_destination_id: string;
+  affected_visitors: number;
+  date?: string;
+  acceptance_rate?: number;
+}
+
+export interface FlowScenarioResponse {
+  scenario: string;
+  source_destination: {
+    id: string;
+    name: string;
+    current_pressure: number;
+    crowd_level: string;
+  };
+  affected_visitors: number;
+  assumed_acceptance_rate: number;
+  estimated_redirected_visitors: number;
+  total_allocated_visitors: number;
+  unallocated_visitors: number;
+  status: 'OPTIMAL' | 'FLOW_CAPACITY_LIMITED' | 'NO_ELIGIBLE_DESTINATIONS' | string;
+  allocations: CandidateAllocation[];
+  warnings: string[];
+  provenance: string;
+  generated_at: string;
+}
+
+// ─── Milestone 7E: Real Booking / Availability + First-Party Conversion ────
+
+export type AvailabilityStatus = 'AVAILABLE' | 'FEW_LEFT' | 'SOLD_OUT' | 'UNAVAILABLE';
+
+export interface HomestayAvailabilitySnapshot {
+  homestay_id: string;
+  homestay_name: string;
+  destination_id: string;
+  destination_name: string;
+  date: string;
+  total_units: number;
+  reserved_units: number;
+  available_units: number;
+  status: AvailabilityStatus;
+  is_bookable: boolean;
+  price_per_night_inr: number;
+  data_quality: string;
+  last_updated: string;
+}
+
+export interface DestinationAvailabilitySnapshot {
+  destination_id: string;
+  destination_name: string;
+  date: string;
+  total_homestays: number;
+  total_units: number;
+  reserved_units: number;
+  available_units: number;
+  occupancy_rate: number;
+  status: AvailabilityStatus;
+  homestays: HomestayAvailabilitySnapshot[];
+  data_quality: string;
+  last_updated: string;
+}
+
+export type BookingState =
+  | 'INITIATED'
+  | 'AVAILABILITY_CHECKED'
+  | 'PENDING_CONFIRMATION'
+  | 'CONFIRMED'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export type BookingFailureReason =
+  | 'SOLD_OUT'
+  | 'ROOM_LOCKED'
+  | 'INVALID_HOMESTAY'
+  | 'INVALID_DATES'
+  | 'RATE_EXPIRED'
+  | 'PAYMENT_FAILED'
+  | 'INTERNAL_ERROR';
+
+export interface BookingTransition {
+  from_state: BookingState;
+  to_state: BookingState;
+  timestamp: string;
+  reason?: string | null;
+}
+
+export interface BookingRecord {
+  booking_id: string;
+  homestay_id: string;
+  homestay_title: string;
+  destination_id: string;
+  destination_name: string;
+  state: BookingState;
+  traveler_name: string;
+  traveler_phone: string;
+  traveler_email: string;
+  check_in_date: string;
+  check_out_date: string;
+  nights: number;
+  number_of_guests: number;
+  units_booked: number;
+  total_price_inr: number;
+  failure_reason?: BookingFailureReason | null;
+  failure_detail?: string | null;
+  created_at: string;
+  updated_at: string;
+  confirmed_at?: string | null;
+  history: BookingTransition[];
+}
+
+export type AcceptanceRateMode = 'OBSERVED' | 'CONFIGURED' | 'INSUFFICIENT_DATA';
+
+export interface FunnelStageCount {
+  stage: string;
+  count: number;
+  conversion_from_top: number;
+  conversion_from_prior: number;
+}
+
+export interface DestinationConversionMetrics {
+  destination_id: string;
+  destination_name: string;
+  views: number;
+  availability_checks: number;
+  bookings_initiated: number;
+  bookings_confirmed: number;
+  bookings_failed: number;
+  bookings_cancelled: number;
+  outbound_clicks: number;
+  view_to_initiate_rate: number;
+  initiate_to_confirm_rate: number;
+  overall_conversion_rate: number;
+  outbound_click_rate: number;
+}
+
+export interface ConversionSummaryResponse {
+  total_funnel_events: number;
+  funnel_stages: FunnelStageCount[];
+  destinations: Record<string, DestinationConversionMetrics>;
+  observed_acceptance_rate: number;
+  configured_acceptance_rate: number;
+  effective_acceptance_rate: number;
+  acceptance_rate_mode: AcceptanceRateMode;
+  alternative_suggestions_count: number;
+  alternative_acceptances_count: number;
+  acceptance_sample_size: number;
+  minimum_sample_for_observed: number;
+  notes: string;
+  generated_at: string;
+}
 

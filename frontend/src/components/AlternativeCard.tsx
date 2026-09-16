@@ -127,7 +127,7 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
 
             {/* Matching Attributes Chips */}
             {alternative.matching_attributes && alternative.matching_attributes.length > 0 && (
-              <div className="mb-4 flex flex-wrap items-center gap-1.5">
+              <div className="mb-3 flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mr-1">
                   Shared Charms:
                 </span>
@@ -141,6 +141,28 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
                 ))}
               </div>
             )}
+
+            {/* Network & Live Capacity Strip (Milestone 7D) */}
+            <div className="mb-4 p-3 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5 grid grid-cols-3 gap-2 text-xs text-center">
+              <div>
+                <span className="text-[9px] uppercase font-bold text-stone-400 block">Capacity</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400 text-xs">
+                  {alternative.available_capacity ? `${alternative.available_capacity} rooms` : (alternative.capacity_status ?? 'HEALTHY')}
+                </span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold text-stone-400 block">Corridor</span>
+                <span className="font-bold text-sky-700 dark:text-sky-400 text-xs">
+                  {alternative.access_status ?? 'OPEN'}
+                </span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase font-bold text-stone-400 block">Weather</span>
+                <span className="font-bold text-stone-700 dark:text-stone-300 text-xs truncate block" title={alternative.weather_summary}>
+                  {alternative.weather_summary ?? 'Clear, 16°C'}
+                </span>
+              </div>
+            </div>
 
             {/* Why Yatri Setu Recommends */}
             {alternative.reasons_to_recommend && alternative.reasons_to_recommend.length > 0 && (

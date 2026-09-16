@@ -52,6 +52,19 @@ class AlternativeRecommendation(BaseModel):
     matching_attributes: List[str] = Field(default_factory=list)
     key_experience: str
     eco_tag: str
+    # Milestone 7D Capacity & Network Intelligence
+    destination_id: Optional[str] = Field(None, description="Standard destination identifier")
+    current_pressure: Optional[int] = Field(None, description="Current crowd/pressure score")
+    expected_pressure: Optional[int] = Field(None, description="Expected pressure forecast")
+    capacity_status: str = Field("HEALTHY", description="Accommodation capacity health: HEALTHY, LIMITED, FULL")
+    available_capacity: Optional[int] = Field(None, description="Available accommodation units (rooms)")
+    access_status: str = Field("OPEN", description="Corridor access status: OPEN, CAUTION, DISRUPTED")
+    weather_summary: Optional[str] = Field(None, description="Summary of current mountain weather")
+    traffic_summary: Optional[str] = Field(None, description="Summary of connecting corridor traffic")
+    homestay_availability: Optional[str] = Field(None, description="Status of authentic homestay inventory")
+    reasons: List[str] = Field(default_factory=list, description="Curated explainable reasons for suggestion")
+    provenance: str = Field("REAL — YATRI SETU NETWORK", description="Data provenance")
+    last_updated: Optional[str] = Field(None, description="ISO timestamp of recommendation calculation")
 
 class AlternativesResponse(BaseModel):
     origin_destination_id: str

@@ -60,7 +60,9 @@ import {
   fetchCircuitDemand,
   fetchCircuitConditions,
   fetchPressureExplanation,
-  refreshAdminPressure
+  refreshAdminPressure,
+  simulateFlow,
+  fetchConversionSummary
 } from '@/lib/api';
 import { formatINR } from '@/lib/utils';
 import {
@@ -81,7 +83,9 @@ import {
   AdminDemandOverview,
   CircuitDemandResponse,
   CircuitConditionsResponse,
-  PressureExplanation
+  PressureExplanation,
+  FlowScenarioResponse,
+  ConversionSummaryResponse
 } from '@/types';
 
 export default function AdminCommandCenterPage() {
@@ -183,7 +187,48 @@ export default function AdminCommandCenterPage() {
     }
   };
 
+  // Milestone 7D: Capacity-Aware Flow Simulation & Network Redirection
+  const [flowSimSource, setFlowSimSource] = useState<string>('darjeeling');
+  const [flowSimVisitors, setFlowSimVisitors] = useState<number>(100);
+  const [flowSimRate, setFlowSimRate] = useState<number>(0.15);
+  const [flowSimLoading, setFlowSimLoading] = useState<boolean>(false);
+  const [flowScenario, setFlowScenario] = useState<FlowScenarioResponse | null>(null);
 
+  const handleRunFlowSimulation = async (
+    sourceId: string = flowSimSource,
+    visitors: number = flowSimVisitors,
+    rate: number = flowSimRate
+  ) => {
+    try {
+      setFlowSimLoading(true);
+      const res = await simulateFlow({
+        source_destination_id: sourceId,
+        affected_visitors: visitors,
+        acceptance_rate: rate
+      });
+      setFlowScenario(res);
+    } catch (err) {
+      console.error('Failed to run flow simulation:', err);
+    } finally {
+      setFlowSimLoading(false);
+    }
+  };
+
+  // Milestone 7E: First-Party Conversion & Flow Intelligence
+  const [conversionSummary, setConversionSummary] = useState<ConversionSummaryResponse | null>(null);
+  const [conversionLoading, setConversionLoading] = useState<boolean>(false);
+
+  const loadConversionData = async () => {
+    try {
+      setConversionLoading(true);
+      const summary = await fetchConversionSummary().catch(() => null);
+      setConversionSummary(summary);
+    } catch (err) {
+      console.error('Failed to load conversion intelligence:', err);
+    } finally {
+      setConversionLoading(false);
+    }
+  };
 
   // Load macro command center data
   const loadCommandCenter = async () => {
@@ -331,6 +376,8 @@ export default function AdminCommandCenterPage() {
     loadMLData(selectedDestId, 7);
     loadDemandTelemetry();
     loadConditionsTelemetry(selectedDestId);
+    handleRunFlowSimulation('darjeeling', 100, 0.15);
+    loadConversionData();
   }, []);
 
   const handleSelectDestination = (destId: string) => {
@@ -2193,7 +2240,494 @@ export default function AdminCommandCenterPage() {
           )}
         </div>
 
+        {/* Milestone 7D: Capacity-Aware Flow Management & Redirection Simulator */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div>
+              <div className="flex items-center gap-2">
+                <Compass className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-bold text-white tracking-wide">
+                  Capacity-Aware Flow Management & Destination Network Simulator
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold uppercase">
+                  Milestone 7D
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Simulate proactive crowd diversion from congested origins to capable receiving destinations with multi-signal capacity checks and pressure surge feedback.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-mono px-2 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                PROVENANCE: {flowScenario?.provenance ?? 'SIMULATED — PLANNING SCENARIO'}
+              </span>
+            </div>
+          </div>
+
+          {/* Controls Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-950/70 border border-slate-800/80">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Overcrowded Origin Destination
+              </label>
+              <select
+                value={flowSimSource}
+                onChange={(e) => setFlowSimSource(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white font-medium focus:outline-none focus:border-amber-500"
+              >
+                <option value="darjeeling">Darjeeling (High Urban Pressure)</option>
+                <option value="kalimpong">Kalimpong (Ridge Hub)</option>
+                <option value="lava">Lava (Neora Forest Gate)</option>
+                <option value="mirik">Mirik (Lake Corridor)</option>
+                <option value="lolegaon">Lolegaon (Canopy Village)</option>
+                <option value="rishop">Rishop (Alpine Settlement)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Affected Visitor Volume: <span className="text-amber-400 font-mono font-bold">{flowSimVisitors}</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="20"
+                  max="500"
+                  step="10"
+                  value={flowSimVisitors}
+                  onChange={(e) => setFlowSimVisitors(parseInt(e.target.value))}
+                  className="w-full accent-amber-500 cursor-pointer"
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+                <span>20</span>
+                <span>250</span>
+                <span>500</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Redirection Acceptance: <span className="text-emerald-400 font-mono font-bold">{(flowSimRate * 100).toFixed(0)}%</span>
+              </label>
+              <input
+                type="range"
+                min="0.05"
+                max="0.50"
+                step="0.05"
+                value={flowSimRate}
+                onChange={(e) => setFlowSimRate(parseFloat(e.target.value))}
+                className="w-full accent-emerald-500 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+                <span>5% (Conservative)</span>
+                <span>15% (Default)</span>
+                <span>50%</span>
+              </div>
+            </div>
+
+            <div className="flex items-end">
+              <button
+                onClick={() => handleRunFlowSimulation()}
+                disabled={flowSimLoading}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-98 transition-all disabled:opacity-50"
+              >
+                {flowSimLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Simulating Network...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Run Scenario Simulation</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Scenario Flow Diagram */}
+          {flowScenario && (
+            <div className="space-y-6">
+              {/* Top Row: Source & Summary Banner */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                {/* Source Node */}
+                <div className="lg:col-span-4 p-4 rounded-xl bg-slate-950/80 border border-rose-500/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-rose-400 tracking-wider">
+                      Congested Origin Destination
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {flowScenario.source_destination.crowd_level} PRESSURE
+                    </span>
+                  </div>
+                  <div className="text-xl font-black text-white">
+                    {flowScenario.source_destination.name}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-800">
+                    <div>
+                      <span className="text-slate-400 text-[10px]">Affected Demand:</span>
+                      <div className="font-mono font-bold text-white">{flowScenario.affected_visitors} tourists</div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-[10px]">Seeking Alternative:</span>
+                      <div className="font-mono font-bold text-amber-300">
+                        {flowScenario.estimated_redirected_visitors} tourists ({(flowScenario.assumed_acceptance_rate * 100).toFixed(0)}%)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transfer Arrow */}
+                <div className="lg:col-span-2 flex flex-col items-center justify-center text-center py-2">
+                  <span className="text-[10px] font-bold uppercase text-amber-400 tracking-wider mb-1">
+                    Redirection Flow
+                  </span>
+                  <div className="w-full flex items-center justify-center gap-1 text-amber-400">
+                    <div className="h-0.5 w-12 bg-amber-500/40 hidden sm:block" />
+                    <ArrowRight className="w-5 h-5 animate-pulse" />
+                    <div className="h-0.5 w-12 bg-amber-500/40 hidden sm:block" />
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 mt-1">
+                    {flowScenario.total_allocated_visitors} of {flowScenario.estimated_redirected_visitors} Allocated
+                  </span>
+                </div>
+
+                {/* Scenario Health Overview */}
+                <div className="lg:col-span-6 p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      Network Absorption Health
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                      flowScenario.status === 'OPTIMAL'
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    }`}>
+                      {flowScenario.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                    <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-lg font-black text-emerald-400">{flowScenario.total_allocated_visitors}</div>
+                      <div className="text-[9px] text-slate-400">Allocated</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-lg font-black text-amber-400">{flowScenario.unallocated_visitors}</div>
+                      <div className="text-[9px] text-slate-400">Unallocated</div>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
+                      <div className="text-lg font-black text-indigo-400">
+                        {flowScenario.allocations.filter(a => a.absorption_status === 'ACCEPTED').length}
+                      </div>
+                      <div className="text-[9px] text-slate-400">Accepting Nodes</div>
+                    </div>
+                  </div>
+
+                  {flowScenario.warnings.length > 0 && (
+                    <div className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded p-2 flex items-start gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      <span>{flowScenario.warnings[0]}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Receiving Candidates Grid */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400 font-semibold px-1">
+                  <span>Candidate Receiving Destinations (Capacity-Checked Allocation)</span>
+                  <span className="text-[10px] font-mono">Dynamic Pressure Surge Recalculated</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {flowScenario.allocations.map((alloc) => (
+                    <div
+                      key={alloc.destination_id}
+                      className={`p-4 rounded-xl border transition-all ${
+                        alloc.absorption_status === 'ACCEPTED'
+                          ? 'bg-slate-950/60 border-emerald-500/30'
+                          : alloc.absorption_status === 'PARTIAL'
+                          ? 'bg-slate-950/60 border-amber-500/30'
+                          : 'bg-slate-950/30 border-slate-800 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-bold text-white text-sm">{alloc.destination_name}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                          alloc.absorption_status === 'ACCEPTED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : alloc.absorption_status === 'PARTIAL'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                        }`}>
+                          {alloc.absorption_status}
+                        </span>
+                      </div>
+
+                      {/* Pressure Feedback Loop */}
+                      <div className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg bg-slate-900/80 border border-slate-800/80 mb-2.5">
+                        <span className="text-[10px] text-slate-400">Pressure Surge:</span>
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold">
+                          <span className="text-slate-300">{alloc.current_pressure}</span>
+                          <span className="text-slate-500">→</span>
+                          <span className={alloc.projected_pressure > alloc.current_pressure ? 'text-amber-400' : 'text-emerald-400'}>
+                            {alloc.projected_pressure}/100
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Capacity & Allocation Row */}
+                      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block">Allocated Flow:</span>
+                          <span className="font-mono font-bold text-white">
+                            {alloc.allocated_visitors} tourists ({alloc.allocation_percentage}%)
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block">Units Available:</span>
+                          <span className="font-mono font-bold text-emerald-400">
+                            {alloc.remaining_capacity} of {alloc.available_capacity} rooms
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-[10px] text-slate-400 line-clamp-2 leading-relaxed border-t border-slate-800/60 pt-2">
+                        {alloc.notes}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-[10px] text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  All simulation results are calculated deterministically and isolated from production visitor counters.
+                </span>
+                <span className="font-mono text-slate-500">
+                  Updated: {new Date(flowScenario.generated_at).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Milestone 7E: First-Party Conversion & Flow Intelligence */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Milestone 7E
+                </span>
+                <span className="text-xs font-mono text-slate-400">First-Party Telemetry & State Machine</span>
+              </div>
+              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-400" />
+                First-Party Conversion & Flow Intelligence
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Deterministic booking lifecycle, end-to-end tourist funnel conversion, and empirical alternative acceptance tracking.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {conversionSummary && (
+                <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
+                  <span className="text-slate-400">Sample Size:</span>
+                  <span className="font-mono font-bold text-white">
+                    {conversionSummary.acceptance_sample_size} events
+                  </span>
+                  <span className="text-slate-600">•</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    conversionSummary.acceptance_rate_mode === 'OBSERVED'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  }`}>
+                    {conversionSummary.acceptance_rate_mode}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={loadConversionData}
+                disabled={conversionLoading}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${conversionLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {conversionLoading && !conversionSummary ? (
+            <div className="flex items-center justify-center py-12 text-slate-400 gap-2">
+              <RefreshCw className="w-5 h-5 animate-spin text-emerald-400" />
+              <span className="text-xs">Loading conversion telemetry...</span>
+            </div>
+          ) : conversionSummary ? (
+            <div className="space-y-6">
+              {/* Acceptance Rate Truth Card */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Observed Acceptance</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Real Actions</span>
+                  </div>
+                  <div className="text-2xl font-black text-emerald-400 font-mono">
+                    {(conversionSummary.observed_acceptance_rate * 100).toFixed(1)}%
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    {conversionSummary.alternative_acceptances_count} accepted of {conversionSummary.alternative_suggestions_count} suggestions.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Configured Baseline</span>
+                    <span className="text-[10px] text-slate-500 font-mono">System Default</span>
+                  </div>
+                  <div className="text-2xl font-black text-indigo-400 font-mono">
+                    {(conversionSummary.configured_acceptance_rate * 100).toFixed(1)}%
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Pre-set conservative redirection constant (REDIRECTION_ACCEPTANCE_RATE).
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Effective Flow Rate</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+                      conversionSummary.acceptance_rate_mode === 'OBSERVED'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-amber-500/20 text-amber-400'
+                    }`}>
+                      {conversionSummary.acceptance_rate_mode}
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black text-amber-400 font-mono">
+                    {(conversionSummary.effective_acceptance_rate * 100).toFixed(1)}%
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    {conversionSummary.acceptance_rate_mode === 'OBSERVED'
+                      ? 'Empirical rate actively driving capacity simulations.'
+                      : `Conservative fallback active (sample ${conversionSummary.acceptance_sample_size}/${conversionSummary.minimum_sample_for_observed}).`}
+                  </p>
+                </div>
+              </div>
+
+              {/* End-to-End Funnel Stages */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-400" />
+                    Tourist Conversion Funnel (First-Party Pipeline)
+                  </h3>
+                  <span className="text-xs text-slate-400 font-mono">
+                    {conversionSummary.total_funnel_events} Total Telemetry Events
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                  {conversionSummary.funnel_stages.map((stage, idx) => (
+                    <div
+                      key={stage.stage}
+                      className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-2 relative group hover:border-slate-700 transition"
+                    >
+                      <div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase truncate">
+                          {stage.stage.replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-lg font-black text-white font-mono mt-1">
+                          {stage.count.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="space-y-1 border-t border-slate-800/80 pt-1.5 text-[10px]">
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span>From top:</span>
+                          <span className="font-mono text-emerald-400">{(stage.conversion_from_top * 100).toFixed(1)}%</span>
+                        </div>
+                        {idx > 0 && (
+                          <div className="flex items-center justify-between text-slate-500">
+                            <span>Step drop:</span>
+                            <span className="font-mono text-slate-300">{(stage.conversion_from_prior * 100).toFixed(1)}%</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Destination Breakdown Table */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-emerald-400" />
+                  Destination Conversion & Referral Breakdown
+                </h3>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-950 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                      <tr>
+                        <th className="py-2.5 px-3">Destination</th>
+                        <th className="py-2.5 px-3 text-right">Views</th>
+                        <th className="py-2.5 px-3 text-right">Avail Checks</th>
+                        <th className="py-2.5 px-3 text-right">Initiated</th>
+                        <th className="py-2.5 px-3 text-right">Confirmed</th>
+                        <th className="py-2.5 px-3 text-right">Failed</th>
+                        <th className="py-2.5 px-3 text-right">Outbound Clicks</th>
+                        <th className="py-2.5 px-3 text-right">View → Init %</th>
+                        <th className="py-2.5 px-3 text-right">Init → Conf %</th>
+                        <th className="py-2.5 px-3 text-right">Overall Conv %</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {Object.values(conversionSummary.destinations).map((dest) => (
+                        <tr key={dest.destination_id} className="hover:bg-slate-800/40 transition">
+                          <td className="py-2.5 px-3 font-sans font-semibold text-white">
+                            {dest.destination_name}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-300">{dest.views}</td>
+                          <td className="py-2.5 px-3 text-right text-slate-300">{dest.availability_checks}</td>
+                          <td className="py-2.5 px-3 text-right text-amber-300">{dest.bookings_initiated}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-emerald-400">{dest.bookings_confirmed}</td>
+                          <td className="py-2.5 px-3 text-right text-rose-400">{dest.bookings_failed}</td>
+                          <td className="py-2.5 px-3 text-right text-sky-400">{dest.outbound_clicks}</td>
+                          <td className="py-2.5 px-3 text-right text-slate-300">{(dest.view_to_initiate_rate * 100).toFixed(1)}%</td>
+                          <td className="py-2.5 px-3 text-right text-slate-300">{(dest.initiate_to_confirm_rate * 100).toFixed(1)}%</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-emerald-400">{(dest.overall_conversion_rate * 100).toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Data Integrity & Outbound Booking Clarification */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-2.5 text-xs text-slate-400">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-slate-200">First-Party Telemetry & Outbound Distinction: </span>
+                  Outbound booking referral clicks are strictly isolated and labeled as referrals; they are never falsely credited as confirmed bookings.
+                  Confirmed bookings are backed by the deterministic state machine with atomic unit locks.
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-xs text-slate-500">
+              No conversion summary data available.
+            </div>
+          )}
+        </div>
+
         {/* Evidence Drawer Slide-in Panel (Milestone 5) */}
+
         {evidenceDrawerOpen && (
           <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true">
             {/* Backdrop */}
