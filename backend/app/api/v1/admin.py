@@ -4,7 +4,7 @@ Provides comprehensive oversight of destination stress, multi-signal telemetry,
 flow dispersal efficiency, and policy intervention simulations.
 """
 from typing import List, Optional
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from app.models.pressure import (
     CommandCenterData,
     DestinationPressureOverview,
@@ -141,6 +141,64 @@ def get_forecast_performance_for_destination(destination_id: str):
     in the Command Center right column.
     """
     return forecast_accuracy_engine.get_performance_v2(destination_id=destination_id)
+
+
+from app.models.demand import AdminDemandOverview
+from app.services.demand_aggregation_service import demand_aggregation_service
+
+
+@router.get("/demand", response_model=AdminDemandOverview)
+def get_admin_demand():
+    """
+    Returns administrative demand overview exposing aggregated funnels, trends, and provenance.
+    Strictly excludes raw events, session IDs, and personal data.
+    """
+    return demand_aggregation_service.get_admin_overview()
+
+
+from datetime import datetime
+from app.services.pressure_refresh_service import pressure_refresh_service
+
+_last_admin_refresh: Optional[datetime] = None
+
+@router.post("/pressure/refresh")
+def admin_refresh_pressure(
+    destination_id: Optional[str] = Query(None, description="Optional single destination to refresh"),
+    force: bool = Query(False, description="Force external provider refresh bypassing local cache")
+):
+    """
+    Administrative manual trigger for live weather, traffic, and pressure recalculation.
+    Rate-protected against excessive external API calls.
+    """
+    global _last_admin_refresh
+    now = datetime.utcnow()
+    cooldown = 5  # 5 seconds rate protection
+    if _last_admin_refresh and (now - _last_admin_refresh).total_seconds() < cooldown and not force:
+        remaining = int(cooldown - (now - _last_admin_refresh).total_seconds())
+        raise HTTPException(
+            status_code=429,
+            detail=f"Cooldown active. Please wait {remaining}s before triggering another external telemetry sync."
+        )
+
+    _last_admin_refresh = now
+    if destination_id:
+        dest_clean = destination_id.lower().strip()
+        res = pressure_refresh_service.recalculate_destination_pressure(dest_clean, force_provider_refresh=force)
+        return {
+            "status": "success",
+            "refreshed_at": now.isoformat(),
+            "refreshed_destinations": [dest_clean],
+            "destination_data": res.model_dump()
+        }
+    else:
+        all_res = pressure_refresh_service.refresh_all_destinations(force=force)
+        return {
+            "status": "success",
+            "refreshed_at": now.isoformat(),
+            "refreshed_destinations": list(all_res.keys()),
+            "destination_data": {k: v.model_dump() for k, v in all_res.items()}
+        }
+
 
 
 

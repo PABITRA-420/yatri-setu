@@ -7,6 +7,7 @@ from app.models.panchayat import (
     PanchayatDecisionResponse, CommunityFundProject
 )
 from app.services.host_service import host_service
+from app.services.homestay_repository import homestay_repository
 
 SEED_COMMUNITY_PROJECTS: List[CommunityFundProject] = [
     CommunityFundProject(
@@ -296,6 +297,33 @@ class PanchayatService:
                 host.verification.reviewed_by = req.reviewer_name
                 host.verification.review_notes = req.reason
                 host.verification.history.append(event)
+
+        # Update authoritative homestay repository record
+        updated = homestay_repository.update_verification_status(listing_id, new_status)
+        if not updated and listing:
+            # Register newly onboarded listing into repository if not already seeded
+            host_obj = host_service.get_host_by_id(listing.host_id)
+            rec = homestay_repository.register_onboarding(
+                listing_id=listing.id,
+                host_id=listing.host_id,
+                host_name=host_obj.name if host_obj else "Host",
+                destination_id=listing.destination_id,
+                destination_name=listing.destination_name,
+                title=listing.title,
+                tagline=listing.tagline,
+                address=listing.address,
+                village=listing.village,
+                panchayat_name=listing.panchayat_name,
+                price_per_night_inr=listing.price_per_night_inr,
+                room_type=listing.room_type,
+                max_guests=listing.max_guests,
+                rooms_count=listing.rooms_count,
+                amenities=listing.amenities,
+                special_activity=listing.special_activity,
+                images=listing.images
+            )
+            rec.verification_status = new_status
+            rec.is_published = (new_status in ("VERIFIED", "PUBLISHED"))
 
         return PanchayatDecisionResponse(
             listing_id=listing_id,

@@ -265,7 +265,7 @@ class DemandEventModel(Base):
     __tablename__ = "demand_events"
 
     id = Column(String(64), primary_key=True, index=True)
-    destination_id = Column(String(64), nullable=False, index=True)
+    destination_id = Column(String(64), nullable=True, index=True)
     event_type = Column(String(64), nullable=False, index=True) # search, booking, availability, trip_start, destination_selection, alternative_acceptance
     session_id = Column(String(128), nullable=True, index=True)
     user_id = Column(String(128), nullable=True, index=True)

@@ -26,7 +26,7 @@ class DemandEventType(str, Enum):
 
 class BaseDemandEvent(BaseModel):
     id: str = Field(default_factory=lambda: f"evt_{uuid.uuid4().hex[:12]}")
-    destination_id: str
+    destination_id: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     event_type: str
     session_id: Optional[str] = None
@@ -75,11 +75,24 @@ class DestinationSelectionEvent(BaseDemandEvent):
 
 class AlternativeAcceptanceEvent(BaseDemandEvent):
     event_type: str = DemandEventType.ALTERNATIVE_ACCEPTANCE.value
-    origin_destination_id: str
-    accepted_alternative_id: str
+    origin_destination_id: Optional[str] = None
+    original_destination_id: Optional[str] = None
+    accepted_alternative_id: Optional[str] = None
+    alternative_destination_id: Optional[str] = None
     similarity_score: Optional[int] = None
     estimated_cost_diff_percent: Optional[int] = None
     crowd_reduction_percent: Optional[int] = None
+
+    def __init__(self, **data: Any):
+        if "original_destination_id" in data and not data.get("origin_destination_id"):
+            data["origin_destination_id"] = data["original_destination_id"]
+        elif "origin_destination_id" in data and not data.get("original_destination_id"):
+            data["original_destination_id"] = data["origin_destination_id"]
+        if "alternative_destination_id" in data and not data.get("accepted_alternative_id"):
+            data["accepted_alternative_id"] = data["alternative_destination_id"]
+        elif "accepted_alternative_id" in data and not data.get("alternative_destination_id"):
+            data["alternative_destination_id"] = data["accepted_alternative_id"]
+        super().__init__(**data)
 
 
 # ─── Derived Safe Tourist Signals ──────────────────────────────────────────
@@ -125,7 +138,7 @@ class DemandMetrics(BaseModel):
     provider_mode: ProviderMode = ProviderMode.REAL
     confidence: float = Field(0.94, ge=0.0, le=1.0)
     data_quality: DataQuality = DataQuality.HIGH
-    provenance_label: str = "REAL — FIRST-PARTY"
+    provenance_label: str = "REAL — YATRI SETU NETWORK"
     is_leading_indicator: bool = True
     tourist_signals: TouristSignals
     capacity: DestinationCapacityStatus
@@ -145,7 +158,7 @@ class CircuitDemandSummary(BaseModel):
     primary_rural_absorber: str
     source: str = "YATRI_SETU_NETWORK"
     provider_mode: str = "REAL"
-    provenance_label: str = "REAL — FIRST-PARTY"
+    provenance_label: str = "REAL — YATRI SETU NETWORK"
 
 
 class CircuitDemandResponse(BaseModel):

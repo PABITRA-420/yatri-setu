@@ -993,3 +993,249 @@ export interface MLTrainResponse {
   feature_importances: Record<string, number>;
   synthetic_data_warning?: string;
 }
+
+export interface DemandCapacityStatus {
+  destination_id: string;
+  total_homestay_rooms: number;
+  rooms_available: number;
+  rooms_booked: number;
+  capacity_available: number;
+  capacity_pressure: number;
+  capacity_threshold: number;
+  absorber_status: string;
+  is_constrained: boolean;
+}
+
+export interface TouristSignals {
+  demand_trend_label: string;
+  booking_pressure_label: string;
+  recommendation_label?: string | null;
+  is_alternative_advised: boolean;
+}
+
+export interface DemandMetrics {
+  destination_id: string;
+  destination_name: string;
+  search_count_24h: number;
+  search_count_7d: number;
+  booking_count_24h: number;
+  booking_count_7d: number;
+  booking_conversion: number;
+  availability_pressure: number;
+  alternative_acceptance_rate: number;
+  trend_percent: number;
+  trend_direction: 'RISING' | 'DECLINING' | 'STABLE';
+  normalized_search_demand: number;
+  normalized_booking_demand: number;
+  source: string;
+  provider_mode: 'REAL' | 'SYNTHETIC' | 'MIXED' | string;
+  confidence: number;
+  data_quality: string;
+  provenance_label: 'REAL — YATRI SETU NETWORK' | 'SYNTHETIC DEMO DATA' | 'MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO' | string;
+  is_leading_indicator: boolean;
+  tourist_signals: TouristSignals;
+  capacity: DemandCapacityStatus;
+  last_updated: string;
+  notes: string;
+}
+
+export interface CircuitDemandSummary {
+  total_searches_24h: number;
+  total_searches_7d: number;
+  total_bookings_24h: number;
+  total_bookings_7d: number;
+  overall_booking_conversion: number;
+  highest_demand_hub: string;
+  primary_rural_absorber: string;
+  source: string;
+  provider_mode: string;
+  provenance_label: string;
+}
+
+export interface CircuitDemandResponse {
+  circuit_id: string;
+  circuit_name: string;
+  summary: CircuitDemandSummary;
+  destinations: Record<string, DemandMetrics>;
+  generated_at: string;
+}
+
+export interface AdminDemandOverview {
+  total_events_recorded: number;
+  events_24h_count: number;
+  events_7d_count: number;
+  event_breakdown: Record<string, number>;
+  conversion_funnel: {
+    searches: number;
+    destination_selections: number;
+    alternative_suggestions: number;
+    alternative_acceptances: number;
+    bookings: number;
+    trips_started: number;
+  };
+  circuit_summary: CircuitDemandSummary;
+  provenance_audit: {
+    first_party_provider: string;
+    mode: string;
+    provenance_label: string;
+    status: string;
+    real_events_count?: number;
+    synthetic_events_count?: number;
+    signals_monitored: string[];
+    synthetic_comparison: string;
+  };
+  recent_events_preview: Array<{
+    id: string;
+    destination_id?: string | null;
+    event_type: string;
+    timestamp: string;
+    source: string;
+    provenance: string;
+  }>;
+  last_updated: string;
+}
+
+// Milestone 7C: Live Weather + Traffic Intelligence & Pressure Recalculation
+
+export interface WeatherObservation {
+  destination_id: string;
+  destination_name: string;
+  observed_at: string;
+  forecast_for?: string | null;
+  temperature_c: number;
+  temp_min_c: number;
+  temp_max_c: number;
+  precipitation_probability: number;
+  precipitation_mm: number;
+  humidity: number;
+  wind_speed_kmh: number;
+  weather_condition: string;
+  severe_weather?: string | null;
+  visibility_km: number;
+  advisory: string;
+  best_hours_for_outdoors?: string | null;
+  source: string;
+  provider_mode: 'REAL' | 'DEMO' | 'UNAVAILABLE' | string;
+  confidence: number;
+  data_quality: string;
+  fetched_at: string;
+  cache_status: 'LIVE' | 'CACHED' | 'STALE' | 'UNAVAILABLE' | string;
+  expires_at?: string | null;
+}
+
+export interface RouteTrafficObservation {
+  route_id: string;
+  route_name: string;
+  origin: string;
+  destination_id: string;
+  current_travel_time_min: number;
+  historical_travel_time_min: number;
+  travel_time_ratio: number;
+  travel_time_anomaly_percent: number;
+  congestion_level: 'NORMAL' | 'ELEVATED' | 'HIGH' | 'CRITICAL' | string;
+  road_status: 'CLEAR' | 'SLOW' | 'RESTRICTED' | 'CLOSED' | string;
+  incident_count: number;
+  incident_description?: string | null;
+}
+
+export interface DestinationTrafficSummary {
+  destination_id: string;
+  destination_name: string;
+  overall_congestion_score: number;
+  average_travel_time_ratio: number;
+  travel_time_anomaly_percent: number;
+  incident_count: number;
+  access_status: 'OPEN' | 'CAUTION' | 'DISRUPTED' | 'UNKNOWN' | string;
+  primary_bottleneck_route?: string | null;
+  critical_routes: RouteTrafficObservation[];
+  observed_at: string;
+  source: string;
+  provider_mode: 'REAL' | 'DEMO' | 'UNAVAILABLE' | string;
+  confidence: number;
+  data_quality: string;
+  fetched_at: string;
+  cache_status: 'LIVE' | 'CACHED' | 'STALE' | 'UNAVAILABLE' | string;
+  expires_at?: string | null;
+}
+
+export interface WeatherImpactSignal {
+  destination_id: string;
+  weather_impact: number;
+  impact_factor: number;
+  advisory_level: 'NORMAL' | 'ADVISORY' | 'WARNING' | 'CRITICAL' | string;
+  tourism_suitability: 'EXCELLENT' | 'GOOD' | 'MODERATE' | 'POOR' | 'HAZARDOUS' | string;
+  description: string;
+  confidence: number;
+  source: string;
+  provider_mode: string;
+  observed_at: string;
+}
+
+export interface TrafficImpactSignal {
+  destination_id: string;
+  traffic_impact_score: number;
+  traffic_status: 'NORMAL' | 'ELEVATED' | 'HIGH' | 'CRITICAL' | string;
+  travel_time_anomaly_percent: number;
+  access_status: 'OPEN' | 'CAUTION' | 'DISRUPTED' | 'UNKNOWN' | string;
+  bottleneck_corridor?: string | null;
+  impact_description: string;
+  confidence: number;
+  source: string;
+  provider_mode: string;
+  observed_at: string;
+}
+
+export interface PressureDriver {
+  signal: string;
+  impact: number;
+  description: string;
+}
+
+export interface PressureExplanation {
+  destination_id: string;
+  pressure_level: string;
+  pressure_score: number;
+  top_drivers: PressureDriver[];
+  access_status: string;
+  generated_at: string;
+}
+
+export interface PressureChangeDriver {
+  signal: string;
+  delta: number;
+  description: string;
+}
+
+export interface PressureChangeSummary {
+  destination_id: string;
+  pressure_delta: number;
+  previous_score: number;
+  current_score: number;
+  drivers: PressureChangeDriver[];
+  previous_refresh_at?: string | null;
+  current_refresh_at: string;
+}
+
+export interface DestinationLiveConditions {
+  destination_id: string;
+  destination_name: string;
+  condition_type: string;
+  pressure_score: number;
+  pressure_level: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' | string;
+  access_status: 'OPEN' | 'CAUTION' | 'DISRUPTED' | 'UNKNOWN' | string;
+  weather: WeatherObservation;
+  traffic: DestinationTrafficSummary;
+  weather_impact: WeatherImpactSignal;
+  traffic_impact: TrafficImpactSignal;
+  event_pressure: number;
+  holiday_pressure: number;
+  first_party_demand: number;
+  top_drivers: PressureDriver[];
+  pressure_change?: PressureChangeSummary | null;
+  provenance: string;
+  data_quality: string;
+  refreshed_at: string;
+}
+
+export type CircuitConditionsResponse = Record<string, DestinationLiveConditions>;
+

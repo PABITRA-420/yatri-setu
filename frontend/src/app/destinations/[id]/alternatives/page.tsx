@@ -11,7 +11,8 @@ import {
 import { 
   fetchDestinationAlternatives, 
   fetchDateAlternatives, 
-  fetchDestinationDecision 
+  fetchDestinationDecision,
+  recordAlternativeAcceptance
 } from '@/lib/api';
 import { AlternativeCard } from '@/components/AlternativeCard';
 import { getCrowdBadgeStyle, formatINR } from '@/lib/utils';
@@ -213,6 +214,13 @@ function AlternativesContent() {
                 </span>
                 <Link
                   href={`/itinerary?destination=${altData.alternatives[0].id}`}
+                  onClick={() => {
+                    recordAlternativeAcceptance(
+                      id,
+                      altData.alternatives[0].id,
+                      altData.alternatives[0].similarity_score
+                    );
+                  }}
                   className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold hover:bg-amber-600 transition-colors"
                 >
                   Quick Select →

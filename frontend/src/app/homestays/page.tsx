@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Homestay } from '@/types';
 import { fetchHomestays } from '@/lib/api';
 import { HomestayCard } from '@/components/HomestayCard';
+import { EmptyState } from '@/components/EmptyState';
 import { 
   Home, 
   ShieldCheck, 
@@ -17,7 +18,8 @@ import {
 
 function HomestaysContent() {
   const searchParams = useSearchParams();
-  const initialDest = searchParams.get('destination_id') || 'kalimpong';
+  const rawParam = searchParams.get('destination') || searchParams.get('destination_id');
+  const initialDest = rawParam ? rawParam.toLowerCase().trim() : 'all';
 
   const [destinationFilter, setDestinationFilter] = useState(initialDest);
   const [homestays, setHomestays] = useState<Homestay[]>([]);
@@ -35,9 +37,12 @@ function HomestaysContent() {
 
   const destOptions = [
     { id: 'all', label: 'All Himalayan Stays' },
+    { id: 'darjeeling', label: 'Darjeeling' },
     { id: 'kalimpong', label: 'Kalimpong (Recommended)' },
     { id: 'lava', label: 'Lava (Pine Edge)' },
-    { id: 'rishop', label: 'Rishop (Kanchenjunga Facing)' }
+    { id: 'lolegaon', label: 'Lolegaon' },
+    { id: 'rishop', label: 'Rishop (Kanchenjunga Facing)' },
+    { id: 'mirik', label: 'Mirik' }
   ];
 
   return (
@@ -109,9 +114,7 @@ function HomestaysContent() {
           ))}
         </div>
       ) : homestays.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-          <p className="text-slate-500 text-sm">No homestays available for this destination.</p>
-        </div>
+        <EmptyState message="No verified homestays are currently available in this destination." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {homestays.map((hs) => (

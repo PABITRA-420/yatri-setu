@@ -35,7 +35,12 @@ import {
   Scale,
   Sparkles,
   Lock,
-  Clock
+  Clock,
+  Radio,
+  Navigation,
+  CloudRain,
+  Eye,
+  Car
 } from 'lucide-react';
 import {
   fetchCommandCenterData,
@@ -50,7 +55,12 @@ import {
   fetchMLModelStatus,
   fetchMLFeatureImportance,
   fetchMLPressureForecast,
-  triggerMLTraining
+  triggerMLTraining,
+  fetchAdminDemand,
+  fetchCircuitDemand,
+  fetchCircuitConditions,
+  fetchPressureExplanation,
+  refreshAdminPressure
 } from '@/lib/api';
 import { formatINR } from '@/lib/utils';
 import {
@@ -67,7 +77,11 @@ import {
   MLModelStatus,
   FeatureImportanceResponse,
   MLForecastResponse,
-  MLTrainResponse
+  MLTrainResponse,
+  AdminDemandOverview,
+  CircuitDemandResponse,
+  CircuitConditionsResponse,
+  PressureExplanation
 } from '@/types';
 
 export default function AdminCommandCenterPage() {
@@ -99,11 +113,75 @@ export default function AdminCommandCenterPage() {
   const [mlTrainMessage, setMlTrainMessage] = useState<string | null>(null);
   const [mlTab, setMlTab] = useState<'status' | 'comparison' | 'features' | 'forecast'>('status');
 
+  // Milestone 7A: First-Party Demand & Provenance Telemetry
+  const [demandOverview, setDemandOverview] = useState<AdminDemandOverview | null>(null);
+  const [circuitDemand, setCircuitDemand] = useState<CircuitDemandResponse | null>(null);
+  const [demandLoading, setDemandLoading] = useState<boolean>(false);
+
   // Intervention simulation states
   const [simType, setSimType] = useState<string>('entry_quota');
   const [simIntensity, setSimIntensity] = useState<number>(30);
   const [simLoading, setSimLoading] = useState<boolean>(false);
   const [simResult, setSimResult] = useState<InterventionSimulationResult | null>(null);
+
+  // Load first-party demand telemetry
+  const loadDemandTelemetry = async () => {
+    try {
+      setDemandLoading(true);
+      const [adminRes, circuitRes] = await Promise.all([
+        fetchAdminDemand().catch(() => null),
+        fetchCircuitDemand().catch(() => null)
+      ]);
+      setDemandOverview(adminRes);
+      setCircuitDemand(circuitRes);
+    } catch (err) {
+      console.error('Failed to load first-party demand telemetry:', err);
+    } finally {
+      setDemandLoading(false);
+    }
+  };
+
+  // Milestone 7C: Live Weather + Corridor Intelligence & Pressure Recalculation
+  const [circuitConditions, setCircuitConditions] = useState<CircuitConditionsResponse | null>(null);
+  const [pressureExplanation, setPressureExplanation] = useState<PressureExplanation | null>(null);
+  const [conditionsLoading, setConditionsLoading] = useState<boolean>(false);
+  const [recalculatingPressure, setRecalculatingPressure] = useState<boolean>(false);
+  const [recalculateMessage, setRecalculateMessage] = useState<string | null>(null);
+
+  const loadConditionsTelemetry = async (destId: string = selectedDestId) => {
+    try {
+      setConditionsLoading(true);
+      const [circuitRes, explanationRes] = await Promise.all([
+        fetchCircuitConditions().catch(() => null),
+        fetchPressureExplanation(destId).catch(() => null)
+      ]);
+      setCircuitConditions(circuitRes);
+      setPressureExplanation(explanationRes);
+    } catch (err) {
+      console.error('Failed to load conditions telemetry:', err);
+    } finally {
+      setConditionsLoading(false);
+    }
+  };
+
+  const handleTriggerPressureRefresh = async () => {
+    try {
+      setRecalculatingPressure(true);
+      setRecalculateMessage(null);
+      const res = await refreshAdminPressure(selectedDestId, true);
+      const refreshedScore = res.refreshed_destinations?.[0]?.recalculated_score;
+      setRecalculateMessage(`Pressure recalculated for ${selectedDestId} (Score: ${refreshedScore ?? 'Refreshed'}/100)`);
+      await Promise.all([
+        loadCommandCenter(),
+        loadDestinationDetails(selectedDestId),
+        loadConditionsTelemetry(selectedDestId)
+      ]);
+    } catch (err: any) {
+      setRecalculateMessage(err.message || 'Recalculation cooldown active. Please wait 5s.');
+    } finally {
+      setRecalculatingPressure(false);
+    }
+  };
 
 
 
@@ -251,6 +329,8 @@ export default function AdminCommandCenterPage() {
     loadForecastPerformance(selectedDestId);
     loadForecastFoundation();
     loadMLData(selectedDestId, 7);
+    loadDemandTelemetry();
+    loadConditionsTelemetry(selectedDestId);
   }, []);
 
   const handleSelectDestination = (destId: string) => {
@@ -258,6 +338,7 @@ export default function AdminCommandCenterPage() {
     loadDestinationDetails(destId);
     loadForecastPerformance(destId);
     loadMLData(destId, mlHorizon);
+    loadConditionsTelemetry(destId);
     setSimResult(null); // reset simulation on destination switch
   };
 
@@ -374,7 +455,7 @@ export default function AdminCommandCenterPage() {
                 <span className="text-indigo-300 font-semibold">{data ? `${Math.round(data.average_data_confidence * 100)}%` : '91%'}</span>
               </div>
               <button
-                onClick={() => { loadCommandCenter(); loadDestinationDetails(selectedDestId); }}
+                onClick={() => { loadCommandCenter(); loadDestinationDetails(selectedDestId); loadDemandTelemetry(); loadConditionsTelemetry(selectedDestId); }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition shadow-lg shadow-emerald-900/30"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -479,6 +560,385 @@ export default function AdminCommandCenterPage() {
             </div>
           </div>
         )}
+
+        {/* First-Party Demand Telemetry & Data Trust Strip (Milestone 7A) */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-400">
+                <Database className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  First-Party Demand Telemetry & Network Provenance
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Direct behavioral signals from Yatri Setu traveler flow, search intent, and booking pipeline
+                </p>
+              </div>
+            </div>
+
+            {/* Strict Provenance Badge */}
+            <div className="flex items-center gap-2">
+              {(demandOverview?.provenance_audit?.provenance_label ?? circuitDemand?.summary?.provenance_label) === 'REAL — YATRI SETU NETWORK' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  REAL — YATRI SETU NETWORK
+                </span>
+              ) : (demandOverview?.provenance_audit?.provenance_label ?? circuitDemand?.summary?.provenance_label) === 'MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
+                  <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                  SYNTHETIC DEMO DATA
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Telemetry Key Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Pipeline Events</span>
+              <div className="text-xl font-black text-white mt-1">
+                {demandOverview?.total_events_recorded ?? (demandLoading ? '...' : 0)}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                {demandOverview ? `${demandOverview.provenance_audit.real_events_count ?? 0} real • ${demandOverview.provenance_audit.synthetic_events_count ?? 0} synthetic` : 'Aggregating...'}
+              </div>
+            </div>
+
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Circuit Searches (7D)</span>
+              <div className="text-xl font-black text-sky-400 mt-1">
+                {circuitDemand?.summary?.total_searches_7d ?? demandOverview?.circuit_summary?.total_searches_7d ?? 0}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                Traveler intent & discovery
+              </div>
+            </div>
+
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Circuit Bookings (7D)</span>
+              <div className="text-xl font-black text-emerald-400 mt-1">
+                {circuitDemand?.summary?.total_bookings_7d ?? demandOverview?.circuit_summary?.total_bookings_7d ?? 0}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                {circuitDemand?.summary?.overall_booking_conversion
+                  ? `${(circuitDemand.summary.overall_booking_conversion * 100).toFixed(1)}% conversion`
+                  : 'Direct reservations'}
+              </div>
+            </div>
+
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-lg p-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Alternative Diversions</span>
+              <div className="text-xl font-black text-indigo-400 mt-1">
+                {demandOverview?.conversion_funnel?.alternative_acceptances ?? 0}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                Accepted calm destinations
+              </div>
+            </div>
+          </div>
+
+          {/* Circuit Destination Telemetry Breakdown */}
+          {circuitDemand?.destinations && Object.keys(circuitDemand.destinations).length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-slate-800">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Destination Demand Telemetry Across Circuit
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {Object.entries(circuitDemand.destinations).map(([destId, d]) => (
+                  <div
+                    key={destId}
+                    className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-700/40 hover:border-slate-600 transition"
+                  >
+                    <div className="text-xs font-bold text-white capitalize">{d.destination_name || destId}</div>
+                    <div className="flex items-center justify-between mt-1 text-[10px]">
+                      <span className="text-slate-400">Searches:</span>
+                      <span className="font-semibold text-sky-300">{d.search_count_7d}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400">Bookings:</span>
+                      <span className="font-semibold text-emerald-300">{d.booking_count_7d}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400">Pressure:</span>
+                      <span className="font-semibold text-slate-200">{(d.availability_pressure * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Transparency & Scope Disclaimer */}
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-slate-800/40 border border-slate-700/30 text-slate-400 text-xs">
+            <Shield className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold text-slate-300">Data Trust & Network Scope Notice: </span>
+              Demand telemetry is measured exclusively from traveler search intent, homestay bookings, and alternative acceptance decisions within the Yatri Setu Network. This data reflects localized pilot platform activity and does not represent a nationwide census or third-party market estimate.
+            </div>
+          </div>
+        </div>
+
+        {/* Live Weather + Corridor Transit & Dynamic Pressure Recalculation (Milestone 7C) */}
+        <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-5 sm:p-6 shadow-xl space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-sky-500/20 border border-sky-500/30 text-sky-400">
+                <Navigation className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                    Live Weather + Arterial Corridor Intelligence & Pressure Recalculation
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                    M7C Real-Time
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Multi-corridor transit anomaly tracking, Himalayan weather observation & causal delta recalculations
+                </p>
+              </div>
+            </div>
+
+            {/* Recalculate Action with Rate Protection */}
+            <div className="flex items-center gap-3">
+              {recalculateMessage && (
+                <span className="text-xs text-sky-300 font-medium bg-sky-950/60 border border-sky-800/60 px-3 py-1.5 rounded-lg max-w-xs truncate">
+                  {recalculateMessage}
+                </span>
+              )}
+              <button
+                onClick={handleTriggerPressureRefresh}
+                disabled={recalculatingPressure}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white font-semibold text-xs transition shadow-lg shadow-sky-900/30 whitespace-nowrap"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${recalculatingPressure ? 'animate-spin' : ''}`} />
+                <span>Recalculate Pressure ({selectedDestId})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Circuit Corridor Access Matrix */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="font-semibold uppercase tracking-wider">Circuit Mountain Corridor & Weather Matrix</span>
+              <span className="text-[11px]">Click a destination to inspect causal drivers</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+              {circuitConditions && Object.entries(circuitConditions).map(([destId, cond]) => {
+                const isSelected = selectedDestId === destId;
+                return (
+                  <div
+                    key={destId}
+                    onClick={() => handleSelectDestination(destId)}
+                    className={`cursor-pointer rounded-xl p-3.5 border transition-all duration-200 ${
+                      isSelected
+                        ? 'bg-slate-800/90 border-sky-500/80 ring-2 ring-sky-500/20 shadow-lg'
+                        : 'bg-slate-800/40 border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-1.5">
+                      <span className="font-bold text-white text-xs capitalize truncate">
+                        {cond.destination_name || destId}
+                      </span>
+                      {/* Access Status Badge */}
+                      <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                        cond.access_status === 'OPEN'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : cond.access_status === 'CAUTION'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse'
+                      }`}>
+                        {cond.access_status}
+                      </span>
+                    </div>
+
+                    {/* Corridor Traffic Snippet */}
+                    <div className="mt-2.5 space-y-1 text-[11px]">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span className="text-slate-400 text-[10px]">Corridor Delay:</span>
+                        <span className={`font-bold ${
+                          cond.traffic.travel_time_anomaly_percent > 15
+                            ? 'text-rose-400'
+                            : cond.traffic.travel_time_anomaly_percent > 0
+                            ? 'text-amber-300'
+                            : 'text-emerald-400'
+                        }`}>
+                          {cond.traffic.travel_time_anomaly_percent > 0
+                            ? `+${cond.traffic.travel_time_anomaly_percent.toFixed(0)}%`
+                            : `${cond.traffic.travel_time_anomaly_percent.toFixed(0)}%`}
+                        </span>
+                      </div>
+
+                      <div className="text-[10px] text-slate-400 truncate" title={cond.traffic.primary_bottleneck_route || 'All routes normal'}>
+                        {cond.traffic.primary_bottleneck_route || 'Routes clear'}
+                      </div>
+                    </div>
+
+                    {/* Weather Snippet */}
+                    <div className="mt-2 pt-2 border-t border-slate-700/40 flex items-center justify-between text-[10px] text-slate-400">
+                      <span className="flex items-center gap-1 text-slate-300">
+                        <CloudRain className="w-3 h-3 text-sky-400" />
+                        {cond.weather.temperature_c.toFixed(0)}°C
+                      </span>
+                      <span>{cond.weather.precipitation_mm > 0 ? `${cond.weather.precipitation_mm.toFixed(1)} mm` : 'Dry'}</span>
+                      <span className="font-mono text-slate-500 text-[9px]">{cond.pressure_score.toFixed(0)}/100</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Selected Destination "Why Pressure Changed" Delta Explanation Panel */}
+          {circuitConditions?.[selectedDestId] && (() => {
+            const selectedCond = circuitConditions[selectedDestId];
+            const pChange = selectedCond.pressure_change;
+            return (
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Activity className="w-4 h-4 text-sky-400" />
+                      Why Pressure Changed Diagnostic: {selectedCond.destination_name}
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">
+                      ({selectedCond.refreshed_at.split('T')[1]?.slice(0, 8) || 'Just Now'})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                      {selectedCond.provenance}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Delta KPI Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Recalculated Score</span>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-2xl font-black text-white">
+                        {selectedCond.pressure_score.toFixed(0)}
+                      </span>
+                      {pChange && (
+                        <span className={`text-xs font-bold ${
+                          pChange.pressure_delta > 0
+                            ? 'text-rose-400'
+                            : pChange.pressure_delta < 0
+                            ? 'text-emerald-400'
+                            : 'text-slate-400'
+                        }`}>
+                          {pChange.pressure_delta > 0
+                            ? `+${pChange.pressure_delta.toFixed(0)} pts`
+                            : `${pChange.pressure_delta.toFixed(0)} pts`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Baseline: {pChange ? `${pChange.previous_score.toFixed(0)}/100` : `${selectedCond.pressure_score.toFixed(0)}/100`}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pressure Level</span>
+                    <div className="text-sm font-bold text-white mt-2 flex items-center gap-1.5">
+                      <span className={
+                        selectedCond.pressure_level === 'CRITICAL' ? 'text-rose-400' :
+                        selectedCond.pressure_level === 'HIGH' ? 'text-amber-400' :
+                        'text-emerald-400'
+                      }>
+                        {selectedCond.pressure_level}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {selectedCond.condition_type}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Mountain Access Status</span>
+                    <div className="text-sm font-bold mt-2 flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded text-xs ${
+                        selectedCond.access_status === 'OPEN'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : selectedCond.access_status === 'CAUTION'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      }`}>
+                        {selectedCond.access_status}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Safety decoupled from crowd
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-lg p-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Live Weather Signal</span>
+                    <div className="text-sm font-bold text-white mt-2">
+                      {selectedCond.weather.temperature_c.toFixed(1)}°C • {selectedCond.weather.weather_condition}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Impact: {selectedCond.weather_impact.weather_impact > 0 ? `+${selectedCond.weather_impact.weather_impact.toFixed(2)}` : selectedCond.weather_impact.weather_impact.toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Drivers Contribution Table */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                    Primary Causal Drivers Shaping Today&apos;s Recalculation
+                  </span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {selectedCond.top_drivers.map((drv, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-800/80 text-xs"
+                      >
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-white">{drv.signal}</div>
+                          <div className="text-[10px] text-slate-400">
+                            {drv.description}
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                            drv.impact > 0
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                              : drv.impact < 0
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-slate-700 text-slate-300'
+                          }`}>
+                            {drv.impact > 0 ? `+${drv.impact.toFixed(0)}` : drv.impact.toFixed(0)} pts
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Engine Advisory / Impact Description */}
+                {selectedCond.traffic_impact.impact_description && (
+                  <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                    <span className="font-bold text-sky-400">Corridor Telemetry Diagnostic: </span>
+                    {selectedCond.traffic_impact.impact_description}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Main Grid: Destinations Cards + Deep Signal Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

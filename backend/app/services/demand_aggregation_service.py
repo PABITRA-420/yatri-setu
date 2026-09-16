@@ -123,7 +123,9 @@ class DemandAggregationService:
                         "session_id": f"sess_{uuid.uuid4().hex[:6]}",
                         "user_id": None,
                         "metadata": {"origin": "explore", "query": meta["name"]},
-                        "source": "YATRI_SETU_NETWORK",
+                        "source": "SYNTHETIC_DEMO",
+                        "is_synthetic": True,
+                        "provenance": "SYNTHETIC DEMO DATA",
                         "timestamp": day_time - timedelta(minutes=(_ * 10))
                     })
 
@@ -136,7 +138,9 @@ class DemandAggregationService:
                         "session_id": f"sess_{uuid.uuid4().hex[:6]}",
                         "user_id": None,
                         "metadata": {"rooms": 1, "guests": 2, "channel": "yatri_direct"},
-                        "source": "YATRI_SETU_NETWORK",
+                        "source": "SYNTHETIC_DEMO",
+                        "is_synthetic": True,
+                        "provenance": "SYNTHETIC DEMO DATA",
                         "timestamp": day_time - timedelta(minutes=(_ * 25))
                     })
 
@@ -148,8 +152,10 @@ class DemandAggregationService:
                         "event_type": DemandEventType.ALTERNATIVE_ACCEPTANCE.value,
                         "session_id": f"sess_{uuid.uuid4().hex[:6]}",
                         "user_id": None,
-                        "metadata": {"origin_destination_id": "darjeeling", "accepted": dest_id},
-                        "source": "YATRI_SETU_NETWORK",
+                        "metadata": {"origin_destination_id": "darjeeling", "original_destination_id": "darjeeling", "accepted": dest_id, "accepted_alternative_id": dest_id, "alternative_destination_id": dest_id},
+                        "source": "SYNTHETIC_DEMO",
+                        "is_synthetic": True,
+                        "provenance": "SYNTHETIC DEMO DATA",
                         "timestamp": day_time
                     })
 
@@ -158,28 +164,63 @@ class DemandAggregationService:
     def record_event(
         self,
         event_type: str,
-        destination_id: str,
+        destination_id: Optional[str] = None,
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         timestamp: Optional[datetime] = None,
+        source: Optional[str] = None,
+        is_synthetic: bool = False,
     ) -> Dict[str, Any]:
         """
         Records a genuine first-party demand event without collecting unnecessary personal data.
+        Handles destination_id=None safely for global search queries.
+        Supports both event_type as string/enum or as a BaseDemandEvent instance.
         """
-        dest_clean = destination_id.lower().strip()
+        if hasattr(event_type, "event_type"):
+            event_obj = event_type
+            if hasattr(event_obj.event_type, "value"):
+                event_type_str = event_obj.event_type.value
+            else:
+                event_type_str = str(event_obj.event_type)
+            dest_val = destination_id or getattr(event_obj, "destination_id", None)
+            session_id = session_id or getattr(event_obj, "session_id", None)
+            user_id = user_id or getattr(event_obj, "user_id", None)
+            source = source or getattr(event_obj, "source", None)
+            if metadata is None:
+                if hasattr(event_obj, "model_dump"):
+                    meta_dict = event_obj.model_dump(exclude={"event_type", "destination_id", "session_id", "user_id", "source", "timestamp"})
+                elif hasattr(event_obj, "dict"):
+                    meta_dict = event_obj.dict(exclude={"event_type", "destination_id", "session_id", "user_id", "source", "timestamp"})
+                else:
+                    meta_dict = {}
+            else:
+                meta_dict = metadata
+        elif hasattr(event_type, "value"):
+            event_type_str = event_type.value
+            dest_val = destination_id
+            meta_dict = metadata or {}
+        else:
+            event_type_str = str(event_type)
+            dest_val = destination_id
+            meta_dict = metadata or {}
+
+        dest_clean = dest_val.lower().strip() if dest_val else None
         ts = timestamp or datetime.utcnow()
         event_id = f"evt_{uuid.uuid4().hex[:12]}"
-        meta_dict = metadata or {}
+        event_source = source or ("SYNTHETIC_DEMO" if is_synthetic else "YATRI_SETU_NETWORK")
+        provenance = "SYNTHETIC DEMO DATA" if is_synthetic else "REAL — YATRI SETU NETWORK"
 
         record = {
             "id": event_id,
             "destination_id": dest_clean,
-            "event_type": event_type,
+            "event_type": event_type_str,
             "session_id": session_id,
             "user_id": user_id,
             "metadata": meta_dict,
-            "source": "YATRI_SETU_NETWORK",
+            "source": event_source,
+            "is_synthetic": is_synthetic,
+            "provenance": provenance,
             "timestamp": ts,
         }
 
@@ -189,15 +230,32 @@ class DemandAggregationService:
         for e in reversed(self._events):
             if e["timestamp"] < cutoff:
                 break
-            if (
-                e["event_type"] == event_type
-                and e["destination_id"] == dest_clean
-                and e["session_id"] == session_id
-            ):
-                duplicate = True
-                break
+            if e.get("event_type") != event_type_str:
+                continue
+
+            # Special case for SEARCH: deduplicate rapid identical queries
+            if event_type_str == DemandEventType.SEARCH.value:
+                existing_q = (e.get("metadata") or {}).get("query")
+                incoming_q = meta_dict.get("query")
+                if existing_q and incoming_q and existing_q.strip().lower() == incoming_q.strip().lower():
+                    # Same search query within 5 seconds (regardless of session or if same session)
+                    if session_id is None or e.get("session_id") == session_id:
+                        duplicate = True
+                        break
+            else:
+                # Other event types with or without destination_id
+                if e.get("destination_id") == dest_clean:
+                    if session_id is not None and e.get("session_id") == session_id:
+                        duplicate = True
+                        break
+                    elif session_id is None and e.get("session_id") is None:
+                        # Match on metadata if no session_id is provided
+                        if e.get("metadata") == meta_dict:
+                            duplicate = True
+                            break
+
         if duplicate:
-            return record  # skip persistence but return placeholder
+            return {**record, "status": "duplicate"}
 
         # Cache in memory
         self._events.append(record)
@@ -208,11 +266,11 @@ class DemandAggregationService:
             db_event = DemandEventModel(
                 id=event_id,
                 destination_id=dest_clean,
-                event_type=event_type,
+                event_type=event_type_str,
                 session_id=session_id,
                 user_id=user_id,
                 metadata_json=meta_dict,
-                source="YATRI_SETU_NETWORK",
+                source=event_source,
                 timestamp=ts,
             )
             db.add(db_event)
@@ -222,7 +280,7 @@ class DemandAggregationService:
             # Graceful resilience: event is recorded in in-memory telemetry
             pass
 
-        return record
+        return {**record, "status": "recorded"}
 
     def get_capacity_metrics(
         self, destination_id: str, threshold: float = CAPACITY_THRESHOLD_DEFAULT
@@ -387,6 +445,30 @@ class DemandAggregationService:
             is_alternative_advised=(capacity_status.is_constrained or norm_search >= 75),
         )
 
+        # Three-tier provenance determination:
+        # A. Synthetic seeded/demo demand only: SYNTHETIC DEMO DATA
+        # B. Actual events generated by real Yatri Setu user actions only: REAL — YATRI SETU NETWORK
+        # C. Combined synthetic baseline + real events: MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO
+        dest_events_7d = [e for e in self._events if e.get("destination_id") == dest_clean and e["timestamp"] >= t_7d]
+        real_events_count = sum(1 for e in dest_events_7d if not e.get("is_synthetic"))
+        synthetic_events_count = sum(1 for e in dest_events_7d if e.get("is_synthetic"))
+
+        if real_events_count > 0 and (synthetic_events_count > 0 or base_s24 > 0):
+            prov_label = "MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO"
+            prov_mode = ProviderMode.MIXED
+            data_qual = DataQuality.HIGH
+            source_label = "YATRI_SETU_NETWORK + SYNTHETIC_DEMO"
+        elif real_events_count > 0 and synthetic_events_count == 0 and base_s24 == 0:
+            prov_label = "REAL — YATRI SETU NETWORK"
+            prov_mode = ProviderMode.REAL
+            data_qual = DataQuality.HIGH
+            source_label = "YATRI_SETU_NETWORK"
+        else:
+            prov_label = "SYNTHETIC DEMO DATA"
+            prov_mode = ProviderMode.SYNTHETIC
+            data_qual = DataQuality.MEDIUM
+            source_label = "SYNTHETIC_DEMO"
+
         return DemandMetrics(
             destination_id=dest_clean,
             destination_name=meta["name"],
@@ -401,11 +483,11 @@ class DemandAggregationService:
             trend_direction=trend_dir,
             normalized_search_demand=norm_search,
             normalized_booking_demand=norm_booking,
-            source="YATRI_SETU_NETWORK",
-            provider_mode=ProviderMode.REAL,
-            confidence=0.94,
-            data_quality=DataQuality.HIGH,
-            provenance_label="REAL — FIRST-PARTY",
+            source=source_label,
+            provider_mode=prov_mode,
+            confidence=0.94 if prov_mode == ProviderMode.REAL else 0.88,
+            data_quality=data_qual,
+            provenance_label=prov_label,
             is_leading_indicator=True,
             tourist_signals=tourist_signals,
             capacity=capacity_status,
@@ -446,6 +528,24 @@ class DemandAggregationService:
 
         overall_conv = round(total_b_7d / max(1, total_s_7d), 4)
 
+        now = datetime.utcnow()
+        t_7d = now - timedelta(days=7)
+        real_circuit_count = sum(1 for e in self._events if not e.get("is_synthetic") and e["timestamp"] >= t_7d)
+        synthetic_circuit_count = sum(1 for e in self._events if e.get("is_synthetic") and e["timestamp"] >= t_7d)
+
+        if real_circuit_count > 0 and (synthetic_circuit_count > 0 or len(self._events) > real_circuit_count):
+            circ_prov = "MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO"
+            circ_mode = "MIXED"
+            circ_source = "YATRI_SETU_NETWORK + SYNTHETIC_DEMO"
+        elif real_circuit_count > 0:
+            circ_prov = "REAL — YATRI SETU NETWORK"
+            circ_mode = "REAL"
+            circ_source = "YATRI_SETU_NETWORK"
+        else:
+            circ_prov = "SYNTHETIC DEMO DATA"
+            circ_mode = "SYNTHETIC"
+            circ_source = "SYNTHETIC_DEMO"
+
         summary = CircuitDemandSummary(
             total_searches_24h=total_s_24,
             total_searches_7d=total_s_7d,
@@ -454,9 +554,9 @@ class DemandAggregationService:
             overall_booking_conversion=overall_conv,
             highest_demand_hub=highest_hub,
             primary_rural_absorber=primary_absorber,
-            source="YATRI_SETU_NETWORK",
-            provider_mode="REAL",
-            provenance_label="REAL — FIRST-PARTY"
+            source=circ_source,
+            provider_mode=circ_mode,
+            provenance_label=circ_prov
         )
 
         return CircuitDemandResponse(
@@ -489,10 +589,21 @@ class DemandAggregationService:
 
         events_24h = 0
         events_7d = 0
+        real_events_count = 0
+        synthetic_events_count = 0
 
         for e in self._events:
-            e_type = e["event_type"]
+            e_type_val = e.get("event_type")
+            if hasattr(e_type_val, "value"):
+                e_type = e_type_val.value
+            else:
+                e_type = str(e_type_val)
             breakdown[e_type] = breakdown.get(e_type, 0) + 1
+
+            if e.get("is_synthetic"):
+                synthetic_events_count += 1
+            else:
+                real_events_count += 1
 
             if e["timestamp"] >= t_24h:
                 events_24h += 1
@@ -512,14 +623,24 @@ class DemandAggregationService:
 
         funnel["alternative_suggestions"] = max(funnel["alternative_acceptances"] * 3, 24)
 
+        if real_events_count > 0 and synthetic_events_count > 0:
+            admin_prov = "MIXED — YATRI SETU NETWORK + SYNTHETIC DEMO"
+            admin_mode = "MIXED"
+        elif real_events_count > 0:
+            admin_prov = "REAL — YATRI SETU NETWORK"
+            admin_mode = "REAL"
+        else:
+            admin_prov = "SYNTHETIC DEMO DATA"
+            admin_mode = "SYNTHETIC"
+
         recent_preview = [
             {
                 "id": e["id"],
-                "destination_id": e["destination_id"],
+                "destination_id": e.get("destination_id"),
                 "event_type": e["event_type"],
                 "timestamp": e["timestamp"].isoformat() if isinstance(e["timestamp"], datetime) else str(e["timestamp"]),
                 "source": e.get("source", "YATRI_SETU_NETWORK"),
-                "provenance": "REAL — FIRST-PARTY",
+                "provenance": "SYNTHETIC DEMO DATA" if e.get("is_synthetic") else "REAL — YATRI SETU NETWORK",
             }
             for e in reversed(self._events[-20:])
         ]
@@ -533,14 +654,34 @@ class DemandAggregationService:
             circuit_summary=circuit.summary,
             provenance_audit={
                 "first_party_provider": "YATRI_SETU_NETWORK",
-                "mode": "REAL",
+                "mode": admin_mode,
+                "provenance_label": admin_prov,
                 "status": "OPERATIONAL",
+                "real_events_count": real_events_count,
+                "synthetic_events_count": synthetic_events_count,
                 "signals_monitored": ["search_demand", "booking_demand", "capacity_pressure"],
                 "synthetic_comparison": "MOCK historical models active for baseline benchmarking"
             },
             recent_events_preview=recent_preview,
             last_updated=datetime.utcnow()
         )
+
+    def get_raw_events(self) -> List[Any]:
+        """Returns in-memory demand events for introspection and testing."""
+        class EventRecord(dict):
+            def __getattr__(self, name):
+                try:
+                    val = self[name]
+                    if name == "event_type" and isinstance(val, str):
+                        try:
+                            return DemandEventType(val)
+                        except ValueError:
+                            return val
+                    return val
+                except KeyError:
+                    raise AttributeError(name)
+
+        return [EventRecord(e) for e in self._events]
 
 
 # Global Singleton Instance
