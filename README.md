@@ -1,113 +1,120 @@
 # 🏔️ Yatri Setu (यात्री सेतु)
 ### Hyperlocal & Rural Tourism Platform with Active Crowd Management & Traveler Safety
-**Smart India Hackathon 2026** • Core Milestone: Complete Tourist Experience
+**Smart India Hackathon 2026** • Complete Implementation (Milestones 1 through 7H)
 
 ---
 
 ## 🌟 Core Differentiator
-Most commercial travel websites operate as passive booking engines, exacerbating overtourism by routing thousands of travelers into already saturated hotspots.
+Most commercial travel platforms operate as passive booking engines, exacerbating overtourism by routing thousands of travelers into already saturated hotspots.
 
 **Yatri Setu actively manages tourist flow.** When fragile mountain destinations (such as Darjeeling during peak autumn sunrise/tea season) reach severe congestion, Yatri Setu:
 1. **Computes a deterministic crowd index (0–100)** and classifies it as **LOW / MEDIUM / HIGH / VERY HIGH**.
-2. **Generates natural language explainability** for why the score is high (e.g. 91% hotel saturation, Hill Cart Road bottlenecks, Tiger Hill observation deck choke points).
-3. **Recommends high-similarity rural alternatives** (e.g. Kalimpong, Lava, Lolegaon, Rishop, Mirik).
-4. **Calculates similarity score, distance, and cost savings** (e.g. Kalimpong: 87% similarity, 42% cost savings, 50 km away).
-5. **Connects travelers to verified rural panchayat homestays** where 10% of spend supports local village development funds.
-6. **Protects travelers with built-in Emergency SOS**, transmitting real-time GPS telemetry to the nearest police, hospital, and local *Yatri Mitra* volunteer responders.
+2. **Generates natural language explainability** for why the score is high (e.g. hotel saturation, arterial choke points, scenic viewpoint queue bottlenecks).
+3. **Identifies capacity-verified rural alternatives** (e.g. Kalimpong, Lava, Lolegaon, Rishop, Mirik).
+4. **Calculates multi-attribute similarity, distance, and cost savings** (e.g. Kalimpong: 87% similarity, 42% cost savings, 50 km away).
+5. **Connects travelers to verified rural panchayat homestays** where 90% of revenue goes directly to the rural host and 5% supports local Gram Panchayat village development funds.
+6. **Protects travelers with built-in Emergency SOS**, broadcasting GPS telemetry to the regional *Yatri Mitra* volunteer responder network and tourism safety desks, alongside verified direct access to official national helplines (112, 1363, 1091).
 
 ---
 
-## 🗂️ Architecture & Folder Structure
+# Yatri Setu Crowd Intelligence Architecture
+
+Yatri Setu implements an explainable, deterministic multi-engine architecture designed for operational reliability in fragile Himalayan environments.
 
 ```
-yatri-setu/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py                     # FastAPI entry point with CORS & health check
-│   │   ├── core/
-│   │   │   ├── config.py               # App configuration & settings
-│   │   ├── data/
-│   │   │   └── seed_data.py            # Curated seed data for 6 Himalayan destinations
-│   │   ├── models/
-│   │   │   ├── destination.py          # Destination & Attraction schemas
-│   │   │   ├── crowd.py                # Multi-factor crowd metrics & alternatives schemas
-│   │   │   ├── itinerary.py            # Activity slot & multi-day itinerary schemas
-│   │   │   ├── homestay.py             # Rural homestay, booking & trip schemas
-│   │   │   └── safety.py               # Emergency SOS & responder schemas
-│   │   ├── services/
-│   │   │   ├── crowd_engine.py         # Deterministic 6-factor crowd calculation
-│   │   │   ├── alternative_engine.py   # Multi-attribute similarity ranking
-│   │   │   ├── itinerary_service.py    # Service-layer abstracted itinerary generation
-│   │   │   └── safety_service.py       # Distress beacon & responder dispatch simulator
-│   │   └── api/
-│   │       └── v1/
-│   │           ├── api.py              # Consolidated API v1 router
-│   │           ├── destinations.py     # /api/destinations endpoints
-│   │           ├── itinerary.py        # /api/itinerary/generate endpoint
-│   │           ├── homestays.py        # /api/homestays, /api/bookings, /api/trips endpoints
-│   │           └── safety.py           # /api/safety/sos endpoint
-│   ├── tests/
-│   │   ├── test_crowd_engine.py        # Weights, threshold & similarity unit tests
-│   │   └── test_api_endpoints.py       # FastAPI HTTP endpoint integration tests
-│   ├── pytest.ini
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── layout.tsx              # Root layout with responsive Navbar & Footer
-│   │   │   ├── globals.css             # Tailwind CSS design system tokens
-│   │   │   ├── page.tsx                # 1. Landing page with smart search & ticker
-│   │   │   ├── dashboard/page.tsx      # 2. Tourist dashboard
-│   │   │   ├── destinations/
-│   │   │   │   ├── page.tsx            # 3. Destination search & crowd level filter
-│   │   │   │   └── [id]/
-│   │   │   │       ├── page.tsx        # 4. Destination details & attractions
-│   │   │   │       ├── crowd/page.tsx  # 5. Crowd intelligence panel
-│   │   │   │       └── alternatives/page.tsx # 6. Alternate destination advisor
-│   │   │   ├── itinerary/page.tsx      # 7 & 8. AI itinerary planner & results timeline
-│   │   │   ├── homestays/page.tsx      # 9. Verified rural homestays listing
-│   │   │   ├── booking/confirmation/page.tsx # 10. Booking confirmation & QR pass
-│   │   │   ├── trips/[id]/page.tsx     # 11. Active trip companion dashboard
-│   │   │   └── safety/sos/page.tsx     # 12. SOS safety screen & live responder beacon
-│   │   ├── components/
-│   │   │   ├── Navbar.tsx              # Sticky header with quick SOS trigger
-│   │   │   ├── Footer.tsx              # SIH 2026 footer & national helplines
-│   │   │   ├── CrowdGauge.tsx          # Circular 0-100 crowd meter with status dot
-│   │   │   ├── CrowdFactorBreakdown.tsx# Progress bars for the 6 weighted factors
-│   │   │   ├── AlternativeCard.tsx     # Similarity %, cost savings & explainability
-│   │   │   ├── DestinationCard.tsx     # Destination card with crowd status
-│   │   │   ├── HomestayCard.tsx        # Panchayat stay card with 10% community fund
-│   │   │   └── ItineraryTimeline.tsx   # Interactive day-by-day activity slots
-│   │   ├── lib/
-│   │   │   ├── api.ts                  # Client connecting to FastAPI (with offline fallback)
-│   │   │   └── utils.ts                # Styling utilities & formatINR
-│   │   └── types/
-│   │       └── index.ts                # TypeScript interfaces matching backend models
-│   ├── package.json
-│   └── tsconfig.json
-└── README.md
+M1 BASELINE
+    ↓  Fast deterministic tourist-facing baseline (6 weighted factors)
+M7C LIVE RECALCULATION
+    ↓  Current / future dynamic pressure using operational telemetry
+M7D/M7E FLOW MANAGEMENT
+    ↓  Checks whether an alternative is safe, reachable, suitable, and capable of absorbing visitors
+M6 XGBOOST
+    ↓  Offline predictive benchmark / validation layer (Advisory only; never overrides live serving score)
 ```
+
+### The Two-Layer Deterministic Model:
+- **Layer 1: M1 Tourist Baseline Engine (`crowd_engine.py`)**: Instantaneous, deterministic 0–100 tourist crowd score derived from 6 transparent demographic and geographic factors. Powers tourist browsing, destination badges, and initial flow awareness.
+- **Layer 2: M7C Dynamic Live Conditions & Pressure Recalculator (`pressure_refresh_service.py`)**: Ingests real-time operational telemetry (live weather observations, corridor traffic statuses, first-party booking demand, active event schedules, and holiday surges) to recalculate dynamic operational pressure and track refresh cycle deltas.
+- **Network & Capacity Layer: M7D Flow Management (`alternative_engine.py`)**: Enforces hard safety, road accessibility, and carrying capacity constraints before candidate destinations can be suggested as alternatives.
+- **Validation Layer: M6 XGBoost ML Benchmark (`ml_training_pipeline.py`)**: Supervised gradient boosted regression model evaluated chronologically against the rule engine. **The XGBoost model is a predictive benchmark and validation layer. It does not determine the authoritative tourist-facing crowd score.**
 
 ---
 
-## ⚙️ Deterministic Crowd Score Formula
+## Judge-Ready Crowd Engine Definition
 
-```text
-crowd_score =
-  35% × historical_footfall +
-  25% × booking_density +
-  15% × seasonality +
-  10% × holiday_factor +
-  10% × weather_event_factor +
-   5% × traffic_factor
-```
+### 1. M1 Base Tourist Crowd Engine (Authoritative Baseline)
+- **Engine Type**: Deterministic, serving-layer calculation.
+- **Scale**: Normalized integer from 0 to 100.
+- **Exact Formula**:
+  $$\text{Crowd Score} = 0.35 \times H + 0.25 \times B + 0.15 \times S + 0.10 \times Hol + 0.10 \times W + 0.05 \times T$$
+- **Exact Factor Weights**:
+  - **Historical Tourist Footfall ($H$)**: **35%** (Multi-year seasonal arrival density).
+  - **Hotel & Homestay Booking Density ($B$)**: **25%** (Current accommodation occupancy & reservations).
+  - **Seasonal Tourism Index ($S$)**: **15%** (Optimal blooming & mountain visibility window).
+  - **Weekend & Holiday Multiplier ($Hol$)**: **10%** (Regional holiday influx from Kolkata/Siliguri).
+  - **Clear Sky & Weather Index ($W$)**: **10%** (Mountain visibility triggering spontaneous travel).
+  - **Transit Route & Bottleneck Density ($T$)**: **5%** (Arterial mountain road choke point saturation).
+- **Exact Classification Thresholds**:
+  - `0 – 25`: **LOW** (Emerald Green — Pristine tranquility)
+  - `26 – 50`: **MEDIUM** (Amber — Balanced footfall)
+  - `51 – 75`: **HIGH** (Orange — Elevated density)
+  - `76 – 100`: **VERY HIGH** (Rose Red — Critical congestion alert)
 
-### Classification Thresholds:
-- **0 – 25**: `LOW` (Emerald Green) — Pristine tranquility, e.g., Rishop (15), Lolegaon (18), Lava (24).
-- **26 – 50**: `MEDIUM` (Amber) — Balanced footfall, e.g., Kalimpong (42), Mirik (38).
-- **51 – 75**: `HIGH` (Orange) — Elevated density, viewpoint lines.
-- **76 – 100**: `VERY HIGH` (Rose Red) — Critical congestion alert, e.g., Darjeeling (88).
+### 2. M7C Dynamic Live Conditions & Pressure Engine
+- **Engine Type**: Deterministic dynamic multi-signal recalculator.
+- **Scale**: Continuous score from 0.0 to 100.0 with explainable top driver breakdown and delta tracking.
+- **Exact Current-Day Weights**:
+  - **Historical Footfall Baseline**: **20%**
+  - **Accommodation Occupancy**: **15%**
+  - **First-Party Demand Telemetry**: **15%**
+  - **Corridor Traffic Pressure**: **15%**
+  - **Local Event Pressure**: **15%**
+  - **Holiday Influx**: **10%**
+  - **Live Mountain Weather Impact**: **10%**
+  $$\text{Total} = 20\% + 15\% + 15\% + 15\% + 15\% + 10\% + 10\% = 100\%$$
+- **Exact Future-Date Weights** (Traffic telemetry not assumed for future dates; nominal baseline used):
+  - **Historical Footfall Baseline**: **25%**
+  - **Accommodation Occupancy**: **20%**
+  - **First-Party Demand Telemetry**: **15%**
+  - **Traffic Baseline**: **5%**
+  - **Local Event Pressure**: **15%**
+  - **Holiday Influx**: **10%**
+  - **Weather Forecast Impact**: **10%**
+  $$\text{Total} = 25\% + 20\% + 15\% + 5\% + 15\% + 10\% + 10\% = 100\%$$
+- **Exact Pressure Classification Thresholds**:
+  - `< 40.0`: **LOW**
+  - `40.0 – 59.9`: **MODERATE**
+  - `60.0 – 79.9`: **HIGH**
+  - `≥ 80.0`: **CRITICAL**
+
+### 3. M7D Capacity-Aware Alternative Suitability & Exclusion Rules
+- **Exact Capacity Exclusion Threshold**:
+  Candidate destinations are **strictly excluded** from receiving redirected tourist flow if:
+  $$\text{Capacity Health Status} == \text{FULL} \quad (\text{Occupancy Rate} \ge 90\%) \quad \text{OR} \quad \text{Available Units} \le 0$$
+- **Exact Operational Capacity Health Classifications**:
+  - `HEALTHY`: Occupancy $< 50\%$
+  - `LIMITED`: Occupancy $50\% - 75\%$
+  - `HIGH_UTILIZATION`: Occupancy $75\% - 90\%$
+  - `FULL`: Occupancy $\ge 90\%$ (Strictly Excluded)
+- **Exact Candidate Exclusion Filters** (Executed in strict sequence):
+  1. **Network Connectivity**: Route must be topologically connected and active (`destination_network_service`).
+  2. **Corridor Access Filter**: Access status must **not** be `DISRUPTED` (`access_status != "DISRUPTED"`).
+  3. **Severe Weather Filter**: Severe weather warning must **not** be present (`has_severe_weather == False`).
+  4. **Capacity Filter**: Capacity must **not** be `FULL` ($\ge 90\%$ occupancy) and available units must be $> 0$.
+  5. **Pressure Filter**: Candidate destination crowd score must be $< 80$ and must **not** exceed the origin crowd score.
+- **Exact Alternative Candidate Suitability Scoring**:
+  Surviving candidates are ranked deterministically by a 0–100 Suitability Index:
+  - **Pressure Suitability**: **35%** ($\max(0, 100 - \text{crowd\_score}) \times 0.35$)
+  - **Available Accommodation Capacity**: **25%** ($\text{HEALTHY}=100, \text{LIMITED}=70, \text{HIGH\_UTILIZATION}=40, \text{FULL}=0 \times 0.25$)
+  - **Access & Corridor Condition**: **15%** ($\text{OPEN}=100, \text{CAUTION}=60, \text{DISRUPTED}=0 \times 0.15$)
+  - **Multi-Attribute Similarity & Proximity**: **15%** ($\text{Cosine Similarity} \times 0.15$)
+  - **Weather Condition Suitability**: **10%** ($\text{Normal}=100, \text{Severe}=0 \times 0.10$)
+  $$\text{Total} = 35\% + 25\% + 15\% + 15\% + 10\% = 100\%$$
+
+### 4. M6 XGBoost Advisory Benchmark
+- **Role**: Offline predictive benchmark and validation layer.
+- **Authoritative Status**: Non-authoritative. It never calculates, overrides, or alters the live serving crowd score.
+- **Dataset**: Trained on 2023 standardized historical benchmark observations (2,190 rows across 6 Himalayan destinations) and evaluated chronologically on test observations (Nov 1, 2023 – Dec 31, 2023: 366 observations).
 
 ---
 
@@ -119,27 +126,84 @@ crowd_score =
 2. **Crowd Intelligence Panel (`/destinations/darjeeling/crowd`)**:
    - View the circular gauge showing **VERY HIGH 88/100**.
    - Read the explainability bullet points ("Why is it crowded?").
-   - Review the 6 factor breakdown bars.
-   - Click **"View Recommended Alternatives"**.
-3. **Alternate Destination Advisor (`/destinations/darjeeling/alternatives`)**:
-   - Note **Kalimpong** ranked as top alternative with **87% Similarity**, **42/100 (Medium Crowd)**, and **42% Cost Savings**.
+   - Review the 6 factor breakdown progress bars.
+   - Click **"View Suggested Alternatives"**.
+3. **Suggested Alternatives Advisor (`/destinations/darjeeling/alternatives`)**:
+   - Note **Kalimpong** ranked as top suggested alternative with **87% Similarity**, **42/100 (Medium Crowd)**, and **42% Cost Savings**.
+   - Review the Access Status (`OPEN`), Weather (`Clear, 16°C`), and Capacity (`HEALTHY`).
    - Click **"Choose Kalimpong & Generate Itinerary"**.
 4. **AI Itinerary Planner (`/itinerary?destination=kalimpong`)**:
    - Inspect the crowd-avoidance rating: *"91% Overcrowding Avoided"*.
    - Browse Day 1, Day 2, and Day 3 timeline tabs with morning/afternoon/evening slots.
    - Click **"Select Verified Homestay"**.
 5. **Homestays (`/homestays?destination_id=kalimpong`)**:
-   - Inspect *Pineview Orchid Retreat & Homestay* (Panchayat Verified, 10% Village Fund).
+   - Inspect *Pineview Orchid Retreat & Homestay* (Panchayat Verified, 90% Host Retention, 5% Gram Panchayat Village Fund).
    - Click **"Reserve Stay"**.
 6. **Booking Confirmation (`/booking/confirmation`)**:
    - Confirm booking to generate the **Digital Travel Pass QR**.
    - Click **"Go to Active Trip Dashboard"**.
 7. **Active Trip Dashboard (`/trips/YS-BK-...`)**:
-   - Review packing checklist, weather alert, and digital pass.
-   - Click **"TRIGGER SOS RESCUE BEACON"**.
+   - Review packing checklist, weather advisory, and digital travel pass.
+   - Access emergency assistance.
 8. **SOS Safety Screen (`/safety/sos`)**:
-   - Click the large red **"HOLD SOS"** button.
-   - Watch the screen activate into a live pulsing emergency broadcast with GPS coordinates (`27.0667° N, 88.4667° E`) and 3 dispatched emergency responders (Police Station, District Hospital, and Yatri Mitra Unit 4).
+   - Click the red **"HOLD SOS"** button.
+   - Watch the screen activate into an emergency distress broadcast with GPS coordinates (`27.0667° N, 88.4667° E`), verified *Yatri Mitra* community responder coordination, and immediate direct-dial access to official national helplines (112, 1363, 1091).
+9. **Admin Command Center (`/admin/command-center`)**:
+   - Review macro circuit metrics, live traffic corridor monitors, weather telemetry provenance badges, capacity health statuses, and the XGBoost advisory benchmark evaluation.
+
+---
+
+## 🗂️ Architecture & Folder Structure
+
+```
+yatri-setu/
+├── backend/
+│   ├── app/
+│   │   ├── main.py                     # FastAPI entry point with CORS, rate limiting & health checks
+│   │   ├── core/
+│   │   │   ├── config.py               # Pydantic settings & database URL normalizer
+│   │   │   ├── rate_limit.py           # Thread-safe in-memory sliding window rate limiter
+│   │   │   └── logging.py              # Log sanitation scrubbing secrets & tokens
+│   │   ├── data/
+│   │   │   └── seed_data.py            # Curated seed data for 6 Himalayan destinations
+│   │   ├── models/                     # Pydantic & SQLAlchemy domain schemas
+│   │   ├── services/
+│   │   │   ├── crowd_engine.py         # M1 Deterministic 6-factor crowd calculation
+│   │   │   ├── alternative_engine.py   # M7D Capacity-aware flow & suitability ranking
+│   │   │   ├── pressure_refresh_service.py # M7C Dynamic multi-signal pressure recalculation
+│   │   │   ├── destination_network_service.py # M7D Route graph & corridor feasibility
+│   │   │   ├── capacity/               # M7D Accommodation inventory & health service
+│   │   │   ├── weather/                # M7C/M7H OpenWeather & demo weather providers
+│   │   │   ├── traffic/                # M7C Corridor traffic & access monitor
+│   │   │   ├── ml_training_pipeline.py # M6 XGBoost supervised regression benchmark
+│   │   │   ├── safety/                 # M7F SOS service, responders & national directory
+│   │   │   └── itinerary_service.py    # M2B/M7H Adaptive itinerary engine (Mock / OpenAI)
+│   │   └── api/v1/                     # Consolidated REST API endpoints
+│   └── tests/                          # Automated Pytest suite (236 tests passing)
+├── frontend/
+│   ├── src/
+│   │   ├── app/                        # Next.js App Router (21 production routes)
+│   │   ├── components/                 # Reusable UI components & visual gauges
+│   │   ├── lib/                        # API client with offline fallback & utils
+│   │   └── types/                      # TypeScript definitions aligned with backend
+│   ├── package.json
+│   └── tsconfig.json
+└── README.md
+```
+
+---
+
+## 🛰️ Strict Telemetry Provenance Taxonomy
+
+Yatri Setu strictly separates verified production signals from simulated planning models. Every signal carries explicit provenance:
+
+| Provenance Label | Meaning & Usage |
+| :--- | :--- |
+| `REAL — EXTERNAL PROVIDER` | Live observations fetched from verified external APIs (e.g. OpenWeatherMap API). |
+| `REAL — YATRI SETU NETWORK` | Verified first-party transactions, homestay bookings, and search telemetry from the platform. |
+| `MIXED — STALE TELEMETRY FALLBACK` | Cached live observations served when upstream providers exceed timeout thresholds. |
+| `DEMO MODE — SYNTHETIC DATA` | High-fidelity deterministic Himalayan mountain simulation used when external keys are unconfigured. |
+| `SIMULATED — PLANNING SCENARIO` | Hypothetical flow redistribution calculations used by administrative macro planners. |
 
 ---
 
@@ -147,65 +211,71 @@ crowd_score =
 
 ### Prerequisites
 - Python 3.10+
-- Node.js 18+ (Tested on v22.17.0)
+- Node.js 18+ (Tested on v22.x)
 - npm 9+
 
 ### 1. Start the FastAPI Backend
 ```bash
-# In the project root directory:
+# In project root:
 pip install -r backend/requirements.txt
 
-# Run backend unit & integration tests:
+# Run full automated test suite (236 tests):
 $env:PYTHONPATH="backend"; python -m pytest backend/tests
 
-# Launch the FastAPI dev server (port 8000):
+# Launch FastAPI development server (port 8000):
 $env:PYTHONPATH="backend"; python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-- API Health: `http://127.0.0.1:8000/health`
-- Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
+- API Health Check: `http://127.0.0.1:8000/health`
+- Interactive OpenAPI Documentation: `http://127.0.0.1:8000/docs`
 
 ### 2. Start the Next.js Frontend
 ```bash
 # In a new terminal, navigate to the frontend directory:
 cd frontend
 
-# Install dependencies (already installed):
-npm install
+# Verify TypeScript types:
+npx tsc --noEmit
 
-# Start development server:
+# Start development server (port 3000):
 npm run dev
 ```
 Open `http://localhost:3000` in your browser.
 
 ---
 
-## 🔐 Environment Variables
+## 🔐 Environment Configuration Template
 
-| Variable | Location | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `ENV` | `backend` | `development` | Runtime environment mode |
-| `DATABASE_URL` | `backend` | `postgresql://user:pass@localhost:5432/yatrisetu` | Future PostgreSQL/PostGIS database URL |
-| `NEXT_PUBLIC_API_URL` | `frontend` | `http://localhost:8000/api` | Base URL for FastAPI backend |
+Key configuration options supported by `backend/.env` (see `backend/.env.example` for template):
 
----
-
-## 📋 Implemented Features Catalog
-
-- [x] **Smart Crowd & Alternate-Destination Advisor**: Multi-factor scoring with natural language explainability.
-- [x] **Regional Footfall Ticker**: Live status for 6 North Bengal foothill & hill station locations.
-- [x] **Cosine Attribute Similarity Engine**: Matches alternative destinations by nature, culture, activities, and distance.
-- [x] **AI Itinerary Planner**: Service-layer abstracted multi-day itineraries with time slots and budget estimates.
-- [x] **Verified Rural Homestays**: Direct community stay booking simulation with panchayat badge and 10% village fund contribution.
-- [x] **Digital Travel Pass**: Offline-capable travel QR pass simulation.
-- [x] **Active Trip Companion**: Packing checklist, weather advisories, and host contacts.
-- [x] **Traveler Safety & Emergency SOS**: Telemetry broadcast simulation, siren toggle, and responder dispatch.
-- [x] **Responsive Mobile-First Travel-Tech Design**: Terracotta, emerald, and warm saffron Indian travel-tech aesthetic.
-- [x] **Automated Test Suite**: 12 backend unit and API tests with 100% passing rate.
+| Variable | Default | Purpose |
+| :--- | :--- | :--- |
+| `ENVIRONMENT` | `development` | Runtime mode (`development`, `staging`, `production`) |
+| `DATABASE_URL` | `sqlite:///./yatri_setu.db` | PostgreSQL or local SQLite URI (auto-normalizes `postgres://` for SQLAlchemy 2.0) |
+| `WEATHER_PROVIDER` | `openweather` | Weather source (`openweather`, `demo`, `unavailable`) |
+| `WEATHER_API_KEY` | `""` | OpenWeatherMap API key (backend-only; never exposed to browser) |
+| `AI_PROVIDER` | `mock` | Natural language itinerary assistance (`mock`, `openai`, `claude`) |
+| `OPENAI_API_KEY` | `""` | Optional OpenAI key (used strictly for itinerary phrasing; never for numeric crowd scoring) |
+| `ADMIN_SECRET_KEY` | `""` | Optional secret for administrative endpoints (open when blank for demo evaluation) |
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allowed frontend origins |
 
 ---
 
-## 🔮 Future ML & PostGIS Roadmap
-1. **Machine Learning Forecasting**: Replace deterministic weights with a trained gradient boosted model (XGBoost/LightGBM) using historical weather archives, holiday calendars, and mobile cellular tower density feeds.
-2. **PostgreSQL / PostGIS Spatial Queries**: Compute precise geodesic isochrones and road topology elevation contours.
-3. **LLM Integration**: Plug Anthropic Claude / OpenAI APIs into the existing `itinerary_service.py` interface for open-ended conversational trip planning.
-4. **Host & Panchayat Portal**: A dedicated administrative dashboard for village panchayat nodal officers to approve new homestays and receive live tourist density heatmaps.
+## 📋 Comprehensive Milestone Verification Status
+
+- [x] **M1 Tourist Experience**: Deterministic 6-factor crowd scoring, 0–100 gauge, natural language explainability.
+- [x] **M2A Smart Date Advisor**: Temporal flow distribution, off-peak date alternatives, 7-day crowd forecasts.
+- [x] **M2B Adaptive AI Travel Intelligence**: Service-layer abstracted multi-day itineraries with crowd avoidance.
+- [x] **M3 Rural Tourism Ecosystem**: Homestay listings with verified Gram Panchayat badges and local revenue split.
+- [x] **M4 Tourism Data Intelligence**: Regional administrative command center with flow monitoring.
+- [x] **M5 Production Data + Trust Layer**: Strict provenance labeling, zero unverified claims.
+- [x] **M6A/B ML Benchmark Pipeline**: Chronologically evaluated supervised XGBoost model for predictive benchmarking.
+- [x] **M7A First-Party Telemetry**: In-platform search, view, and alternative acceptance event stream.
+- [x] **M7B Event & Holiday Intelligence**: Regional festival and gazetted holiday impact scoring.
+- [x] **M7C Dynamic Live Conditions**: Live weather, road corridors, and dynamic operational pressure recalculation.
+- [x] **M7D Capacity-Aware Flow Management**: Circuit network graph, carrying capacity health, and absorption simulation.
+- [x] **M7E Verified Booking State Machine**: QR digital travel passes and booking conversion lifecycle.
+- [x] **M7F Safety, SOS & Emergency Operations**: Distress beacon broadcast, volunteer responder coordination, and national emergency directory.
+- [x] **M7G Panchayat, Host & Rural Economy**: Local host onboarding, 90-5-5 revenue split, and panchayat ledger.
+- [x] **M7H Production Hardening**: Live OpenWeather integration, OpenAI itinerary adapter, rate limiting, and secret sanitization.
+
+**Automated Test Baseline**: **236 passed, 0 failed, 0 regressions** across unit and integration test suites.

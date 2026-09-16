@@ -85,7 +85,7 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
               {/* Metric 1: Crowd Score */}
               <div className="bg-stone-50 dark:bg-stone-900/60 p-3 rounded-2xl border border-stone-200/60 dark:border-white/5 text-center">
                 <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-0.5">
-                  Crowd Index
+                  Base Crowd Score
                 </span>
                 <div className="flex items-center justify-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${crowdBadge.dot}`} />
@@ -151,7 +151,7 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
                 </span>
               </div>
               <div>
-                <span className="text-[9px] uppercase font-bold text-stone-400 block">Corridor</span>
+                <span className="text-[9px] uppercase font-bold text-stone-400 block">Access Status</span>
                 <span className="font-bold text-sky-700 dark:text-sky-400 text-xs">
                   {alternative.access_status ?? 'OPEN'}
                 </span>
@@ -164,12 +164,12 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
               </div>
             </div>
 
-            {/* Why Yatri Setu Recommends */}
+            {/* Why Yatri Setu Suggests */}
             {alternative.reasons_to_recommend && alternative.reasons_to_recommend.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-2">
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Why Yatri Setu Recommends This:</span>
+                  <span>Why Yatri Setu Suggests This Destination:</span>
                 </div>
                 <ul className="space-y-1.5">
                   {alternative.reasons_to_recommend.map((reason, idx) => (
