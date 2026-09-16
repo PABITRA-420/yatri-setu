@@ -36,5 +36,9 @@ class Settings:
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY", None)
     ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    # Capacity-Aware Flow Management Settings (Milestone 7D)
+    REDIRECTION_ACCEPTANCE_RATE: float = float(os.getenv("REDIRECTION_ACCEPTANCE_RATE", "0.15"))
 
 settings = Settings()
+
+

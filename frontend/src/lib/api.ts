@@ -46,7 +46,17 @@ import {
   DestinationLiveConditions,
   WeatherObservation,
   DestinationTrafficSummary,
-  PressureExplanation
+  PressureExplanation,
+  DestinationCapacity,
+  DestinationNetworkEdge,
+  FlowScenarioRequest,
+  FlowScenarioResponse,
+  HomestayAvailabilitySnapshot,
+  DestinationAvailabilitySnapshot,
+  BookingRecord,
+  ConversionSummaryResponse,
+  DestinationConversionMetrics,
+  FunnelStageCount
 } from '@/types';
 
 
@@ -2253,5 +2263,117 @@ export async function refreshAdminPressure(
     headers: { 'Content-Type': 'application/json' }
   });
   if (!res.ok) throw new Error('Admin pressure refresh failed');
+  return await res.json();
+}
+
+export async function simulateFlow(request: FlowScenarioRequest): Promise<FlowScenarioResponse> {
+  const res = await fetch(`${API_BASE_URL}/admin/flow/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    cache: 'no-store'
+  });
+  if (!res.ok) throw new Error('Flow scenario simulation failed');
+  return await res.json();
+}
+
+export async function fetchDestinationCapacity(destinationId: string): Promise<DestinationCapacity> {
+  const res = await fetch(`${API_BASE_URL}/admin/capacity/${destinationId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch capacity for ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchNetworkEdges(sourceId?: string): Promise<DestinationNetworkEdge[]> {
+  const qs = sourceId ? `?source_id=${encodeURIComponent(sourceId)}` : '';
+  const res = await fetch(`${API_BASE_URL}/admin/network/edges${qs}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch destination network edges');
+  return await res.json();
+}
+
+// ============================================================================
+// Milestone 7E: Real Booking / Availability + First-Party Conversion APIs
+// ============================================================================
+
+export async function fetchDestinationAvailability(
+  destinationId: string,
+  date?: string
+): Promise<DestinationAvailabilitySnapshot> {
+  const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+  const res = await fetch(`${API_BASE_URL}/destinations/${destinationId}/availability${qs}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch availability for destination ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchHomestayAvailability(
+  homestayId: string,
+  date?: string
+): Promise<HomestayAvailabilitySnapshot> {
+  const qs = date ? `?date=${encodeURIComponent(date)}` : '';
+  const res = await fetch(`${API_BASE_URL}/homestays/${homestayId}/availability${qs}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch availability for homestay ${homestayId}`);
+  return await res.json();
+}
+
+export async function fetchBookingRecord(bookingId: string): Promise<BookingRecord> {
+  const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch booking details for ${bookingId}`);
+  return await res.json();
+}
+
+export async function confirmBooking(bookingId: string): Promise<BookingRecord> {
+  const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error(`Failed to confirm booking ${bookingId}`);
+  return await res.json();
+}
+
+export async function cancelBooking(bookingId: string, reason?: string): Promise<BookingRecord> {
+  const qs = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+  const res = await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel${qs}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error(`Failed to cancel booking ${bookingId}`);
+  return await res.json();
+}
+
+export async function fetchConversionSummary(): Promise<ConversionSummaryResponse> {
+  const res = await fetch(`${API_BASE_URL}/admin/conversion/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch conversion summary');
+  return await res.json();
+}
+
+export async function fetchConversionFunnel(destinationId?: string): Promise<{ stages: FunnelStageCount[]; destination_id?: string }> {
+  const qs = destinationId ? `?destination_id=${encodeURIComponent(destinationId)}` : '';
+  const res = await fetch(`${API_BASE_URL}/admin/conversion/funnel${qs}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch conversion funnel');
+  return await res.json();
+}
+
+export async function recordOutboundBookingClick(payload: {
+  destination_id: string;
+  external_url: string;
+  provider_name?: string;
+  partner_id?: string;
+  session_id?: string;
+}): Promise<{ status: string; event_type: string }> {
+  const res = await fetch(`${API_BASE_URL}/conversion/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      event_type: 'OUTBOUND_BOOKING_CLICK',
+      destination_id: payload.destination_id,
+      session_id: payload.session_id,
+      metadata: {
+        external_url: payload.external_url,
+        provider_name: payload.provider_name || 'Generic External OTA',
+        partner_id: payload.partner_id || 'partner_ota',
+        click_type: 'outbound_referral'
+      }
+    })
+  });
+  if (!res.ok) throw new Error('Failed to log outbound click event');
   return await res.json();
 }

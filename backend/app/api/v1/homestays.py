@@ -41,58 +41,87 @@ def get_homestay_details(homestay_id: str):
         raise HTTPException(status_code=404, detail=f"Homestay '{homestay_id}' not found")
     return hs
 
+from app.services.booking.service import booking_lifecycle_service
+from app.services.booking.schemas import BookingState, BookingFailureReason, BookingRecord
+from app.services.availability.service import availability_service
+from app.services.availability.schemas import HomestayAvailabilitySnapshot
+
 @router.post("/bookings", response_model=HomestayBookingResponse)
-def create_booking(req: HomestayBookingRequest):
-    """Simulates a confirmed rural homestay booking with verified travel pass QR payload."""
-    matched_homestay = homestay_repository.resolve_for_booking(req.homestay_id)
-    if not matched_homestay:
-        raise HTTPException(status_code=404, detail=f"Homestay '{req.homestay_id}' not found")
-
-    nights = 3
-    subtotal = matched_homestay.price_per_night_inr * nights
-    community_fund = int(round(subtotal * 0.05)) # 5% to Village Gram Panchayat
-    platform_fee = int(round(subtotal * 0.05)) # 5% platform maintenance fee
-    host_earning = subtotal - platform_fee # 95% of stay or 90% direct
-    total = subtotal + community_fund
-
-    booking_id = f"YS-BK-{uuid.uuid4().hex[:6].upper()}"
-    qr_payload = f"YATRI-SETU-VERIFIED:{booking_id}:{matched_homestay.id}:{req.traveler_name}:STAMP_OK"
-
-    booking_response = HomestayBookingResponse(
-        booking_id=booking_id,
-        homestay=matched_homestay,
-        traveler_name=req.traveler_name,
-        traveler_phone=req.traveler_phone,
-        check_in_date=req.check_in_date,
-        check_out_date=req.check_out_date,
-        number_of_guests=req.number_of_guests,
-        total_nights=nights,
-        subtotal_inr=subtotal,
-        community_fund_contribution_inr=community_fund,
-        platform_fee_inr=platform_fee,
-        host_earning_inr=host_earning,
-        total_amount_inr=total,
-        payment_status="PROTOTYPE_ESCROW_CONFIRMED",
-        status="CONFIRMED",
-        digital_pass_qr_payload=qr_payload,
-        host_contact=f"+91 98320 {uuid.uuid4().int % 90000 + 10000}",
-        homestay_gps="27.0667° N, 88.4667° E",
-        created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+def create_booking(
+    req: HomestayBookingRequest,
+    idempotency_key: Optional[str] = Query(None, description="Optional client idempotency key")
+):
+    """
+    Creates and processes a verified homestay booking through the deterministic state machine.
+    Enforces atomic room reservation, double-booking prevention, and first-party event emission.
+    """
+    record, legacy_resp = booking_lifecycle_service.create_booking(
+        req=req,
+        idempotency_key=idempotency_key,
+        auto_confirm=True
     )
 
-    BOOKINGS_DB[booking_id] = booking_response
-    # Record booking event
-    demand_aggregation_service.record_event(
-        event_type=DemandEventType.BOOKING.value,
-        destination_id=matched_homestay.destination_id,
-        session_id=booking_id,
-        metadata={
-            "rooms": 1,
-            "guests": req.number_of_guests,
-            "total_amount": total,
-        },
-    )
-    return booking_response
+    if record.state == BookingState.FAILED:
+        status_code = 404 if record.failure_reason == BookingFailureReason.INVALID_HOMESTAY else 409
+        detail_msg = (
+            f"Homestay '{req.homestay_id}' not found"
+            if record.failure_reason == BookingFailureReason.INVALID_HOMESTAY
+            else (record.failure_detail or "Unable to confirm booking: room sold out or unavailable")
+        )
+        raise HTTPException(status_code=status_code, detail=detail_msg)
+
+    if legacy_resp:
+        BOOKINGS_DB[record.booking_id] = legacy_resp
+        return legacy_resp
+
+    raise HTTPException(status_code=500, detail="Internal booking processing error")
+
+
+@router.get("/bookings/{booking_id}", response_model=BookingRecord)
+def get_booking_details(booking_id: str):
+    """Returns lifecycle state and audit trail for a booking."""
+    record = booking_lifecycle_service.get_booking(booking_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"Booking '{booking_id}' not found")
+    return record
+
+
+@router.post("/bookings/{booking_id}/confirm", response_model=BookingRecord)
+def confirm_booking(booking_id: str):
+    """Confirms a booking currently in PENDING_CONFIRMATION."""
+    try:
+        return booking_lifecycle_service.confirm_booking(booking_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Booking '{booking_id}' not found")
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+
+@router.post("/bookings/{booking_id}/cancel", response_model=BookingRecord)
+def cancel_booking(
+    booking_id: str,
+    reason: Optional[str] = Query(None, description="Optional cancellation reason")
+):
+    """Cancels a confirmed booking and atomically releases reserved room units back to ledger."""
+    try:
+        return booking_lifecycle_service.cancel_booking(booking_id, reason=reason)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Booking '{booking_id}' not found")
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+
+
+@router.get("/homestays/{homestay_id}/availability", response_model=HomestayAvailabilitySnapshot)
+def get_homestay_availability(
+    homestay_id: str,
+    date: Optional[str] = Query(None, description="Target date in YYYY-MM-DD format (defaults to today)")
+):
+    """Returns date-aware accommodation availability snapshot for a specific homestay."""
+    rec = homestay_repository.get_raw_record(homestay_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Homestay '{homestay_id}' not found")
+    return availability_service.get_homestay_availability(homestay_id, target_date=date)
+
 
 @router.get("/trips/{trip_id}", response_model=TripDetailsResponse)
 def get_trip_details(trip_id: str):

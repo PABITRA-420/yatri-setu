@@ -200,6 +200,46 @@ def admin_refresh_pressure(
         }
 
 
+# ==========================================
+# Milestone 7D: Flow Simulation & Capacity
+# ==========================================
+
+from app.services.flow.schemas import FlowScenarioRequest, FlowScenarioResponse
+from app.services.flow.planner import flow_planner
+from app.services.capacity.schemas import DestinationCapacity
+from app.services.capacity.service import capacity_service
+from app.services.network.schemas import DestinationNetworkEdge
+from app.services.network.service import destination_network_service
+
+
+@router.post("/flow/simulate", response_model=FlowScenarioResponse)
+def simulate_crowd_flow(request: FlowScenarioRequest):
+    """
+    Simulates crowd redirection scenarios and computes multi-candidate flow allocation,
+    headroom absorption, and projected pressure surges across destination network edges.
+    Strictly a planning simulation; never mutates actual demand telemetry.
+    """
+    return flow_planner.simulate_flow(request)
+
+
+@router.get("/capacity/{destination_id}", response_model=DestinationCapacity)
+def get_admin_destination_capacity(destination_id: str):
+    """
+    Returns authoritative accommodation capacity and health classification for a destination.
+    """
+    return capacity_service.get_destination_capacity(destination_id)
+
+
+@router.get("/network/edges", response_model=List[DestinationNetworkEdge])
+def get_admin_network_edges(source_id: Optional[str] = Query(None)):
+    """
+    Returns destination network edges connecting the Himalayan circuit.
+    """
+    if source_id:
+        return destination_network_service.get_outbound_edges(source_id)
+    return destination_network_service.list_all_edges()
+
+
 
 
 

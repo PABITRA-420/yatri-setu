@@ -20,6 +20,16 @@ class DemandEventType(str, Enum):
     TRIP_START = "trip_start"
     DESTINATION_SELECTION = "destination_selection"
     ALTERNATIVE_ACCEPTANCE = "alternative_acceptance"
+    # Milestone 7E First-Party Conversion & Lifecycle Events
+    BOOKING_INITIATED = "booking_initiated"
+    BOOKING_CONFIRMED = "booking_confirmed"
+    BOOKING_FAILED = "booking_failed"
+    BOOKING_CANCELLED = "booking_cancelled"
+    AVAILABILITY_CHECKED = "availability_checked"
+    OUTBOUND_BOOKING_CLICK = "outbound_booking_click"
+    ALTERNATIVE_VIEWED = "alternative_viewed"
+    DATE_SELECTED = "date_selected"
+    DESTINATION_VIEW = "destination_view"
 
 
 # ─── Demand Event Schemas ───────────────────────────────────────────────────

@@ -133,6 +133,22 @@ def get_destination_date_alternatives(
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
 
+
+from app.services.availability.service import availability_service
+from app.services.availability.schemas import DestinationAvailabilitySnapshot
+
+@router.get("/{destination_id}/availability", response_model=DestinationAvailabilitySnapshot)
+def get_destination_availability(
+    destination_id: str,
+    date: Optional[str] = Query(None, description="Target date in YYYY-MM-DD format (defaults to today)")
+):
+    """Returns date-aware accommodation availability snapshot across all verified active properties."""
+    norm_id = destination_id.lower().strip()
+    exists = any(d["id"] == norm_id for d in DESTINATIONS_DATA)
+    if not exists:
+        raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
+    return availability_service.get_destination_availability(norm_id, target_date=date)
+
 @router.get("/{destination_id}/decision", response_model=DestinationDecisionResponse)
 def get_destination_flow_decision(
     destination_id: str,
