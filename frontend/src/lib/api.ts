@@ -59,7 +59,15 @@ import {
   FunnelStageCount,
   EmergencyIncident,
   EmergencyOperationsSummary,
-  OfficialEmergencyContact
+  OfficialEmergencyContact,
+  HostProfile,
+  LocalAuthorityProfile,
+  PanchayatNotification,
+  HostNotification,
+  HostDashboardData,
+  DestinationLocalEconomy,
+  PanchayatDashboardData,
+  RuralAdminSummary
 } from '@/types';
 
 
@@ -2522,5 +2530,90 @@ export async function recordOutboundBookingClick(payload: {
     })
   });
   if (!res.ok) throw new Error('Failed to log outbound click event');
+  return await res.json();
+}
+
+// ============================================================================
+// Milestone 7G: Panchayat + Host + Local Economy API Functions
+// ============================================================================
+
+export async function fetchHostProfile(hostId: string = 'host-kalim-01'): Promise<HostProfile> {
+  const res = await fetch(`${API_BASE_URL}/hosts/${hostId}/profile`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch host profile for ${hostId}`);
+  return await res.json();
+}
+
+export async function fetchHostNotifications(hostId: string = 'host-kalim-01'): Promise<HostNotification[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/hosts/${hostId}/notifications`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function fetchPanchayatProfile(destinationId: string = 'kalimpong'): Promise<LocalAuthorityProfile> {
+  const res = await fetch(`${API_BASE_URL}/panchayat/profile?destination_id=${destinationId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch panchayat profile for ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchPanchayatNotifications(destinationId?: string, status?: string): Promise<PanchayatNotification[]> {
+  try {
+    const params = new URLSearchParams();
+    if (destinationId) params.append('destination_id', destinationId);
+    if (status) params.append('status', status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${API_BASE_URL}/panchayat/notifications${query}`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function acknowledgePanchayatNotification(
+  notificationId: string,
+  operatorName: string = 'Panchayat Desk Operator'
+): Promise<PanchayatNotification> {
+  const res = await fetch(`${API_BASE_URL}/panchayat/notifications/${notificationId}/acknowledge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operator_name: operatorName })
+  });
+  if (!res.ok) throw new Error(`Failed to acknowledge notification ${notificationId}`);
+  return await res.json();
+}
+
+export async function resolvePanchayatNotification(
+  notificationId: string,
+  operatorName: string = 'Panchayat Desk Operator',
+  resolutionNotes?: string
+): Promise<PanchayatNotification> {
+  const res = await fetch(`${API_BASE_URL}/panchayat/notifications/${notificationId}/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operator_name: operatorName, resolution_notes: resolutionNotes })
+  });
+  if (!res.ok) throw new Error(`Failed to resolve notification ${notificationId}`);
+  return await res.json();
+}
+
+export async function fetchDestinationEconomy(destinationId: string = 'kalimpong'): Promise<DestinationLocalEconomy> {
+  const res = await fetch(`${API_BASE_URL}/panchayat/economy?destination_id=${destinationId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch economy metrics for ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchRuralAdminSummary(): Promise<RuralAdminSummary> {
+  const res = await fetch(`${API_BASE_URL}/admin/rural/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch rural admin summary');
+  return await res.json();
+}
+
+export async function fetchRuralAdminDestinations(): Promise<DestinationLocalEconomy[]> {
+  const res = await fetch(`${API_BASE_URL}/admin/rural/destinations`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch rural destinations');
   return await res.json();
 }

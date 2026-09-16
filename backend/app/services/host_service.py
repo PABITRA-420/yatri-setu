@@ -337,6 +337,18 @@ class HostService:
                 special_activity=req.special_activity,
                 images=new_listing.images
             )
+            from app.services.rural.service import rural_operations_service
+            rural_operations_service.onboard_host(
+                name=req.name,
+                phone=req.phone,
+                email=req.email,
+                village=req.village,
+                panchayat_name=req.panchayat_name,
+                destination_id=req.destination_id.lower().strip(),
+                languages=req.languages,
+                host_id=host_id,
+                homestay_ids=[listing_id]
+            )
         except Exception:
             pass
 

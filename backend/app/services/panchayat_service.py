@@ -325,6 +325,21 @@ class PanchayatService:
             rec.verification_status = new_status
             rec.is_published = (new_status in ("VERIFIED", "PUBLISHED"))
 
+        try:
+            from app.services.rural.service import rural_operations_service
+            from app.services.rural.schemas import HostVerificationStatus
+            host_status = HostVerificationStatus.VERIFIED if new_status == "VERIFIED" else HostVerificationStatus.REJECTED
+            host_id = v_item.host_id if v_item else (listing.host_id if listing else None)
+            if host_id:
+                rural_operations_service.update_verification_status(
+                    host_id=host_id,
+                    new_status=host_status,
+                    reviewer_name=req.reviewer_name,
+                    notes=req.reason
+                )
+        except Exception:
+            pass
+
         return PanchayatDecisionResponse(
             listing_id=listing_id,
             previous_status=previous_status,

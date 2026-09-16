@@ -370,6 +370,82 @@ def run_retention_scrub(hours_threshold: int = Query(24, ge=1)):
     }
 
 
+# -----------------------------------------------------------------------------
+# Milestone 7G: Rural Tourism & Local Economy Command Center Endpoints
+# -----------------------------------------------------------------------------
+from app.services.rural.service import rural_operations_service
+from app.services.rural.schemas import (
+    RuralAdminSummary,
+    HostProfile,
+    DestinationLocalEconomy,
+    AuditLogRecord,
+)
+
+
+@router.get("/rural/summary", response_model=RuralAdminSummary)
+def get_rural_admin_summary():
+    """
+    Returns platform-wide rural tourism and local economy metrics across all destinations.
+    """
+    return rural_operations_service.get_rural_admin_summary()
+
+
+@router.get("/rural/hosts", response_model=List[HostProfile])
+def list_rural_hosts(
+    destination_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None)
+):
+    """
+    Lists registered rural hosts across destinations with active and verification statuses.
+    """
+    hosts = rural_operations_service.list_all_hosts()
+    if destination_id:
+        clean_dest = destination_id.lower().strip()
+        hosts = [h for h in hosts if h.destination_id == clean_dest]
+    if status:
+        clean_status = status.upper().strip()
+        hosts = [h for h in hosts if h.verification_status.value == clean_status or h.active_status.value == clean_status]
+    return hosts
+
+
+@router.get("/rural/destinations", response_model=List[DestinationLocalEconomy])
+def list_rural_destination_economies():
+    """
+    Returns destination-by-destination local economic impact, active hosts, and room-nights.
+    """
+    destinations_list = ["kalimpong", "lava", "lolegaon", "mirik", "rishop", "darjeeling"]
+    return [rural_operations_service.get_destination_local_economy(d) for d in destinations_list]
+
+
+@router.get("/rural/economy")
+def get_rural_economy_overview():
+    """
+    Returns granular rural economic impact breakdown with explicit financial provenance tags.
+    """
+    summary = rural_operations_service.get_rural_admin_summary()
+    return {
+        "summary": summary,
+        "commission_policy": {
+            "platform_fee_percent": 5.0,
+            "community_fund_percent": 5.0,
+            "host_payout_percent": 90.0,
+            "classification": "CONFIGURED ASSUMPTION",
+            "settlement_status": "Estimated from confirmed booking value; payment settlement is not connected."
+        },
+        "provenance": "REAL BOOKING DATA + CONFIGURED COMMISSION",
+        "data_minimization": "All individual traveler identity records redacted."
+    }
+
+
+@router.get("/rural/audit-logs", response_model=List[AuditLogRecord])
+def list_rural_audit_logs(limit: int = Query(50, ge=1, le=200)):
+    """
+    Immutable audit trail for host onboarding, civic verification decisions, and notifications.
+    """
+    return rural_operations_service.list_audit_logs(limit=limit)
+
+
+
 
 
 
