@@ -56,8 +56,12 @@ import {
   BookingRecord,
   ConversionSummaryResponse,
   DestinationConversionMetrics,
-  FunnelStageCount
+  FunnelStageCount,
+  EmergencyIncident,
+  EmergencyOperationsSummary,
+  OfficialEmergencyContact
 } from '@/types';
+
 
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -898,10 +902,18 @@ export async function triggerSosAlert(payload: {
   user_name: string;
   user_phone: string;
   destination_id?: string;
+  trip_id?: string;
+  traveler_session_id?: string;
   current_location_name?: string;
-  latitude: number;
-  longitude: number;
-  nature_of_emergency: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  location_accuracy_m?: number | null;
+  incident_type?: string;
+  severity?: string;
+  nature_of_emergency?: string;
+  notes?: string;
+  idempotency_key?: string;
+  offline_queued?: boolean;
 }): Promise<SosAlertResponse> {
   try {
     const res = await fetch(`${API_BASE_URL}/safety/sos`, {
@@ -919,7 +931,9 @@ export async function triggerSosAlert(payload: {
       timestamp: new Date().toLocaleString('en-IN'),
       user_name: payload.user_name,
       user_phone: payload.user_phone,
-      gps_coordinates: `${payload.latitude.toFixed(4)}° N, ${payload.longitude.toFixed(4)}° E (Elev. ~4,120 ft)`,
+      gps_coordinates: payload.latitude && payload.longitude
+        ? `${payload.latitude.toFixed(4)}° N, ${payload.longitude.toFixed(4)}° E (Elev. ~4,120 ft)`
+        : 'GPS UNAVAILABLE (Cellular relay only)',
       nearest_responders: [
         { name: 'Kalimpong Sub-Divisional Police Station', agency: 'West Bengal State Police', distance_km: 1.8, eta_minutes: 6, phone: '+91 3552 255222', status: 'DISPATCHED' },
         { name: 'Kalimpong District Hospital Emergency Unit', agency: 'Govt Healthcare Services', distance_km: 2.4, eta_minutes: 8, phone: '+91 3552 255230', status: 'DISPATCHED' },
@@ -941,6 +955,139 @@ export async function triggerSosAlert(payload: {
     };
   }
 }
+
+export async function cancelSosAlert(
+  incidentId: string,
+  reason: string = 'Accidental activation cancelled by traveler',
+  cancelledBy: string = 'TOURIST'
+): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/safety/sos/${incidentId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason, cancelled_by: cancelledBy })
+  });
+  if (!res.ok) throw new Error('Failed to cancel SOS');
+  return await res.json();
+}
+
+export async function fetchSosIncidentStatus(incidentId: string): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/safety/sos/${incidentId}/status`);
+  if (!res.ok) throw new Error('Failed to fetch SOS status');
+  return await res.json();
+}
+
+export async function fetchOfficialEmergencyContacts(): Promise<OfficialEmergencyContact[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/safety/contacts`);
+    if (!res.ok) throw new Error('Contacts fetch failed');
+    return await res.json();
+  } catch (err) {
+    return [
+      { service_name: 'National Emergency Number (All-in-One)', contact_number: '112', toll_free: true, region: 'All India', category: 'POLICE_FIRE_AMBULANCE', verification_label: 'OFFICIAL INFORMATION — NATIONAL EMERGENCY' },
+      { service_name: 'Incredible India Tourist Helpline (24x7)', contact_number: '1363', toll_free: true, region: 'National', category: 'TOURIST_SAFETY', verification_label: 'OFFICIAL INFORMATION — MINISTRY OF TOURISM' },
+      { service_name: 'Women in Distress Helpline', contact_number: '1091', toll_free: true, region: 'National', category: 'WOMEN_SAFETY', verification_label: 'OFFICIAL INFORMATION — NATIONAL HELPLINE' },
+      { service_name: 'State Disaster Management Control Room', contact_number: '1070', toll_free: true, region: 'West Bengal', category: 'DISASTER_MANAGEMENT', verification_label: 'OFFICIAL INFORMATION — STATE CONTROL ROOM' }
+    ];
+  }
+}
+
+export async function fetchAdminSafetySummary(): Promise<EmergencyOperationsSummary> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/summary`);
+  if (!res.ok) throw new Error('Failed to fetch emergency operations summary');
+  return await res.json();
+}
+
+export async function fetchAdminSafetyIncidents(params?: {
+  status?: string;
+  destination_id?: string;
+  severity?: string;
+  limit?: number;
+}): Promise<EmergencyIncident[]> {
+  const query = new URLSearchParams();
+  if (params?.status) query.append('status', params.status);
+  if (params?.destination_id) query.append('destination_id', params.destination_id);
+  if (params?.severity) query.append('severity', params.severity);
+  if (params?.limit) query.append('limit', params.limit.toString());
+
+  const res = await fetch(`${API_BASE_URL}/admin/safety/incidents?${query.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch safety incidents');
+  return await res.json();
+}
+
+export async function fetchAdminSafetyIncidentDetail(incidentId: string): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/incidents/${incidentId}`);
+  if (!res.ok) throw new Error('Failed to fetch safety incident details');
+  return await res.json();
+}
+
+export async function acknowledgeSafetyIncident(
+  incidentId: string,
+  operatorId: string = 'operator_desk_1',
+  notes?: string
+): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/incidents/${incidentId}/acknowledge`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operator_id: operatorId, notes })
+  });
+  if (!res.ok) throw new Error('Failed to acknowledge safety incident');
+  return await res.json();
+}
+
+export async function respondSafetyIncident(
+  incidentId: string,
+  operatorId: string = 'operator_desk_1',
+  notes?: string
+): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/incidents/${incidentId}/respond`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operator_id: operatorId, notes })
+  });
+  if (!res.ok) throw new Error('Failed to mark safety incident responding');
+  return await res.json();
+}
+
+export async function escalateSafetyIncident(
+  incidentId: string,
+  operatorId: string = 'operator_desk_1',
+  escalationReason: string = 'Senior supervisory desk escalation'
+): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/incidents/${incidentId}/escalate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operator_id: operatorId, escalation_reason: escalationReason })
+  });
+  if (!res.ok) throw new Error('Failed to escalate safety incident');
+  return await res.json();
+}
+
+export async function resolveSafetyIncident(
+  incidentId: string,
+  operatorId: string = 'operator_desk_1',
+  notes?: string
+): Promise<EmergencyIncident> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/incidents/${incidentId}/resolve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ operator_id: operatorId, notes })
+  });
+  if (!res.ok) throw new Error('Failed to resolve safety incident');
+  return await res.json();
+}
+
+export async function triggerSafetyRetentionScrub(hoursThreshold: number = 24): Promise<{
+  status: string;
+  scrubbed_incidents: number;
+  hours_threshold: number;
+}> {
+  const res = await fetch(`${API_BASE_URL}/admin/safety/retention/scrub?hours_threshold=${hoursThreshold}`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to run retention scrub');
+  return await res.json();
+}
+
 
 export async function fetchTripDetails(tripId: string): Promise<TripDetailsResponse> {
   try {
