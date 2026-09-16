@@ -18,9 +18,17 @@ class Settings:
     # Database settings (Defaults to local SQLite for frictionless dev/tests, PostgreSQL in production)
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./yatri_setu.db")
 
-    # Weather Provider Settings
-    WEATHER_PROVIDER: str = os.getenv("WEATHER_PROVIDER", "mock")
+    # Weather Provider Settings (demo | openweather | unavailable)
+    WEATHER_PROVIDER: str = os.getenv("WEATHER_PROVIDER", "demo")
     OPENWEATHER_API_KEY: Optional[str] = os.getenv("OPENWEATHER_API_KEY", None)
+    WEATHER_API_KEY: Optional[str] = os.getenv("WEATHER_API_KEY", os.getenv("OPENWEATHER_API_KEY", None))
+
+    # Traffic Provider Settings (demo | tomtom | google | unavailable)
+    TRAFFIC_PROVIDER: str = os.getenv("TRAFFIC_PROVIDER", "demo")
+    TRAFFIC_API_KEY: Optional[str] = os.getenv("TRAFFIC_API_KEY", None)
+
+    # Dynamic Pressure Refresh Settings
+    PRESSURE_REFRESH_INTERVAL_SECONDS: int = int(os.getenv("PRESSURE_REFRESH_INTERVAL_SECONDS", "300"))
 
     # AI Provider Settings (SIH 2026: mock default ensures zero-API-key seamless demo)
     AI_PROVIDER: str = os.getenv("AI_PROVIDER", "mock")

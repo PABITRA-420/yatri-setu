@@ -119,7 +119,20 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
             continue
 
         crowd_data = calculate_crowd_score(dest["id"])
-        
+
+        # Check weather and traffic access status suitability (Milestone 7C)
+        try:
+            from app.services.traffic.service import traffic_service
+            from app.services.weather.service import weather_service
+            traf = traffic_service.get_traffic(dest["id"])
+            if traf.access_status == "DISRUPTED":
+                continue  # Skip inaccessible corridors
+            wth = weather_service.get_weather(dest["id"])
+            if wth.severe_weather and "warning" in wth.severe_weather.lower():
+                continue  # Skip severe weather hazard zones
+        except Exception:
+            pass
+
         # Only recommend places that are less crowded or equal to origin
         similarity = compute_similarity(origin_dest, dest)
         dist = haversine_distance_km(

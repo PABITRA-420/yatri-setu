@@ -22,6 +22,8 @@ class ProviderMode(str, Enum):
     MOCK = "MOCK"
     REAL = "REAL"
     CACHED = "CACHED"
+    SYNTHETIC = "SYNTHETIC"
+    MIXED = "MIXED"
 
 class DataQuality(str, Enum):
     HIGH = "HIGH"

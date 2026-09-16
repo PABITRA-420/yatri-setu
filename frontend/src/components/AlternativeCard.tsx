@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { AlternativeRecommendation } from '@/types';
 import { getCrowdBadgeStyle, formatINR } from '@/lib/utils';
+import { recordAlternativeAcceptance } from '@/lib/api';
 import { 
   Sparkles, 
   MapPin, 
@@ -24,6 +25,14 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
   originName
 }) => {
   const crowdBadge = getCrowdBadgeStyle(alternative.crowd_level);
+
+  const handleSelectAlternative = () => {
+    recordAlternativeAcceptance(
+      originName.toLowerCase().replace(/\s+/g, '-'),
+      alternative.id,
+      alternative.similarity_score
+    );
+  };
 
   return (
     <div className="editorial-card group rounded-3xl overflow-hidden bg-white dark:bg-[#121824] border border-stone-200/80 dark:border-white/10 shadow-xs hover:shadow-md transition-all duration-300">
@@ -175,6 +184,7 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
 
             <Link
               href={`/itinerary?destination=${alternative.id}`}
+              onClick={handleSelectAlternative}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-stone-950 dark:bg-white text-white dark:text-stone-950 hover:bg-amber-700 dark:hover:bg-amber-400 dark:hover:text-stone-950 text-xs font-bold shadow-xs active:scale-97 transition-all"
             >
               <span>Choose {alternative.name} & Generate Itinerary</span>

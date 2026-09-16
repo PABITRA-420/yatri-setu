@@ -13,6 +13,15 @@ from app.services.flow_decision_engine import compute_destination_decision
 from app.services.weather_service import get_destination_weather, WeatherForecast
 from app.services.demand_aggregation_service import demand_aggregation_service
 from app.models.demand import DemandEventType
+from app.services.weather.service import weather_service
+from app.services.weather.schemas import WeatherObservation
+from app.services.traffic.service import traffic_service
+from app.services.traffic.schemas import DestinationTrafficSummary
+from app.services.pressure_refresh_service import (
+    pressure_refresh_service,
+    DestinationLiveConditions,
+    PressureExplanation
+)
 
 router = APIRouter(prefix="/destinations", tags=["Destinations & Crowd Advisor"])
 
@@ -66,14 +75,11 @@ def list_destinations(
     if query:
         cleaned_query = query.strip()
         if cleaned_query:
-            try:
-                demand_aggregation_service.record_event(
-                    event_type=DemandEventType.SEARCH.value,
-                    destination_id=None,
-                    metadata={"query": cleaned_query}
-                )
-            except Exception:
-                pass
+            demand_aggregation_service.record_event(
+                event_type=DemandEventType.SEARCH.value,
+                destination_id=None,
+                metadata={"query": cleaned_query}
+            )
     return summaries
 
 @router.get("/{destination_id}", response_model=Destination)
@@ -167,25 +173,47 @@ def post_destination_flow_decision(
             interests=body.interests,
             group_size=body.group_size or 2
         )
-        if decision.recommended_action == "CHANGE_DESTINATION" and decision.alternative_destinations:
-            try:
-                top_alt = decision.alternative_destinations[0]
-                demand_aggregation_service.record_event(
-                    event_type=DemandEventType.ALTERNATIVE_ACCEPTANCE.value,
-                    destination_id=top_alt.id,
-                    metadata={
-                        "origin_destination_id": destination_id,
-                        "similarity_score": top_alt.similarity_score,
-                        "cost_diff_percent": top_alt.cost_difference_percent
-                    }
-                )
-            except Exception:
-                pass
         return decision
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
+
+class AlternativeAcceptanceRequest(BaseModel):
+    origin_destination_id: Optional[str] = None
+    original_destination_id: Optional[str] = None
+    alternative_destination_id: str
+    similarity_score: Optional[int] = None
+    session_id: Optional[str] = None
+
+@router.post("/{destination_id}/accept-alternative")
+def accept_alternative_destination(
+    destination_id: str,
+    body: AlternativeAcceptanceRequest = Body(...)
+):
+    """
+    Explicitly records an AlternativeAcceptanceEvent when a tourist clicks/chooses an alternative destination.
+    """
+    orig_id = body.original_destination_id or body.origin_destination_id or destination_id
+    alt_id = body.alternative_destination_id.lower().strip()
+
+    event = demand_aggregation_service.record_event(
+        event_type=DemandEventType.ALTERNATIVE_ACCEPTANCE.value,
+        destination_id=alt_id,
+        session_id=body.session_id,
+        metadata={
+            "original_destination_id": orig_id.lower().strip(),
+            "origin_destination_id": orig_id.lower().strip(),
+            "alternative_destination_id": alt_id,
+            "similarity_score": body.similarity_score
+        }
+    )
+    return {
+        "status": event.get("status", "recorded"),
+        "event_id": event["id"],
+        "original_destination_id": orig_id,
+        "alternative_destination_id": alt_id
+    }
 
 @router.get("/{destination_id}/weather", response_model=WeatherForecast)
 def get_weather_forecast(destination_id: str):
@@ -194,4 +222,66 @@ def get_weather_forecast(destination_id: str):
     if destination_id.lower().strip() not in dest_map:
         raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
     return get_destination_weather(destination_id)
+
+@router.get("/circuit/conditions")
+def get_circuit_conditions():
+    """Returns live weather, traffic, and recalculated pressure across all circuit destinations."""
+    return pressure_refresh_service.refresh_all_destinations()
+
+@router.get("/{destination_id}/live-weather", response_model=WeatherObservation)
+def get_destination_live_weather(destination_id: str):
+    """Returns normalized live weather observation with strict provenance and cache status."""
+    dest_map = {d["id"]: d for d in DESTINATIONS_DATA}
+    if destination_id.lower().strip() not in dest_map:
+        raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
+    return weather_service.get_weather(destination_id)
+
+@router.get("/{destination_id}/traffic", response_model=DestinationTrafficSummary)
+def get_destination_traffic(destination_id: str):
+    """Returns multi-route arterial road telemetry and access status (OPEN, CAUTION, DISRUPTED)."""
+    dest_map = {d["id"]: d for d in DESTINATIONS_DATA}
+    if destination_id.lower().strip() not in dest_map:
+        raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
+    return traffic_service.get_traffic(destination_id)
+
+@router.get("/{destination_id}/live-pressure")
+def get_destination_live_pressure(
+    destination_id: str,
+    target_date: Optional[str] = Query(None, description="Optional target date YYYY-MM-DD")
+):
+    """Returns dynamically recalculated pressure incorporating live weather, traffic, demand, and events."""
+    dest_map = {d["id"]: d for d in DESTINATIONS_DATA}
+    if destination_id.lower().strip() not in dest_map:
+        raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
+    return pressure_refresh_service.recalculate_destination_pressure(destination_id, target_date_str=target_date)
+
+@router.get("/{destination_id}/pressure-explanation", response_model=PressureExplanation)
+def get_destination_pressure_explanation(
+    destination_id: str,
+    target_date: Optional[str] = Query(None, description="Optional target date YYYY-MM-DD")
+):
+    """Returns deterministic human-readable explanation of top pressure drivers and access status."""
+    dest_map = {d["id"]: d for d in DESTINATIONS_DATA}
+    if destination_id.lower().strip() not in dest_map:
+        raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
+    cond = pressure_refresh_service.recalculate_destination_pressure(destination_id, target_date_str=target_date)
+    return PressureExplanation(
+        destination_id=cond.destination_id,
+        pressure_level=cond.pressure_level,
+        pressure_score=cond.pressure_score,
+        top_drivers=cond.top_drivers,
+        access_status=cond.access_status,
+        generated_at=cond.refreshed_at
+    )
+
+@router.get("/{destination_id}/conditions", response_model=DestinationLiveConditions)
+def get_destination_conditions(
+    destination_id: str,
+    target_date: Optional[str] = Query(None, description="Optional target date YYYY-MM-DD for forecast conditions")
+):
+    """Comprehensive conditions endpoint: weather, traffic, access status, pressure, and top drivers."""
+    dest_map = {d["id"]: d for d in DESTINATIONS_DATA}
+    if destination_id.lower().strip() not in dest_map:
+        raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
+    return pressure_refresh_service.recalculate_destination_pressure(destination_id, target_date_str=target_date)
 

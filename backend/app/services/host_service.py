@@ -316,6 +316,30 @@ class HostService:
         self.earnings[host_id] = []
         self._init_availability(listing_id)
 
+        try:
+            from app.services.homestay_repository import homestay_repository
+            homestay_repository.register_onboarding(
+                listing_id=listing_id,
+                host_id=host_id,
+                host_name=req.name,
+                destination_id=req.destination_id.lower().strip(),
+                destination_name=dest_name,
+                title=req.homestay_title,
+                tagline=req.tagline,
+                address=req.address,
+                village=req.village,
+                panchayat_name=req.panchayat_name,
+                price_per_night_inr=req.price_per_night_inr,
+                room_type=req.room_type,
+                max_guests=req.max_guests,
+                rooms_count=req.rooms_count,
+                amenities=req.amenities or ["Homemade Traditional Meals", "Solar Heated Water"],
+                special_activity=req.special_activity,
+                images=new_listing.images
+            )
+        except Exception:
+            pass
+
         return {
             "host": new_host,
             "listing": new_listing,
@@ -351,6 +375,15 @@ class HostService:
         # Retrieve destination_id from listing if available
         listing = self.listings.get(homestay_id)
         dest_id = listing.destination_id if listing else None
+        if not dest_id:
+            try:
+                from app.services.homestay_repository import homestay_repository
+                rec = homestay_repository.get_raw_record(homestay_id)
+                if rec:
+                    dest_id = rec.destination_id
+            except Exception:
+                pass
+
         demand_aggregation_service.record_event(
             event_type=DemandEventType.AVAILABILITY.value,
             destination_id=dest_id,

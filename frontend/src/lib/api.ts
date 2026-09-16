@@ -39,7 +39,14 @@ import {
   MLModelStatus,
   FeatureImportanceResponse,
   MLForecastResponse,
-  MLTrainResponse
+  MLTrainResponse,
+  CircuitDemandResponse,
+  DemandMetrics,
+  AdminDemandOverview,
+  DestinationLiveConditions,
+  WeatherObservation,
+  DestinationTrafficSummary,
+  PressureExplanation
 } from '@/types';
 
 
@@ -338,6 +345,64 @@ const FALLBACK_HOMESTAYS: Homestay[] = [
     },
     community_fund_contribution_percent: 12,
     special_activity: 'Beekeeping tour and evening folk flute performance',
+    verified: true
+  },
+  {
+    id: 'hs-lava-01',
+    destination_id: 'lava',
+    destination_name: 'Lava',
+    title: 'Neora Pine Mist Homestay',
+    tagline: 'Cozy pine log cabin touching the boundary of Neora Valley National Park',
+    address: 'Monastery Road, Lava Bazaar, Kalimpong District - 734319',
+    price_per_night_inr: 1850,
+    rating: 4.9,
+    reviews_count: 51,
+    room_type: 'Pine Wood Attic Room',
+    max_guests: 3,
+    amenities: ['Organic Farm Dining', 'Wood Fireplace', 'Binoculars for Birding', 'Nature Guide'],
+    images: [
+      'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80'
+    ],
+    host: {
+      name: 'Dawa Tshering Lepcha',
+      avatar_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+      experience_years: 9,
+      languages: ['English', 'Hindi', 'Lepcha', 'Nepali'],
+      about: 'Passionate bird watcher and certified Himalayan nature guide.',
+      verified_panchayat: true,
+      response_rate: '100%'
+    },
+    community_fund_contribution_percent: 15,
+    special_activity: 'Early morning birding walk to spot Rufous-necked Hornbills',
+    verified: true
+  },
+  {
+    id: 'hs-rishop-01',
+    destination_id: 'rishop',
+    destination_name: 'Rishop',
+    title: 'Cloud 9 Kanchenjunga Lodge',
+    tagline: 'Wake up to unobstructed 180° sunrise on snow-clad peaks',
+    address: 'Tiffin Dara Trail, Rishop, Kalimpong District - 734319',
+    price_per_night_inr: 1950,
+    rating: 4.9,
+    reviews_count: 48,
+    room_type: 'Panoramic View Cottage',
+    max_guests: 4,
+    amenities: ['Rooftop Viewing Deck', 'Electric Blankets', 'Authentic Gorkha Thali', 'Stargazing Telescope'],
+    images: [
+      'https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&w=800&q=80'
+    ],
+    host: {
+      name: 'Sonam Gurung',
+      avatar_url: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80',
+      experience_years: 6,
+      languages: ['English', 'Hindi', 'Nepali'],
+      about: 'Passionate about sustainable off-grid living and eco-tourism.',
+      verified_panchayat: true,
+      response_rate: 'Instant'
+    },
+    community_fund_contribution_percent: 10,
+    special_activity: 'Guided sunrise hike to Tiffin Dara ridge',
     verified: true
   }
 ];
@@ -2074,5 +2139,119 @@ export async function triggerMLTraining(datasetMode: string = 'SYNTHETIC'): Prom
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to trigger ML training');
   }
+  return await res.json();
+}
+
+export async function recordAlternativeAcceptance(
+  originDestinationId: string,
+  alternativeDestinationId: string,
+  similarityScore?: number,
+  sessionId?: string
+): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/destinations/${originDestinationId}/accept-alternative`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        original_destination_id: originDestinationId,
+        origin_destination_id: originDestinationId,
+        alternative_destination_id: alternativeDestinationId,
+        similarity_score: similarityScore,
+        session_id: sessionId
+      })
+    });
+  } catch (err) {
+    console.warn('Failed to record alternative acceptance telemetry:', err);
+  }
+}
+
+export async function fetchCircuitDemand(): Promise<CircuitDemandResponse> {
+  const res = await fetch(`${API_BASE_URL}/demand/circuit`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error('Failed to fetch circuit demand intelligence');
+  }
+  return await res.json();
+}
+
+export async function fetchDestinationDemand(destinationId: string): Promise<DemandMetrics> {
+  const res = await fetch(`${API_BASE_URL}/demand/${destinationId}`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch demand for destination ${destinationId}`);
+  }
+  return await res.json();
+}
+
+export async function fetchAdminDemand(): Promise<AdminDemandOverview> {
+  const res = await fetch(`${API_BASE_URL}/admin/demand`, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error('Failed to fetch administrative demand overview');
+  }
+  return await res.json();
+}
+
+export async function startTrip(tripId: string): Promise<TripDetailsResponse> {
+  const res = await fetch(`${API_BASE_URL}/trips/${tripId}/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to start trip ${tripId}`);
+  }
+  return await res.json();
+}
+
+// Milestone 7C: Live Weather + Traffic Intelligence & Pressure Recalculation
+
+export async function fetchDestinationConditions(
+  destinationId: string,
+  targetDate?: string
+): Promise<DestinationLiveConditions> {
+  const query = targetDate ? `?target_date=${encodeURIComponent(targetDate)}` : '';
+  const res = await fetch(`${API_BASE_URL}/destinations/${destinationId}/conditions${query}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch conditions for ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchCircuitConditions(): Promise<Record<string, DestinationLiveConditions>> {
+  const res = await fetch(`${API_BASE_URL}/destinations/circuit/conditions`, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to fetch circuit conditions');
+  return await res.json();
+}
+
+export async function fetchLiveWeather(destinationId: string): Promise<WeatherObservation> {
+  const res = await fetch(`${API_BASE_URL}/destinations/${destinationId}/live-weather`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch live weather for ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchDestinationTraffic(destinationId: string): Promise<DestinationTrafficSummary> {
+  const res = await fetch(`${API_BASE_URL}/destinations/${destinationId}/traffic`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch traffic for ${destinationId}`);
+  return await res.json();
+}
+
+export async function fetchPressureExplanation(
+  destinationId: string,
+  targetDate?: string
+): Promise<PressureExplanation> {
+  const query = targetDate ? `?target_date=${encodeURIComponent(targetDate)}` : '';
+  const res = await fetch(`${API_BASE_URL}/destinations/${destinationId}/pressure-explanation${query}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch pressure explanation for ${destinationId}`);
+  return await res.json();
+}
+
+export async function refreshAdminPressure(
+  destinationId?: string,
+  force: boolean = false
+): Promise<any> {
+  const params = new URLSearchParams();
+  if (destinationId) params.set('destination_id', destinationId);
+  if (force) params.set('force', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE_URL}/admin/pressure/refresh${qs}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error('Admin pressure refresh failed');
   return await res.json();
 }

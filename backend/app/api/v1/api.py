@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     destinations, itinerary, homestays, safety,
     hosts, experiences, panchayat, impact, pressure, admin,
-    ml_admin, ml_forecast,
+    ml_admin, ml_forecast, demand, trips,
 )
 
 api_router = APIRouter()
@@ -18,3 +18,5 @@ api_router.include_router(pressure.router)
 api_router.include_router(admin.router)
 api_router.include_router(ml_admin.router)
 api_router.include_router(ml_forecast.router)
+api_router.include_router(demand.router)
+api_router.include_router(trips.router)

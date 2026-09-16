@@ -6,6 +6,7 @@ from app.data.seed_data import HOMESTAYS_DATA
 from app.models.homestay import (
     Homestay, HomestayBookingRequest, HomestayBookingResponse, TripDetailsResponse
 )
+from app.services.homestay_repository import homestay_repository
 from app.services.demand_aggregation_service import demand_aggregation_service
 from app.models.demand import DemandEventType
 
@@ -22,41 +23,30 @@ def list_homestays(
     destination_id: Optional[str] = Query(None, description="Filter by destination id, e.g., 'kalimpong'"),
     max_price: Optional[int] = Query(None, description="Filter by maximum price per night")
 ):
-    """Lists **verified** rural homestays.
-    The endpoint returns only homestays where `verified` is true (authoritative verification).
-    Supports optional filtering by `destination_id` and `max_price`.
+    """Lists verified rural homestays.
+    Returns only homestays where verification_status is VERIFIED or PUBLISHED.
+    Supports optional filtering by destination_id and max_price.
     """
-    results: List[Homestay] = []
-    for h in HOMESTAYS_DATA:
-        if not h["verified"]:
-            continue
-        if destination_id and h["destination_id"] != destination_id.lower().strip():
-            continue
-        if max_price and h["price_per_night_inr"] > max_price:
-            continue
-        results.append(Homestay(**h))
-    return results
+    return homestay_repository.list_homestays(
+        destination_id=destination_id,
+        max_price=max_price,
+        visible_only=True
+    )
 
 @router.get("/homestays/{homestay_id}", response_model=Homestay)
 def get_homestay_details(homestay_id: str):
-    """Get single homestay profile."""
-    for h in HOMESTAYS_DATA:
-        if h["id"] == homestay_id:
-            return Homestay(**h)
-    raise HTTPException(status_code=404, detail="Homestay not found")
+    """Get single homestay profile from authoritative repository."""
+    hs = homestay_repository.get_homestay(homestay_id, visible_only=True)
+    if not hs:
+        raise HTTPException(status_code=404, detail=f"Homestay '{homestay_id}' not found")
+    return hs
 
 @router.post("/bookings", response_model=HomestayBookingResponse)
 def create_booking(req: HomestayBookingRequest):
     """Simulates a confirmed rural homestay booking with verified travel pass QR payload."""
-    matched_homestay = None
-    for h in HOMESTAYS_DATA:
-        if h["id"] == req.homestay_id:
-            matched_homestay = Homestay(**h)
-            break
-            
+    matched_homestay = homestay_repository.resolve_for_booking(req.homestay_id)
     if not matched_homestay:
-        # Fallback to default Kalimpong homestay
-        matched_homestay = Homestay(**HOMESTAYS_DATA[0])
+        raise HTTPException(status_code=404, detail=f"Homestay '{req.homestay_id}' not found")
 
     nights = 3
     subtotal = matched_homestay.price_per_night_inr * nights

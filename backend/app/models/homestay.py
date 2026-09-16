@@ -30,6 +30,8 @@ class Homestay(BaseModel):
     verified: bool = True
     panchayat_verified: bool = True
     sustainable_stay_badge: bool = True
+    host_id: Optional[str] = None
+    verification_status: str = "VERIFIED"
 
 class HomestayBookingRequest(BaseModel):
     homestay_id: str

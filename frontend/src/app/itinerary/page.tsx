@@ -685,7 +685,7 @@ function ItineraryPlannerContent() {
             </div>
 
             <Link
-              href={`/homestays?destination_id=${destinationId}`}
+              href={`/homestays?destination=${destinationId}`}
               className="px-6 py-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-600/20 active:scale-95 transition-all flex items-center gap-2 whitespace-nowrap"
             >
               <Home className="w-4 h-4" />
