@@ -587,7 +587,117 @@ export interface SosAlertResponse {
   national_helplines: Array<{ service: string; number: string; toll_free: boolean }>;
   instructions_for_traveler: string[];
   beacon_signal_strength: string;
+  incident?: EmergencyIncident;
 }
+
+// Milestone 7F: Safety, SOS & Emergency Operations
+export type EmergencySeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export type EmergencyIncidentStatus = 
+  | 'CREATED'
+  | 'DELIVERY_PENDING'
+  | 'DELIVERED'
+  | 'ACKNOWLEDGED'
+  | 'RESPONDING'
+  | 'ESCALATED'
+  | 'RESOLVED'
+  | 'CANCELLED';
+
+export type EmergencyIncidentType =
+  | 'SOS'
+  | 'MEDICAL'
+  | 'ACCIDENT'
+  | 'LOST'
+  | 'SECURITY'
+  | 'WEATHER'
+  | 'ROAD_BLOCKED'
+  | 'OTHER';
+
+export interface EmergencyLocation {
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy_m?: number | null;
+  status: 'AVAILABLE' | 'UNAVAILABLE' | 'APPROXIMATE';
+  label?: string | null;
+  timestamp: string;
+}
+
+export interface RouteSafetyContext {
+  corridor_name?: string | null;
+  corridor_access_status: string;
+  severe_weather_alert?: string | null;
+  is_severe_weather: boolean;
+  context_note: string;
+}
+
+export interface IncidentAuditRecord {
+  record_id: string;
+  incident_id: string;
+  timestamp: string;
+  actor: string;
+  action: string;
+  previous_state?: string | null;
+  new_state: string;
+  details?: string | null;
+}
+
+export interface EmergencyIncident {
+  incident_id: string;
+  trip_id?: string | null;
+  traveler_session_id?: string | null;
+  destination_id: string;
+  location?: EmergencyLocation | null;
+  incident_type: EmergencyIncidentType;
+  severity: EmergencySeverity;
+  status: EmergencyIncidentStatus;
+  notes?: string | null;
+  user_name: string;
+  user_phone: string;
+  created_at: string;
+  delivered_at?: string | null;
+  acknowledged_at?: string | null;
+  responding_at?: string | null;
+  escalated_at?: string | null;
+  resolved_at?: string | null;
+  cancelled_at?: string | null;
+  delivery_latency_seconds?: number | null;
+  acknowledgement_latency_seconds?: number | null;
+  assigned_operator?: string | null;
+  escalation_level: number;
+  escalation_reason?: string | null;
+  source: string;
+  provider_mode: string;
+  data_quality: string;
+  provenance: string;
+  repeat_count: number;
+  idempotency_key?: string | null;
+  cancellation_reason?: string | null;
+  route_context?: RouteSafetyContext | null;
+  audit_trail: IncidentAuditRecord[];
+}
+
+export interface EmergencyOperationsSummary {
+  total_active: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  awaiting_acknowledgement_count: number;
+  escalation_required_count: number;
+  resolved_today_count: number;
+  avg_acknowledgement_latency_seconds?: number | null;
+  incidents: EmergencyIncident[];
+}
+
+export interface OfficialEmergencyContact {
+  service_name: string;
+  contact_number: string;
+  toll_free: boolean;
+  region: string;
+  category: string;
+  verification_label: string;
+}
+
 
 export interface TripDetailsResponse {
   trip_id: string;

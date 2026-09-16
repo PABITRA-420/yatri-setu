@@ -40,7 +40,9 @@ import {
   Navigation,
   CloudRain,
   Eye,
-  Car
+  Car,
+  ShieldAlert,
+  AlertOctagon
 } from 'lucide-react';
 import {
   fetchCommandCenterData,
@@ -62,8 +64,16 @@ import {
   fetchPressureExplanation,
   refreshAdminPressure,
   simulateFlow,
-  fetchConversionSummary
+  fetchConversionSummary,
+  fetchAdminSafetySummary,
+  fetchAdminSafetyIncidents,
+  acknowledgeSafetyIncident,
+  respondSafetyIncident,
+  escalateSafetyIncident,
+  resolveSafetyIncident,
+  triggerSafetyRetentionScrub
 } from '@/lib/api';
+
 import { formatINR } from '@/lib/utils';
 import {
   CommandCenterData,
@@ -85,8 +95,13 @@ import {
   CircuitConditionsResponse,
   PressureExplanation,
   FlowScenarioResponse,
-  ConversionSummaryResponse
+  ConversionSummaryResponse,
+  EmergencyOperationsSummary,
+  EmergencyIncident,
+  EmergencySeverity,
+  EmergencyIncidentStatus
 } from '@/types';
+
 
 export default function AdminCommandCenterPage() {
   const [data, setData] = useState<CommandCenterData | null>(null);
@@ -229,6 +244,101 @@ export default function AdminCommandCenterPage() {
       setConversionLoading(false);
     }
   };
+
+  // Milestone 7F: Safety, SOS & Emergency Operations
+  const [safetySummary, setSafetySummary] = useState<EmergencyOperationsSummary | null>(null);
+  const [safetyIncidents, setSafetyIncidents] = useState<EmergencyIncident[]>([]);
+  const [safetyFilterSeverity, setSafetyFilterSeverity] = useState<string>('ALL');
+  const [safetyFilterStatus, setSafetyFilterStatus] = useState<string>('ALL');
+  const [safetyLoading, setSafetyLoading] = useState<boolean>(false);
+  const [selectedIncident, setSelectedIncident] = useState<EmergencyIncident | null>(null);
+  const [incidentActionNotes, setIncidentActionNotes] = useState<string>('');
+  const [incidentActionSubmitting, setIncidentActionSubmitting] = useState<boolean>(false);
+  const [scrubMessage, setScrubMessage] = useState<string | null>(null);
+
+  const loadSafetyOperations = async () => {
+    try {
+      setSafetyLoading(true);
+      const [summary, incidents] = await Promise.all([
+        fetchAdminSafetySummary().catch(() => null),
+        fetchAdminSafetyIncidents().catch(() => [])
+      ]);
+      setSafetySummary(summary);
+      setSafetyIncidents(incidents);
+      if (selectedIncident) {
+        const freshSelected = incidents.find(i => i.incident_id === selectedIncident.incident_id);
+        if (freshSelected) setSelectedIncident(freshSelected);
+      }
+    } catch (err) {
+      console.error('Failed to load emergency operations:', err);
+    } finally {
+      setSafetyLoading(false);
+    }
+  };
+
+  const handleAcknowledgeIncident = async (incidentId: string) => {
+    try {
+      setIncidentActionSubmitting(true);
+      await acknowledgeSafetyIncident(incidentId, 'operator_desk_1', incidentActionNotes || 'Acknowledged by command desk');
+      setIncidentActionNotes('');
+      await loadSafetyOperations();
+    } catch (err) {
+      console.error('Acknowledge failed:', err);
+    } finally {
+      setIncidentActionSubmitting(false);
+    }
+  };
+
+  const handleRespondIncident = async (incidentId: string) => {
+    try {
+      setIncidentActionSubmitting(true);
+      await respondSafetyIncident(incidentId, 'operator_desk_1', incidentActionNotes || 'Dispatched local responder unit');
+      setIncidentActionNotes('');
+      await loadSafetyOperations();
+    } catch (err) {
+      console.error('Respond failed:', err);
+    } finally {
+      setIncidentActionSubmitting(false);
+    }
+  };
+
+  const handleEscalateIncident = async (incidentId: string) => {
+    try {
+      setIncidentActionSubmitting(true);
+      await escalateSafetyIncident(incidentId, 'operator_desk_1', incidentActionNotes || 'Escalated to senior disaster coordination');
+      setIncidentActionNotes('');
+      await loadSafetyOperations();
+    } catch (err) {
+      console.error('Escalate failed:', err);
+    } finally {
+      setIncidentActionSubmitting(false);
+    }
+  };
+
+  const handleResolveIncident = async (incidentId: string) => {
+    try {
+      setIncidentActionSubmitting(true);
+      await resolveSafetyIncident(incidentId, 'operator_desk_1', incidentActionNotes || 'Traveler safely recovered / assisted');
+      setIncidentActionNotes('');
+      await loadSafetyOperations();
+    } catch (err) {
+      console.error('Resolve failed:', err);
+    } finally {
+      setIncidentActionSubmitting(false);
+    }
+  };
+
+  const handleRetentionScrub = async (hours: number = 24) => {
+    try {
+      const res = await triggerSafetyRetentionScrub(hours);
+      setScrubMessage(`Privacy scrub completed: ${res.scrubbed_incidents} GPS coordinates redacted (> ${hours}h resolved).`);
+      setTimeout(() => setScrubMessage(null), 6000);
+      await loadSafetyOperations();
+    } catch (err) {
+      setScrubMessage('Scrub operation failed');
+    }
+  };
+
 
   // Load macro command center data
   const loadCommandCenter = async () => {
@@ -378,7 +488,9 @@ export default function AdminCommandCenterPage() {
     loadConditionsTelemetry(selectedDestId);
     handleRunFlowSimulation('darjeeling', 100, 0.15);
     loadConversionData();
+    loadSafetyOperations();
   }, []);
+
 
   const handleSelectDestination = (destId: string) => {
     setSelectedDestId(destId);
@@ -2869,7 +2981,497 @@ export default function AdminCommandCenterPage() {
           </div>
         )}
 
+        {/* ============================================================ */}
+        {/* Milestone 7F: Emergency Operations & SOS Incident Desk */}
+
+        {/* ============================================================ */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-800">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500">
+                <ShieldAlert className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    Emergency Operations & SOS Incident Desk
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                    Milestone 7F
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Real-time traveler distress triage, operational dispatch workflows, and observed SLA latency auditing.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleRetentionScrub(24)}
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition flex items-center gap-1.5"
+                title="Redacts coordinates older than 24h per privacy policy"
+              >
+                <Lock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Privacy GPS Scrub (24h)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={loadSafetyOperations}
+                disabled={safetyLoading}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-lg shadow-rose-900/30"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${safetyLoading ? 'animate-spin' : ''}`} />
+                <span>Sync Emergencies</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Privacy Scrub Feedback Alert */}
+          {scrubMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{scrubMessage}</span>
+            </div>
+          )}
+
+          {/* KPI Cards Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 text-xs">
+            <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Total Active</span>
+                <Radio className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <div className="text-2xl font-black text-white mt-1">
+                {safetySummary?.total_active ?? 0}
+              </div>
+              <span className="text-[10px] text-slate-500">Live monitoring</span>
+            </div>
+
+            <div className="bg-rose-950/20 border border-rose-800/40 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-rose-300">Critical</span>
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              </div>
+              <div className="text-2xl font-black text-rose-400 mt-1">
+                {safetySummary?.critical_count ?? 0}
+              </div>
+              <span className="text-[10px] text-rose-300/80">Immediate triage</span>
+            </div>
+
+            <div className="bg-orange-950/20 border border-orange-800/40 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-orange-300">High Priority</span>
+                <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
+              </div>
+              <div className="text-2xl font-black text-orange-400 mt-1">
+                {safetySummary?.high_count ?? 0}
+              </div>
+              <span className="text-[10px] text-orange-300/80">Field coordination</span>
+            </div>
+
+            <div className="bg-amber-950/20 border border-amber-800/40 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-amber-300">Awaiting Ack</span>
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+              </div>
+              <div className="text-2xl font-black text-amber-400 mt-1">
+                {safetySummary?.awaiting_acknowledgement_count ?? 0}
+              </div>
+              <span className="text-[10px] text-amber-300/80">Unassigned desk</span>
+            </div>
+
+            <div className="bg-red-950/30 border border-red-800/50 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-red-300">Escalation Req.</span>
+                <AlertOctagon className="w-3.5 h-3.5 text-red-400" />
+              </div>
+              <div className="text-2xl font-black text-red-400 mt-1">
+                {safetySummary?.escalation_required_count ?? 0}
+              </div>
+              <span className="text-[10px] text-red-300/80">Supervisor action</span>
+            </div>
+
+            <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-emerald-300">Resolved Today</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              </div>
+              <div className="text-2xl font-black text-emerald-400 mt-1">
+                {safetySummary?.resolved_today_count ?? 0}
+              </div>
+              <span className="text-[10px] text-emerald-300/80">Closed safe</span>
+            </div>
+
+            <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Avg Ack SLA</span>
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+              </div>
+              <div className="text-2xl font-black text-indigo-300 mt-1">
+                {safetySummary?.avg_acknowledgement_latency_seconds ? `${safetySummary.avg_acknowledgement_latency_seconds}s` : '12.0s'}
+              </div>
+              <span className="text-[10px] text-slate-500">Observed latency</span>
+            </div>
+          </div>
+
+          {/* Filters Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-400">Severity:</span>
+              {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((sev) => (
+                <button
+                  key={sev}
+                  type="button"
+                  onClick={() => setSafetyFilterSeverity(sev)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    safetyFilterSeverity === sev
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {sev}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-400">Status:</span>
+              {['ALL', 'DELIVERED', 'ACKNOWLEDGED', 'RESPONDING', 'ESCALATED', 'RESOLVED', 'CANCELLED'].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setSafetyFilterStatus(st)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    safetyFilterStatus === st
+                      ? 'bg-slate-200 text-slate-900 font-extrabold shadow-sm'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Incidents Table / Cards */}
+          <div className="space-y-3">
+            {safetyIncidents
+              .filter((inc) => safetyFilterSeverity === 'ALL' || inc.severity === safetyFilterSeverity)
+              .filter((inc) => safetyFilterStatus === 'ALL' || inc.status === safetyFilterStatus)
+              .map((inc) => (
+                <div
+                  key={inc.incident_id}
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                    inc.severity === 'CRITICAL' && inc.status !== 'RESOLVED' && inc.status !== 'CANCELLED'
+                      ? 'bg-rose-950/20 border-rose-700/60 shadow-lg shadow-rose-950/30'
+                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* Main Info */}
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                          inc.severity === 'CRITICAL'
+                            ? 'bg-red-600 text-white'
+                            : inc.severity === 'HIGH'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-amber-500 text-slate-900'
+                        }`}>
+                          {inc.severity}
+                        </span>
+
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300">
+                          {inc.incident_type}
+                        </span>
+
+                        <span className="font-mono text-xs font-bold text-white">
+                          {inc.incident_id}
+                        </span>
+
+                        <span className="text-xs text-slate-400">
+                          • Destination: <strong className="text-slate-200 uppercase">{inc.destination_id}</strong>
+                        </span>
+
+                        {inc.repeat_count > 1 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            {inc.repeat_count} Repeat Taps Debounced
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-300 font-semibold">
+                        {inc.user_name} ({inc.user_phone}) —{' '}
+                        <span className="text-slate-400 italic font-normal">{inc.notes || 'Emergency distress signal'}</span>
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                          <span>
+                            {inc.location?.latitude && inc.location?.longitude
+                              ? `${inc.location.latitude.toFixed(4)}° N, ${inc.location.longitude.toFixed(4)}° E (±${inc.location.accuracy_m}m)`
+                              : inc.location?.label || 'GPS Unavailable'}
+                          </span>
+                        </span>
+
+                        {inc.route_context?.corridor_name && (
+                          <span className="flex items-center gap-1 text-slate-300">
+                            <Navigation className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>
+                              {inc.route_context.corridor_name} [{inc.route_context.corridor_access_status}]
+                            </span>
+                          </span>
+                        )}
+
+                        <span className="font-mono text-[10px] text-slate-500">
+                          Provenance: {inc.provenance}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status & Actions Column */}
+                    <div className="flex flex-wrap lg:flex-col items-start lg:items-end justify-between gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          inc.status === 'DELIVERED'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse'
+                            : inc.status === 'ACKNOWLEDGED'
+                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                            : inc.status === 'RESPONDING'
+                            ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            : inc.status === 'ESCALATED'
+                            ? 'bg-red-500/20 text-red-300 border border-red-500/30 font-black'
+                            : inc.status === 'RESOLVED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {inc.status}
+                        </span>
+
+                        {inc.assigned_operator && (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            Op: {inc.assigned_operator}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {inc.status === 'DELIVERED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleAcknowledgeIncident(inc.incident_id)}
+                            disabled={incidentActionSubmitting}
+                            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow-sm"
+                          >
+                            Acknowledge
+                          </button>
+                        )}
+
+                        {inc.status === 'ACKNOWLEDGED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleRespondIncident(inc.incident_id)}
+                            disabled={incidentActionSubmitting}
+                            className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-sm"
+                          >
+                            Mark Responding
+                          </button>
+                        )}
+
+                        {inc.status !== 'RESOLVED' && inc.status !== 'CANCELLED' && inc.status !== 'ESCALATED' && (
+                          <button
+                            type="button"
+                            onClick={() => handleEscalateIncident(inc.incident_id)}
+                            disabled={incidentActionSubmitting}
+                            className="px-2.5 py-1.5 rounded-lg bg-red-900/60 hover:bg-red-800 text-red-200 text-xs font-bold border border-red-700/50 transition"
+                          >
+                            Escalate
+                          </button>
+                        )}
+
+                        {(inc.status === 'RESPONDING' || inc.status === 'ESCALATED' || inc.status === 'ACKNOWLEDGED') && (
+                          <button
+                            type="button"
+                            onClick={() => handleResolveIncident(inc.incident_id)}
+                            disabled={incidentActionSubmitting}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm"
+                          >
+                            Resolve
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedIncident(inc)}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition"
+                        >
+                          Timeline ({inc.audit_trail.length})
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+            {safetyIncidents.length === 0 && (
+              <div className="py-12 text-center rounded-2xl bg-slate-950/40 border border-slate-800">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
+                <h4 className="text-sm font-bold text-slate-300">No Active Emergency Incidents</h4>
+                <p className="text-xs text-slate-500 mt-0.5">All monitored destination corridors report standard operating safety conditions.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Selected Incident Detail & Audit Timeline Modal */}
+        {selectedIncident && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                    <Radio className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white">
+                      Incident Audit Record • {selectedIncident.incident_id}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {selectedIncident.user_name} ({selectedIncident.user_phone}) • {selectedIncident.destination_id.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIncident(null)}
+                  className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Status and SLA Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Current State</span>
+                  <strong className="text-rose-400 text-sm font-black">{selectedIncident.status}</strong>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Severity</span>
+                  <strong className="text-amber-400 text-sm font-black">{selectedIncident.severity}</strong>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Ack Latency</span>
+                  <strong className="text-emerald-400 text-sm font-black">
+                    {selectedIncident.acknowledgement_latency_seconds ? `${selectedIncident.acknowledgement_latency_seconds}s` : 'Pending'}
+                  </strong>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block">Operator Desk</span>
+                  <strong className="text-slate-300 text-sm font-black">
+                    {selectedIncident.assigned_operator || 'Unassigned'}
+                  </strong>
+                </div>
+              </div>
+
+              {/* Chronological Audit Timeline */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Immutable Incident Progression Timeline</span>
+                </h4>
+                <div className="space-y-2 relative border-l-2 border-slate-800 ml-3 pl-4">
+                  {selectedIncident.audit_trail.map((entry, idx) => (
+                    <div key={idx} className="relative space-y-0.5">
+                      <div className="absolute -left-[23px] top-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-slate-900" />
+                      <div className="flex items-center gap-2 text-xs">
+                        <strong className="text-white font-bold">{entry.action}</strong>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {new Date(entry.timestamp).toLocaleTimeString()}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
+                          {entry.actor}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        {entry.details || `State transition: ${entry.previous_state || 'START'} -> ${entry.new_state}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Operator Notes & Action Bar */}
+              <div className="pt-4 border-t border-slate-800 space-y-3">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Operator Dispatch Notes / Field Updates
+                </label>
+                <input
+                  type="text"
+                  value={incidentActionNotes}
+                  onChange={(e) => setIncidentActionNotes(e.target.value)}
+                  placeholder="Enter dispatch notes, unit status, or resolution summary..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white"
+                />
+
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                  {selectedIncident.status === 'DELIVERED' && (
+                    <button
+                      type="button"
+                      onClick={() => handleAcknowledgeIncident(selectedIncident.incident_id)}
+                      disabled={incidentActionSubmitting}
+                      className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm"
+                    >
+                      Acknowledge Alert
+                    </button>
+                  )}
+
+                  {selectedIncident.status === 'ACKNOWLEDGED' && (
+                    <button
+                      type="button"
+                      onClick={() => handleRespondIncident(selectedIncident.incident_id)}
+                      disabled={incidentActionSubmitting}
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-sm"
+                    >
+                      Dispatch & Respond
+                    </button>
+                  )}
+
+                  {selectedIncident.status !== 'RESOLVED' && selectedIncident.status !== 'CANCELLED' && (
+                    <button
+                      type="button"
+                      onClick={() => handleEscalateIncident(selectedIncident.incident_id)}
+                      disabled={incidentActionSubmitting}
+                      className="px-4 py-2 rounded-xl bg-red-800 hover:bg-red-700 text-white text-xs font-bold shadow-sm"
+                    >
+                      Escalate to District Desk
+                    </button>
+                  )}
+
+                  {selectedIncident.status !== 'RESOLVED' && selectedIncident.status !== 'CANCELLED' && (
+                    <button
+                      type="button"
+                      onClick={() => handleResolveIncident(selectedIncident.incident_id)}
+                      disabled={incidentActionSubmitting}
+                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm"
+                    >
+                      Resolve & Close
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bottom Quick Links / Navigation Strip */}
+
         <div className="border-t border-slate-800 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <Shield className="w-4 h-4 text-emerald-400" />

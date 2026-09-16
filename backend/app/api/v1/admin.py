@@ -240,6 +240,137 @@ def get_admin_network_edges(source_id: Optional[str] = Query(None)):
     return destination_network_service.list_all_edges()
 
 
+# ==========================================
+# Milestone 7F: Emergency Operations Center
+# ==========================================
+
+from app.services.safety.schemas import (
+    EmergencyIncident,
+    EmergencyOperationsSummary,
+    IncidentActionRequest
+)
+from app.services.safety.service import safety_operations_service
+
+
+@router.get("/safety/summary", response_model=EmergencyOperationsSummary)
+def get_safety_operations_summary():
+    """
+    Returns live summary KPIs for the Command Center Emergency Operations module:
+    Active counts by severity, pending acknowledgements, escalations, and average latency.
+    """
+    # Trigger SLA timeout sweep before returning summary
+    safety_operations_service.check_escalation_timeouts()
+    return safety_operations_service.get_summary()
+
+
+@router.get("/safety/incidents", response_model=List[EmergencyIncident])
+def list_safety_incidents(
+    status: Optional[str] = Query(None, description="Filter by status (e.g. DELIVERED, ACKNOWLEDGED)"),
+    destination_id: Optional[str] = Query(None, description="Filter by destination ID"),
+    severity: Optional[str] = Query(None, description="Filter by severity (CRITICAL, HIGH, MEDIUM, LOW)"),
+    limit: int = Query(50, ge=1, le=200)
+):
+    """
+    Lists emergency incidents with operator filters and observed latencies.
+    Protected administrative endpoint.
+    """
+    safety_operations_service.check_escalation_timeouts()
+    return safety_operations_service.repo.list_incidents(
+        status=status,
+        destination_id=destination_id,
+        severity=severity,
+        limit=limit
+    )
+
+
+@router.get("/safety/incidents/{incident_id}", response_model=EmergencyIncident)
+def get_safety_incident_detail(incident_id: str):
+    """
+    Retrieves full incident details, coordinate accuracy, route context, and audit history.
+    """
+    inc = safety_operations_service.repo.get_incident(incident_id)
+    if not inc:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return inc
+
+
+@router.post("/safety/incidents/{incident_id}/acknowledge", response_model=EmergencyIncident)
+def acknowledge_safety_incident(
+    incident_id: str,
+    action: Optional[IncidentActionRequest] = None
+):
+    """
+    Operator action: Acknowledges incoming emergency alert.
+    Stamps operational response timestamp and computes observed acknowledgement latency.
+    """
+    req = action or IncidentActionRequest(operator_id="operator_desk_1")
+    try:
+        return safety_operations_service.acknowledge_incident(incident_id, req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/safety/incidents/{incident_id}/respond", response_model=EmergencyIncident)
+def respond_safety_incident(
+    incident_id: str,
+    action: Optional[IncidentActionRequest] = None
+):
+    """
+    Operator action: Marks incident as actively responding.
+    """
+    req = action or IncidentActionRequest(operator_id="operator_desk_1")
+    try:
+        return safety_operations_service.respond_incident(incident_id, req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/safety/incidents/{incident_id}/escalate", response_model=EmergencyIncident)
+def escalate_safety_incident(
+    incident_id: str,
+    action: Optional[IncidentActionRequest] = None
+):
+    """
+    Operator action: Escalates incident to high-priority operational supervisory desk.
+    """
+    req = action or IncidentActionRequest(operator_id="operator_desk_1", escalation_reason="Field assistance requested")
+    try:
+        return safety_operations_service.escalate_incident(incident_id, req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/safety/incidents/{incident_id}/resolve", response_model=EmergencyIncident)
+def resolve_safety_incident(
+    incident_id: str,
+    action: Optional[IncidentActionRequest] = None
+):
+    """
+    Operator action: Safely resolves incident with post-action notes.
+    """
+    req = action or IncidentActionRequest(operator_id="operator_desk_1", notes="Traveler assisted and safe")
+    try:
+        return safety_operations_service.resolve_incident(incident_id, req)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/safety/retention/scrub")
+def run_retention_scrub(hours_threshold: int = Query(24, ge=1)):
+    """
+    Administrative retention policy enforcement.
+    Redacts raw GPS coordinates for resolved/cancelled incidents older than the retention threshold.
+    """
+    scrubbed = safety_operations_service.repo.apply_retention_scrub(hours_threshold=hours_threshold)
+    return {
+        "status": "SUCCESS",
+        "scrubbed_incidents": scrubbed,
+        "hours_threshold": hours_threshold,
+        "policy": "Yatri Setu Privacy & Sensitive Location Retention Policy"
+    }
+
+
+
 
 
 

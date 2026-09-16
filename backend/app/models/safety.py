@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, Field
 
 class ResponderInfo(BaseModel):
@@ -13,12 +13,19 @@ class SosAlertRequest(BaseModel):
     user_name: str
     user_phone: str
     destination_id: Optional[str] = "kalimpong"
+    trip_id: Optional[str] = None
+    traveler_session_id: Optional[str] = None
     current_location_name: Optional[str] = "Upper Cart Road, Kalimpong"
-    latitude: float = Field(27.0667, description="Current GPS Latitude")
-    longitude: float = Field(88.4667, description="Current GPS Longitude")
+    latitude: Optional[float] = Field(27.0667, description="Current GPS Latitude")
+    longitude: Optional[float] = Field(88.4667, description="Current GPS Longitude")
+    location_accuracy_m: Optional[float] = None
     battery_level_percent: Optional[int] = 84
-    nature_of_emergency: str = Field("General Assistance / Medical / Route Lost", description="Category")
+    nature_of_emergency: Optional[str] = Field("General Assistance / Medical / Route Lost", description="Category")
+    incident_type: Optional[str] = "SOS"
+    severity: Optional[str] = "HIGH"
     notes: Optional[str] = None
+    idempotency_key: Optional[str] = None
+    offline_queued: Optional[bool] = False
 
 class SosAlertResponse(BaseModel):
     alert_id: str
@@ -31,3 +38,5 @@ class SosAlertResponse(BaseModel):
     national_helplines: List[dict]
     instructions_for_traveler: List[str]
     beacon_signal_strength: str
+    incident: Optional[Dict[str, Any]] = None
+
