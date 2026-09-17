@@ -6,7 +6,7 @@ Defines all 16 core platform entities.
 
 from datetime import datetime, date
 from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, Date, DateTime, Text, ForeignKey, JSON
+    Column, String, Integer, Float, Boolean, Date, DateTime, Text, ForeignKey, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -70,12 +70,25 @@ class HomestayModel(Base):
     host_id = Column(String(64), ForeignKey("hosts.id"), nullable=False, index=True)
     destination_id = Column(String(64), ForeignKey("destinations.id"), nullable=False, index=True)
     name = Column(String(128), nullable=False)
+    title = Column(String(128), nullable=True)
+    tagline = Column(String(256), nullable=True)
+    address = Column(String(256), nullable=True)
+    room_type = Column(String(64), default="Standard Room")
     total_rooms = Column(Integer, default=2)
     max_guests = Column(Integer, default=6)
     price_per_night = Column(Float, nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
+    rating = Column(Float, default=5.0)
+    reviews_count = Column(Integer, default=0)
     panchayat_verified = Column(Boolean, default=True)
+    verification_status = Column(String(32), default="VERIFIED")
+    is_published = Column(Boolean, default=True)
+    village = Column(String(128), nullable=True)
+    panchayat_name = Column(String(128), nullable=True)
+    special_activity = Column(String(256), nullable=True)
+    amenities_json = Column(JSON, nullable=True)
+    images_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     host = relationship("HostModel", back_populates="homestays")
@@ -105,15 +118,25 @@ class BookingModel(Base):
     homestay_id = Column(String(64), ForeignKey("homestays.id"), nullable=False, index=True)
     destination_id = Column(String(64), ForeignKey("destinations.id"), nullable=False, index=True)
     guest_name = Column(String(128), nullable=False)
+    traveler_phone = Column(String(32), nullable=True)
+    traveler_email = Column(String(128), nullable=True)
+    emergency_contact = Column(String(32), nullable=True)
     check_in_date = Column(Date, nullable=False)
     check_out_date = Column(Date, nullable=False)
     guests_count = Column(Integer, default=2)
+    rooms_booked = Column(Integer, default=1)
     total_amount = Column(Float, nullable=False)
     host_earning = Column(Float, nullable=False) # 90%
     platform_fee = Column(Float, nullable=False) # 5%
     community_fund = Column(Float, nullable=False) # 5%
     status = Column(String(32), default="CONFIRMED")
+    failure_reason = Column(String(64), nullable=True)
+    failure_detail = Column(Text, nullable=True)
+    idempotency_key = Column(String(128), nullable=True, index=True)
+    digital_pass_qr_payload = Column(Text, nullable=True)
+    transitions_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     homestay = relationship("HomestayModel", back_populates="bookings")
 
@@ -121,12 +144,18 @@ class BookingModel(Base):
 # 7. Availability Entity
 class AvailabilityModel(Base):
     __tablename__ = "availability"
+    __table_args__ = (
+        UniqueConstraint("homestay_id", "date", name="uq_homestay_date_inventory"),
+    )
 
     id = Column(String(64), primary_key=True, index=True)
     homestay_id = Column(String(64), ForeignKey("homestays.id"), nullable=False, index=True)
     date = Column(Date, nullable=False, index=True)
+    total_units = Column(Integer, default=2)
+    booked_units = Column(Integer, default=0)
     is_available = Column(Boolean, default=True)
     rooms_available = Column(Integer, default=1)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # 8. Unified CrowdObservation Entity
@@ -251,12 +280,22 @@ class SafetyIncidentModel(Base):
 
     id = Column(String(64), primary_key=True, index=True)
     destination_id = Column(String(64), ForeignKey("destinations.id"), nullable=False, index=True)
+    trip_id = Column(String(64), nullable=True)
+    traveler_session_id = Column(String(128), nullable=True)
+    user_name = Column(String(128), nullable=True)
+    user_phone = Column(String(32), nullable=True, index=True)
     incident_type = Column(String(64), default="SOS") # MEDICAL, SOS, WEATHER_HAZARD, ROAD_BLOCK
-    severity = Column(String(32), default="MEDIUM") # LOW, MEDIUM, CRITICAL
-    description = Column(Text, nullable=False)
+    severity = Column(String(32), default="HIGH") # LOW, MEDIUM, HIGH, CRITICAL
+    status = Column(String(32), default="DELIVERED") # CREATED, DELIVERED, ACKNOWLEDGED, RESPONDING, ESCALATED, RESOLVED
+    notes = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     resolved = Column(Boolean, default=False)
+    escalation_level = Column(Integer, default=0)
+    idempotency_key = Column(String(128), nullable=True, index=True)
+    audit_trail_json = Column(JSON, nullable=True)
+    notifications_json = Column(JSON, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 

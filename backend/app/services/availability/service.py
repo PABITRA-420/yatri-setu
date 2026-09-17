@@ -146,6 +146,43 @@ class AvailabilityService:
             updated_at=datetime.utcnow().isoformat()
         )
 
+    def _persist_availability(self, homestay_id: str, target_date: str, total_units: int, booked_units: int) -> None:
+        """Helper to synchronize availability ledger row with SQLAlchemy model."""
+        try:
+            from app.core.database import SessionLocal
+            from app.models.entities import AvailabilityModel
+            t_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+            db = SessionLocal()
+            try:
+                avail_rec = db.query(AvailabilityModel).filter(
+                    AvailabilityModel.homestay_id == homestay_id,
+                    AvailabilityModel.date == t_date
+                ).first()
+                avail_rooms = max(0, total_units - booked_units)
+                is_avail = (avail_rooms > 0)
+                if not avail_rec:
+                    db.add(AvailabilityModel(
+                        id=f"av-{homestay_id}-{target_date}",
+                        homestay_id=homestay_id,
+                        date=t_date,
+                        total_units=total_units,
+                        booked_units=booked_units,
+                        is_available=is_avail,
+                        rooms_available=avail_rooms
+                    ))
+                else:
+                    avail_rec.total_units = total_units
+                    avail_rec.booked_units = booked_units
+                    avail_rec.rooms_available = avail_rooms
+                    avail_rec.is_available = is_avail
+                db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
+        except Exception:
+            pass
+
     def reserve_units(self, homestay_id: str, target_date: str, units: int = 1) -> bool:
         """
         Atomically decrements available units for homestay on target date.
@@ -158,7 +195,9 @@ class AvailabilityService:
             current_booked = self._ledger.get((clean_hs_id, target_date), 0)
             if current_booked + units > total_rooms:
                 return False  # Overbooking prevented
-            self._ledger[(clean_hs_id, target_date)] = current_booked + units
+            new_booked = current_booked + units
+            self._ledger[(clean_hs_id, target_date)] = new_booked
+            self._persist_availability(clean_hs_id, target_date, total_rooms, new_booked)
             return True
 
     def release_units(self, homestay_id: str, target_date: str, units: int = 1) -> None:
@@ -166,7 +205,10 @@ class AvailabilityService:
         clean_hs_id = self._hs_repo._resolve_id(homestay_id)
         with self._lock:
             current_booked = self._ledger.get((clean_hs_id, target_date), 0)
-            self._ledger[(clean_hs_id, target_date)] = max(0, current_booked - units)
+            new_booked = max(0, current_booked - units)
+            self._ledger[(clean_hs_id, target_date)] = new_booked
+            total_rooms = self._get_homestay_total_rooms(clean_hs_id)
+            self._persist_availability(clean_hs_id, target_date, total_rooms, new_booked)
 
 
 availability_service = AvailabilityService()

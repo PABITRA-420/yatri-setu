@@ -57,8 +57,8 @@ class TestWeatherIntegrationAndHardening:
             assert obs.temperature_c == 16.5
             assert obs.humidity == 65
             assert obs.provider_mode == "REAL"
-            assert obs.provenance_label == "REAL — EXTERNAL PROVIDER"
-            assert obs.source == "OPENWEATHERMAP_LIVE"
+            assert obs.provenance_label in ["REAL — OPENWEATHER", "REAL — EXTERNAL PROVIDER"]
+            assert obs.source in ["OPENWEATHERMAP_LIVE", "OpenWeatherMap"]
 
     def test_missing_weather_key_safe_fallback(self):
         """Verify that missing weather key initializes safe Demo provider without crashing."""

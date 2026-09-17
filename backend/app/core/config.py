@@ -31,6 +31,11 @@ class Settings:
             return raw_url.replace("postgres://", "postgresql://", 1)
         return raw_url
 
+    DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
+    DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "15"))
+    DB_POOL_TIMEOUT: int = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+    DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "1800"))
+
     # Weather Provider Settings (demo | openweather | unavailable)
     WEATHER_PROVIDER: str = os.getenv("WEATHER_PROVIDER", "demo")
     OPENWEATHER_API_KEY: Optional[str] = os.getenv("OPENWEATHER_API_KEY", None)

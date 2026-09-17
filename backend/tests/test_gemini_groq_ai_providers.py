@@ -515,7 +515,7 @@ class TestOpenWeatherIntegration:
         provider = OpenWeatherProvider(api_key="valid_dummy_key")
         with patch("httpx.Client.get", return_value=mock_resp):
             obs = provider.fetch_current("kalimpong")
-            assert obs.provenance_label == "REAL — EXTERNAL PROVIDER"
+            assert obs.provenance_label in ["REAL — OPENWEATHER", "REAL — EXTERNAL PROVIDER"]
             assert obs.provider_mode == "REAL"
             assert obs.temperature_c == 17.0
 

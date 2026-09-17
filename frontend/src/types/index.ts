@@ -176,6 +176,13 @@ export interface WeatherForecast {
   best_hours_for_outdoors: string;
   is_demo_forecast?: boolean;
   provider_source?: string;
+  humidity?: number;
+  precipitation_mm?: number;
+  wind_speed_kmh?: number;
+  observed_at?: string;
+  cache_status?: string;
+  provenance_label?: string;
+  provider_mode?: string;
 }
 
 export interface TourismImpact {

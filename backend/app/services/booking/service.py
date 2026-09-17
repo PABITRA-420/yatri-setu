@@ -221,7 +221,70 @@ class BookingLifecycleService:
                 )
 
             self._bookings[booking_id] = record
+            self._persist_booking(record)
             return record, self._to_legacy_response(record)
+
+    def _persist_booking(self, record: BookingRecord) -> None:
+        """Helper to atomically persist BookingRecord into SQLAlchemy BookingModel."""
+        try:
+            from app.core.database import SessionLocal
+            from app.models.entities import BookingModel
+            from datetime import datetime
+
+            try:
+                check_in = datetime.strptime(record.check_in_date, "%Y-%m-%d").date()
+            except Exception:
+                check_in = datetime.utcnow().date()
+
+            try:
+                check_out = datetime.strptime(record.check_out_date, "%Y-%m-%d").date()
+            except Exception:
+                check_out = check_in
+
+            transitions = [t.model_dump() if hasattr(t, "model_dump") else (t.dict() if hasattr(t, "dict") else t.__dict__) for t in record.transitions]
+
+            db = SessionLocal()
+            try:
+                db_booking = db.query(BookingModel).filter(BookingModel.id == record.booking_id).first()
+                if not db_booking:
+                    db_booking = BookingModel(
+                        id=record.booking_id,
+                        homestay_id=record.homestay_id,
+                        destination_id=record.destination_id,
+                        guest_name=record.traveler_name,
+                        traveler_phone=record.traveler_phone,
+                        traveler_email=record.traveler_email,
+                        emergency_contact=record.emergency_contact,
+                        check_in_date=check_in,
+                        check_out_date=check_out,
+                        guests_count=record.number_of_guests,
+                        rooms_booked=record.rooms_booked,
+                        total_amount=float(record.total_amount_inr),
+                        host_earning=float(record.host_earning_inr),
+                        platform_fee=float(record.platform_fee_inr),
+                        community_fund=float(record.community_fund_contribution_inr),
+                        status=record.state.value,
+                        failure_reason=record.failure_reason.value if record.failure_reason else None,
+                        failure_detail=record.failure_detail,
+                        idempotency_key=record.idempotency_key,
+                        digital_pass_qr_payload=record.digital_pass_qr_payload,
+                        transitions_json=transitions
+                    )
+                    db.add(db_booking)
+                else:
+                    db_booking.status = record.state.value
+                    db_booking.failure_reason = record.failure_reason.value if record.failure_reason else None
+                    db_booking.failure_detail = record.failure_detail
+                    db_booking.digital_pass_qr_payload = record.digital_pass_qr_payload
+                    db_booking.transitions_json = transitions
+
+                db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
+        except Exception:
+            pass
 
     def confirm_booking(self, booking_id: str) -> BookingRecord:
         """Confirms a booking currently in PENDING_CONFIRMATION."""
@@ -237,6 +300,7 @@ class BookingLifecycleService:
             record.digital_pass_qr_payload = (
                 f"YATRI-SETU-VERIFIED:{booking_id}:{record.homestay_id}:{record.traveler_name}:STAMP_OK"
             )
+            self._persist_booking(record)
             return record
 
     def cancel_booking(self, booking_id: str, reason: Optional[str] = None) -> BookingRecord:
@@ -260,11 +324,58 @@ class BookingLifecycleService:
                 session_id=booking_id,
                 metadata={"reason": reason or "User cancellation", "homestay_id": record.homestay_id}
             )
+            self._persist_booking(record)
             return record
 
     def get_booking(self, booking_id: str) -> Optional[BookingRecord]:
         with self._lock:
-            return self._bookings.get(booking_id)
+            rec = self._bookings.get(booking_id)
+            if rec:
+                return rec
+
+        # Fallback hydration from database
+        try:
+            from app.core.database import SessionLocal
+            from app.models.entities import BookingModel
+            db = SessionLocal()
+            try:
+                db_bk = db.query(BookingModel).filter(BookingModel.id == booking_id).first()
+                if db_bk:
+                    hydrated = BookingRecord(
+                        booking_id=db_bk.id,
+                        homestay_id=db_bk.homestay_id,
+                        destination_id=db_bk.destination_id,
+                        traveler_name=db_bk.guest_name,
+                        traveler_phone=db_bk.traveler_phone or "",
+                        traveler_email=db_bk.traveler_email or "",
+                        emergency_contact=db_bk.emergency_contact or "",
+                        check_in_date=db_bk.check_in_date.isoformat() if hasattr(db_bk.check_in_date, "isoformat") else str(db_bk.check_in_date),
+                        check_out_date=db_bk.check_out_date.isoformat() if hasattr(db_bk.check_out_date, "isoformat") else str(db_bk.check_out_date),
+                        number_of_guests=db_bk.guests_count,
+                        rooms_booked=db_bk.rooms_booked or 1,
+                        total_amount_inr=int(db_bk.total_amount),
+                        subtotal_inr=int(db_bk.total_amount * 0.9),
+                        community_fund_contribution_inr=int(db_bk.community_fund),
+                        platform_fee_inr=int(db_bk.platform_fee),
+                        host_earning_inr=int(db_bk.host_earning),
+                        state=BookingState(db_bk.status) if db_bk.status in BookingState._value2member_map_ else BookingState.CONFIRMED,
+                        failure_reason=BookingFailureReason(db_bk.failure_reason) if db_bk.failure_reason in BookingFailureReason._value2member_map_ else None,
+                        failure_detail=db_bk.failure_detail,
+                        idempotency_key=db_bk.idempotency_key,
+                        digital_pass_qr_payload=db_bk.digital_pass_qr_payload,
+                        created_at=db_bk.created_at.isoformat() if hasattr(db_bk.created_at, "isoformat") else str(db_bk.created_at),
+                        updated_at=db_bk.updated_at.isoformat() if hasattr(db_bk.updated_at, "isoformat") else str(db_bk.updated_at)
+                    )
+                    with self._lock:
+                        self._bookings[hydrated.booking_id] = hydrated
+                        if hydrated.idempotency_key:
+                            self._idempotency_map[hydrated.idempotency_key] = hydrated.booking_id
+                    return hydrated
+            finally:
+                db.close()
+        except Exception:
+            pass
+        return None
 
     def get_all_bookings(self) -> List[BookingRecord]:
         with self._lock:

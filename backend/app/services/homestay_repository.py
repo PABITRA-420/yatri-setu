@@ -10,8 +10,12 @@ Ensures consistent homestay_id, destination_id, host_id, and verification_status
 Only VERIFIED and PUBLISHED homestays are visible to tourist endpoints.
 """
 
+import uuid
+import logging
 from typing import Dict, List, Optional, Any
 from app.models.homestay import Homestay, HostInfo
+
+logger = logging.getLogger(__name__)
 
 
 class AuthoritativeHomestayRecord:
@@ -111,6 +115,10 @@ class HomestayRepository:
         self._records: Dict[str, AuthoritativeHomestayRecord] = {}
         self._aliases: Dict[str, str] = {}
         self._seed_authoritative_records()
+        try:
+            self.sync_to_db()
+        except Exception:
+            pass
 
     def _seed_authoritative_records(self):
         # 1. Kalimpong - Pineview Orchid Retreat (Host: Pemba Sherpa)
@@ -376,6 +384,98 @@ class HomestayRepository:
             return None
         return rec.to_tourist_homestay()
 
+    def sync_to_db(self) -> bool:
+        """
+        Synchronizes authoritative destinations, hosts, and homestays into SQLAlchemy models.
+        Ensures foreign keys and seed records exist without duplicate key violations.
+        """
+        try:
+            from app.core.database import SessionLocal
+            from app.models.entities import DestinationModel, HostModel, HomestayModel
+
+            db = SessionLocal()
+            try:
+                # 1. Ensure destinations
+                dest_data = {
+                    "darjeeling": ("Darjeeling", "West Bengal", 27.0410, 88.2663, 5000, False),
+                    "kalimpong": ("Kalimpong", "West Bengal", 27.0594, 88.4695, 3000, False),
+                    "lava": ("Lava", "West Bengal", 27.0864, 88.6611, 1000, True),
+                    "lolegaon": ("Lolegaon", "West Bengal", 27.0189, 88.5583, 800, True),
+                    "rishop": ("Rishop", "West Bengal", 27.1083, 88.6472, 600, True),
+                    "mirik": ("Mirik", "West Bengal", 26.8910, 88.1718, 2500, False),
+                }
+                for d_id, (d_name, d_state, d_lat, d_lon, d_cap, d_rur) in dest_data.items():
+                    existing_d = db.query(DestinationModel).filter(DestinationModel.id == d_id).first()
+                    if not existing_d:
+                        db.add(DestinationModel(
+                            id=d_id,
+                            name=d_name,
+                            state=d_state,
+                            latitude=d_lat,
+                            longitude=d_lon,
+                            carrying_capacity=d_cap,
+                            is_rural=d_rur
+                        ))
+
+                # 2. Ensure hosts and homestays
+                for rec in self._records.values():
+                    # Host
+                    existing_h = db.query(HostModel).filter(HostModel.id == rec.host_id).first()
+                    if not existing_h:
+                        db.add(HostModel(
+                            id=rec.host_id,
+                            full_name=rec.host_name,
+                            phone="+91 98000 00000",
+                            panchayat_name=rec.panchayat_name or "Gram Panchayat",
+                            village=rec.village or "Himalayan Village",
+                            state="West Bengal",
+                            verification_status="VERIFIED"
+                        ))
+
+                    # Homestay
+                    existing_hs = db.query(HomestayModel).filter(HomestayModel.id == rec.id).first()
+                    if not existing_hs:
+                        db.add(HomestayModel(
+                            id=rec.id,
+                            host_id=rec.host_id,
+                            destination_id=rec.destination_id,
+                            name=rec.title,
+                            title=rec.title,
+                            tagline=rec.tagline,
+                            address=rec.address,
+                            room_type=rec.room_type,
+                            total_rooms=max(2, rec.max_guests // 2),
+                            max_guests=rec.max_guests,
+                            price_per_night=float(rec.price_per_night_inr),
+                            latitude=27.0,
+                            longitude=88.0,
+                            rating=rec.rating,
+                            reviews_count=rec.reviews_count,
+                            panchayat_verified=rec.verification_status in ("VERIFIED", "PUBLISHED"),
+                            verification_status=rec.verification_status,
+                            is_published=rec.is_published,
+                            village=rec.village,
+                            panchayat_name=rec.panchayat_name,
+                            special_activity=rec.special_activity,
+                            amenities_json=rec.amenities,
+                            images_json=rec.images
+                        ))
+                    else:
+                        existing_hs.verification_status = rec.verification_status
+                        existing_hs.is_published = rec.is_published
+
+                db.commit()
+                return True
+            except Exception as exc:
+                db.rollback()
+                logger.debug(f"HomestayRepository sync_to_db notice: {exc}")
+                return False
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.debug(f"Database session unavailable for sync_to_db: {exc}")
+            return False
+
     def update_verification_status(self, homestay_id: str, status: str) -> bool:
         """
         Updates verification status of authoritative homestay record.
@@ -389,6 +489,25 @@ class HomestayRepository:
         norm_status = status.upper().strip()
         rec.verification_status = norm_status
         rec.is_published = (norm_status in ("VERIFIED", "PUBLISHED"))
+
+        # Synchronize with database if available
+        try:
+            from app.core.database import SessionLocal
+            from app.models.entities import HomestayModel
+            db = SessionLocal()
+            try:
+                db_hs = db.query(HomestayModel).filter(HomestayModel.id == canonical_id).first()
+                if db_hs:
+                    db_hs.verification_status = norm_status
+                    db_hs.is_published = (norm_status in ("VERIFIED", "PUBLISHED"))
+                    db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
+        except Exception:
+            pass
+
         return True
 
     def register_onboarding(
@@ -459,6 +578,71 @@ class HomestayRepository:
             panchayat_name=panchayat_name
         )
         self._records[rec.id] = rec
+
+        # Persist newly onboarded host and homestay to database if available
+        try:
+            from app.core.database import SessionLocal
+            from app.models.entities import HomestayModel, HostModel, DestinationModel
+            db = SessionLocal()
+            try:
+                # Ensure destination exists
+                if not db.query(DestinationModel).filter(DestinationModel.id == destination_id).first():
+                    db.add(DestinationModel(
+                        id=destination_id,
+                        name=final_dest_name,
+                        state="West Bengal",
+                        latitude=27.0,
+                        longitude=88.0,
+                        carrying_capacity=2000,
+                        is_rural=True
+                    ))
+                # Ensure host exists
+                if not db.query(HostModel).filter(HostModel.id == host_id).first():
+                    db.add(HostModel(
+                        id=host_id,
+                        full_name=host_name,
+                        phone="+91 98000 00000",
+                        panchayat_name=panchayat_name,
+                        village=village,
+                        state="West Bengal",
+                        verification_status="VERIFIED"
+                    ))
+                # Upsert homestay
+                existing_hs = db.query(HomestayModel).filter(HomestayModel.id == rec.id).first()
+                if not existing_hs:
+                    db.add(HomestayModel(
+                        id=rec.id,
+                        host_id=rec.host_id,
+                        destination_id=rec.destination_id,
+                        name=rec.title,
+                        title=rec.title,
+                        tagline=rec.tagline,
+                        address=rec.address,
+                        room_type=rec.room_type,
+                        total_rooms=rooms_count,
+                        max_guests=rec.max_guests,
+                        price_per_night=float(rec.price_per_night_inr),
+                        latitude=27.0,
+                        longitude=88.0,
+                        rating=rec.rating,
+                        reviews_count=rec.reviews_count,
+                        panchayat_verified=(final_status in ("VERIFIED", "PUBLISHED")),
+                        verification_status=rec.verification_status,
+                        is_published=rec.is_published,
+                        village=rec.village,
+                        panchayat_name=rec.panchayat_name,
+                        special_activity=rec.special_activity,
+                        amenities_json=rec.amenities,
+                        images_json=rec.images
+                    ))
+                db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
+        except Exception:
+            pass
+
         return rec
 
 
