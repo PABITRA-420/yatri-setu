@@ -85,6 +85,21 @@ export interface CrowdResponse {
   last_updated: string;
 }
 
+export interface AlternativeWeather {
+  destination_id: string;
+  temperature: number;
+  temp_min_c?: number;
+  temp_max_c?: number;
+  condition: string;
+  humidity?: number;
+  precipitation_chance?: number;
+  provenance_label: string;
+  provider_mode: string;
+  cache_status: string;
+  observed_at?: string;
+  temperature_range?: string;
+}
+
 export interface AlternativeRecommendation {
   id: string;
   name: string;
@@ -112,6 +127,7 @@ export interface AlternativeRecommendation {
   capacity_status?: string;
   available_capacity?: number;
   access_status?: string;
+  weather?: AlternativeWeather;
   weather_summary?: string;
   traffic_summary?: string;
   homestay_availability?: string;

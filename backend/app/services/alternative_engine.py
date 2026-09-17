@@ -1,7 +1,9 @@
 import math
 from typing import List, Dict, Any
 from app.data.seed_data import DESTINATIONS_DATA
-from app.models.crowd import AlternativeRecommendation, AlternativesResponse, CrowdLevel
+from app.models.crowd import (
+    AlternativeRecommendation, AlternativesResponse, CrowdLevel, AlternativeWeather
+)
 from app.services.crowd_engine import calculate_crowd_score
 
 def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -293,7 +295,28 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
             key_exp = f"Scenic highlights and local heritage walks in {dest['name']}"
             eco_tag = "🏔️ Himalayan Circuit"
 
-        weather_summary = f"{wth.weather_condition.capitalize()}, {wth.temperature_c}°C" if wth else "Clear, 16°C"
+        if wth:
+            temp_rounded = round(wth.temperature_c, 1)
+            temp_display = f"{int(round(wth.temperature_c))}°C" if abs(temp_rounded - round(temp_rounded)) < 0.1 else f"{temp_rounded}°C"
+            weather_summary = f"{wth.weather_condition.capitalize()}, {temp_display}"
+            alt_weather = AlternativeWeather(
+                destination_id=dest_id,
+                temperature=round(wth.temperature_c, 1),
+                temp_min_c=round(wth.temp_min_c, 1) if wth.temp_min_c is not None else None,
+                temp_max_c=round(wth.temp_max_c, 1) if wth.temp_max_c is not None else None,
+                condition=wth.weather_condition.capitalize(),
+                humidity=wth.humidity,
+                precipitation_chance=wth.precipitation_probability,
+                provenance_label=wth.provenance_label,
+                provider_mode=wth.provider_mode,
+                cache_status=wth.cache_status,
+                observed_at=wth.observed_at.isoformat() if hasattr(wth.observed_at, "isoformat") else str(wth.observed_at),
+                temperature_range=f"{int(round(wth.temp_min_c))}°C - {int(round(wth.temp_max_c))}°C" if (wth.temp_min_c is not None and wth.temp_max_c is not None) else None
+            )
+        else:
+            weather_summary = "Weather Temporarily Unavailable"
+            alt_weather = None
+
         traffic_summary = f"Corridor {access_status} ({int(traf.overall_congestion_score)}/100 congestion)" if traf else "Normal corridor access"
         homestay_summary = f"{cap.available_units} rooms available across {cap.active_properties} verified homestays"
 
@@ -334,6 +357,7 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
                 capacity_status=cap.capacity_health.value,
                 available_capacity=cap.available_units,
                 access_status=access_status,
+                weather=alt_weather,
                 weather_summary=weather_summary,
                 traffic_summary=traffic_summary,
                 homestay_availability=homestay_summary,

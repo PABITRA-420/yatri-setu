@@ -158,9 +158,23 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
               </div>
               <div>
                 <span className="text-[9px] uppercase font-bold text-stone-400 block">Weather</span>
-                <span className="font-bold text-stone-700 dark:text-stone-300 text-xs truncate block" title={alternative.weather_summary}>
-                  {alternative.weather_summary ?? 'Clear, 16°C'}
+                <span
+                  className="font-bold text-stone-700 dark:text-stone-300 text-xs truncate block"
+                  title={
+                    alternative.weather
+                      ? `${alternative.weather.condition}, ${alternative.weather.temperature}°C (${alternative.weather.provenance_label})`
+                      : (alternative.weather_summary ?? 'Weather Updating...')
+                  }
+                >
+                  {alternative.weather
+                    ? `${alternative.weather.condition}, ${alternative.weather.temperature}°C`
+                    : (alternative.weather_summary ?? 'Weather Updating...')}
                 </span>
+                {alternative.weather?.provenance_label && (
+                  <span className="text-[8px] text-stone-400 dark:text-stone-500 block truncate font-mono mt-0.5">
+                    {alternative.weather.provenance_label.includes('REAL') ? '🟢 Live Weather' : '🟡 Simulated'}
+                  </span>
+                )}
               </div>
             </div>
 
