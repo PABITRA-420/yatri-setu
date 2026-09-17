@@ -546,6 +546,23 @@ export interface PanchayatDashboard {
   tourism_pressure_relief_index: number;
   community_projects: CommunityFundProject[];
   recent_verifications: PanchayatVerificationItem[];
+  authority?: LocalAuthorityProfile | null;
+  tourism_flow?: Record<string, any> | null;
+  rural_ecosystem?: Record<string, any> | null;
+  local_economy?: DestinationLocalEconomy | null;
+  safety_summary?: Record<string, any> | null;
+  notifications?: PanchayatNotification[] | null;
+  capacity_warning?: {
+    destination_id: string;
+    destination_name: string;
+    occupancy_percent: number;
+    available_units: number;
+    status: string;
+    advisory: string;
+    is_official_government_order: boolean;
+    disclaimer: string;
+  } | null;
+  provenance?: string;
 }
 
 export interface DestinationFlowImpact {
@@ -1570,4 +1587,180 @@ export interface ConversionSummaryResponse {
   notes: string;
   generated_at: string;
 }
+
+// ============================================================================
+// Milestone 7G: Panchayat + Host + Local Economy Intelligence Types
+// ============================================================================
+
+export type HostVerificationStatus = 'PENDING' | 'SUBMITTED' | 'UNDER_REVIEW' | 'VERIFIED' | 'SUSPENDED' | 'REJECTED';
+export type HostActiveStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+export type PanchayatNotificationSeverity = 'INFORMATIONAL' | 'WARNING' | 'CRITICAL';
+export type PanchayatNotificationStatus = 'NEW' | 'ACKNOWLEDGED' | 'RESOLVED' | 'DISMISSED';
+
+export interface HostProfile {
+  host_id: string;
+  homestay_ids: string[];
+  destination_id: string;
+  display_name: string;
+  phone_masked: string;
+  email_masked: string;
+  village: string;
+  panchayat_name: string;
+  verification_status: HostVerificationStatus;
+  verification_method: string;
+  active_status: HostActiveStatus;
+  joined_at: string;
+  last_updated: string;
+  contact_visibility: string;
+  language_support: string[];
+  experience_categories: string[];
+  source: string;
+  provider_mode: string;
+  data_quality: string;
+}
+
+export interface LocalAuthorityProfile {
+  authority_id: string;
+  destination_id: string;
+  destination_name: string;
+  name: string;
+  jurisdiction: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'CONFIGURED' | 'DEMO';
+  notification_channels: string[];
+  contact_information: Record<string, string>;
+  source: string;
+  provider_mode: string;
+  data_quality: string;
+}
+
+export interface PanchayatNotification {
+  notification_id: string;
+  authority_id: string;
+  destination_id: string;
+  severity: PanchayatNotificationSeverity;
+  title: string;
+  message: string;
+  trigger_type: string;
+  source: string;
+  status: PanchayatNotificationStatus;
+  created_at: string;
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
+  resolved_at?: string | null;
+  resolution_notes?: string | null;
+}
+
+export interface HostNotification {
+  notification_id: string;
+  host_id: string;
+  homestay_id?: string | null;
+  type: string;
+  title: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+}
+
+export interface HostBookingSnapshot {
+  total_reservations: number;
+  confirmed_stays: number;
+  cancellations: number;
+  cancellation_rate_percent: number;
+  occupied_room_nights: number;
+  available_inventory_units: number;
+  occupancy_rate_percent: number;
+}
+
+export interface HostDemandSnapshot {
+  availability_checks: number;
+  booking_initiations: number;
+  confirmed_bookings: number;
+  booking_conversion_rate: number;
+  interest_trend: string;
+}
+
+export interface HostEconomicSummary {
+  gross_booking_value: number;
+  cancelled_value: number;
+  confirmed_value: number;
+  platform_commission: number;
+  platform_commission_label: string;
+  community_fund_contribution: number;
+  community_fund_label: string;
+  taxes_or_fees: string;
+  estimated_host_payout: number;
+  payout_notice: string;
+  provenance: string;
+}
+
+export interface HostDashboardData {
+  profile: HostProfile;
+  active_homestays: Array<{
+    id: string;
+    title: string;
+    destination_id: string;
+    destination_name: string;
+    price_per_night_inr: number;
+    verification_status: string;
+    is_published: boolean;
+    room_type: string;
+    rating: number;
+  }>;
+  booking_snapshot: HostBookingSnapshot;
+  demand_snapshot: HostDemandSnapshot;
+  economic_summary: HostEconomicSummary;
+  recent_notifications: HostNotification[];
+  provenance: string;
+}
+
+export interface DestinationLocalEconomy {
+  destination_id: string;
+  destination_name: string;
+  active_hosts_count: number;
+  verified_hosts_count: number;
+  participating_homestays_count: number;
+  host_participation_rate: number;
+  confirmed_bookings: number;
+  occupied_room_nights: number;
+  gross_booking_value_inr: number;
+  estimated_local_payout_inr: number;
+  community_fund_accrued_inr: number;
+  cancellations_count: number;
+  outbound_referrals_count: number;
+  provenance: string;
+}
+
+export interface PanchayatDashboardData {
+  authority: LocalAuthorityProfile;
+  tourism_flow: Record<string, any>;
+  rural_ecosystem: Record<string, any>;
+  local_economy: DestinationLocalEconomy;
+  safety_summary: Record<string, any>;
+  notifications: PanchayatNotification[];
+  capacity_warning?: {
+    destination_id: string;
+    destination_name: string;
+    occupancy_percent: number;
+    available_units: number;
+    status: string;
+    advisory: string;
+    is_official_government_order: boolean;
+    disclaimer: string;
+  } | null;
+  provenance: string;
+}
+
+export interface RuralAdminSummary {
+  total_active_hosts: number;
+  total_verified_hosts: number;
+  total_active_homestays: number;
+  total_confirmed_bookings: number;
+  total_room_nights: number;
+  total_gross_booking_value_inr: number;
+  total_estimated_host_payout_inr: number;
+  total_cancellations: number;
+  destinations: DestinationLocalEconomy[];
+  provenance: string;
+}
+
 

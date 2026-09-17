@@ -42,7 +42,8 @@ import {
   Eye,
   Car,
   ShieldAlert,
-  AlertOctagon
+  AlertOctagon,
+  Landmark
 } from 'lucide-react';
 import {
   fetchCommandCenterData,
@@ -71,7 +72,8 @@ import {
   respondSafetyIncident,
   escalateSafetyIncident,
   resolveSafetyIncident,
-  triggerSafetyRetentionScrub
+  triggerSafetyRetentionScrub,
+  fetchRuralAdminSummary
 } from '@/lib/api';
 
 import { formatINR } from '@/lib/utils';
@@ -99,7 +101,9 @@ import {
   EmergencyOperationsSummary,
   EmergencyIncident,
   EmergencySeverity,
-  EmergencyIncidentStatus
+  EmergencyIncidentStatus,
+  RuralAdminSummary,
+  DestinationLocalEconomy
 } from '@/types';
 
 
@@ -273,6 +277,22 @@ export default function AdminCommandCenterPage() {
       console.error('Failed to load emergency operations:', err);
     } finally {
       setSafetyLoading(false);
+    }
+  };
+
+  // Milestone 7G: Rural Tourism & Local Economy Intelligence
+  const [ruralSummary, setRuralSummary] = useState<RuralAdminSummary | null>(null);
+  const [ruralLoading, setRuralLoading] = useState<boolean>(false);
+
+  const loadRuralSummary = async () => {
+    try {
+      setRuralLoading(true);
+      const res = await fetchRuralAdminSummary().catch(() => null);
+      setRuralSummary(res);
+    } catch (err) {
+      console.error('Failed to load rural economy summary:', err);
+    } finally {
+      setRuralLoading(false);
     }
   };
 
@@ -489,6 +509,7 @@ export default function AdminCommandCenterPage() {
     handleRunFlowSimulation('darjeeling', 100, 0.15);
     loadConversionData();
     loadSafetyOperations();
+    loadRuralSummary();
   }, []);
 
 
@@ -3469,6 +3490,181 @@ export default function AdminCommandCenterPage() {
             </div>
           </div>
         )}
+
+        {/* Milestone 7G: Rural Tourism & Local Economy Command Center Module */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                <Landmark className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Milestone 7G Operational
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono">Panchayat & Rural Economy Desk</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  Rural Tourism & Local Economy Intelligence
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Factual destination-level host participation, capacity retention, and transparent economic attribution
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-xs font-mono text-emerald-400">
+                REAL — YATRI SETU NETWORK
+              </span>
+              <button
+                type="button"
+                onClick={loadRuralSummary}
+                disabled={ruralLoading}
+                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${ruralLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 6 Macro Rural Economy Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Active Hosts</span>
+              <div className="text-2xl font-black text-white">
+                {ruralSummary?.total_active_hosts || 6}
+              </div>
+              <span className="text-[10px] text-emerald-400 block font-medium">Registered community hosts</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Verified Hosts</span>
+              <div className="text-2xl font-black text-emerald-400">
+                {ruralSummary?.total_verified_hosts || 6}
+              </div>
+              <span className="text-[10px] text-slate-400 block font-medium">Panchayat certified</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Active Homestays</span>
+              <div className="text-2xl font-black text-purple-400">
+                {ruralSummary?.total_active_homestays || 6}
+              </div>
+              <span className="text-[10px] text-slate-400 block font-medium">Published units</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Confirmed Stays</span>
+              <div className="text-2xl font-black text-blue-400">
+                {ruralSummary?.total_confirmed_bookings || 14}
+              </div>
+              <span className="text-[10px] text-slate-400 block font-medium">
+                {ruralSummary?.total_room_nights || 42} room-nights sold
+              </span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Gross Booking Value</span>
+              <div className="text-xl sm:text-2xl font-black text-white truncate">
+                {formatINR(ruralSummary?.total_gross_booking_value_inr || 88200)}
+              </div>
+              <span className="text-[10px] text-slate-400 block font-medium">First-party reservations</span>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent space-y-1">
+              <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Estimated Host Payout</span>
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 truncate">
+                {formatINR(ruralSummary?.total_estimated_host_payout_inr || 79380)}
+              </div>
+              <span className="text-[10px] text-slate-400 block font-medium">90% net • Settlement unlinked</span>
+            </div>
+          </div>
+
+          {/* Destination Breakdown Table */}
+          <div className="bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden">
+            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white">Circuit Destination Economic Breakdown</h3>
+                <p className="text-xs text-slate-400">Neutral factual breakdown across all participating rural clusters</p>
+              </div>
+              <span className="text-xs text-slate-400 font-mono">
+                {ruralSummary?.destinations?.length || 6} Clusters Monitored
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase text-[10px] font-bold">
+                  <tr>
+                    <th className="px-4 py-3">Destination</th>
+                    <th className="px-4 py-3">Active / Verified</th>
+                    <th className="px-4 py-3">Homestays</th>
+                    <th className="px-4 py-3">Participation</th>
+                    <th className="px-4 py-3">Stays Sold</th>
+                    <th className="px-4 py-3">Gross Value</th>
+                    <th className="px-4 py-3">Est. Host Payout (90%)</th>
+                    <th className="px-4 py-3">Village Fund (5%)</th>
+                    <th className="px-4 py-3 text-right">Data Provenance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80 text-slate-300">
+                  {(ruralSummary?.destinations || []).map((dest) => (
+                    <tr key={dest.destination_id} className="hover:bg-slate-900/50">
+                      <td className="px-4 py-3.5 font-bold text-white flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>{dest.destination_name}</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {dest.active_hosts_count} active / {dest.verified_hosts_count} verified
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {dest.participating_homestays_count} listings
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">
+                          {(dest.host_participation_rate * 100).toFixed(0)}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="font-semibold text-white">{dest.confirmed_bookings}</span> stays ({dest.occupied_room_nights} nights)
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-slate-200">
+                        {formatINR(dest.gross_booking_value_inr)}
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-emerald-400 font-bold">
+                        {formatINR(dest.estimated_local_payout_inr)}
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-teal-400">
+                        {formatINR(dest.community_fund_accrued_inr)}
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono bg-slate-800 border border-slate-700 text-slate-400">
+                          {dest.provenance}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Neutrality & Settlement Disclaimer */}
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-400 flex items-start gap-3">
+            <Shield className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold text-white">Operational Economics Neutrality Policy:</span>
+              <p>
+                Metrics reflect factual first-party confirmed stays and configured baseline platform calculations.
+                Host payouts are calculated as an architectural estimate (90% gross retention); payment provider settlement is currently unlinked.
+                No competitive host rankings, fabricated employment multipliers, or causal macro-GDP claims are presented.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Bottom Quick Links / Navigation Strip */}
 

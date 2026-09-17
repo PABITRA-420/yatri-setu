@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from app.models.host import VerificationEvent
 
@@ -59,3 +59,12 @@ class PanchayatDashboard(BaseModel):
     tourism_pressure_relief_index: float # 0.0 to 1.0 (e.g. 0.38 = 38% pressure reduction)
     community_projects: List[CommunityFundProject]
     recent_verifications: List[PanchayatVerificationItem]
+    # Optional M7G fields for comprehensive civic operations
+    authority: Optional[Any] = None
+    tourism_flow: Optional[Dict[str, Any]] = None
+    rural_ecosystem: Optional[Dict[str, Any]] = None
+    local_economy: Optional[Any] = None
+    safety_summary: Optional[Dict[str, Any]] = None
+    notifications: Optional[List[Any]] = None
+    capacity_warning: Optional[Dict[str, Any]] = None
+    provenance: Optional[str] = "AGGREGATE FIRST-PARTY + MODELLED"

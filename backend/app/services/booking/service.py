@@ -8,7 +8,7 @@ from datetime import datetime
 import re
 import threading
 import uuid
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 
 from app.models.homestay import HomestayBookingRequest, HomestayBookingResponse
 from app.services.homestay_repository import homestay_repository
@@ -265,6 +265,20 @@ class BookingLifecycleService:
     def get_booking(self, booking_id: str) -> Optional[BookingRecord]:
         with self._lock:
             return self._bookings.get(booking_id)
+
+    def get_all_bookings(self) -> List[BookingRecord]:
+        with self._lock:
+            return list(self._bookings.values())
+
+    def get_bookings_for_destination(self, destination_id: str) -> List[BookingRecord]:
+        clean_dest = destination_id.lower().strip()
+        with self._lock:
+            return [b for b in self._bookings.values() if b.destination_id.lower().strip() == clean_dest]
+
+    def get_bookings_for_homestays(self, homestay_ids: List[str]) -> List[BookingRecord]:
+        clean_ids = {h.lower().strip() for h in homestay_ids}
+        with self._lock:
+            return [b for b in self._bookings.values() if b.homestay_id.lower().strip() in clean_ids]
 
     def _to_legacy_response(self, record: BookingRecord) -> Optional[HomestayBookingResponse]:
         """Converts internal BookingRecord to existing HomestayBookingResponse for client compatibility."""
