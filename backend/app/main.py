@@ -100,7 +100,21 @@ def get_detailed_health():
     weather_mode = weather_service._provider.get_provider_mode()
     weather_avail = weather_service._provider.is_available()
 
-    ai_configured = bool(settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip()) if settings.AI_PROVIDER == "openai" else True
+    ai_provider = settings.AI_PROVIDER.lower().strip()
+    if ai_provider == "gemini":
+        ai_configured = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
+        ai_model = settings.GEMINI_MODEL
+    elif ai_provider == "groq":
+        ai_configured = bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
+        ai_model = settings.GROQ_MODEL
+    elif ai_provider == "openai":
+        ai_configured = bool(settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip())
+        ai_model = settings.OPENAI_MODEL
+    else:
+        ai_configured = True
+        ai_model = "mock_adaptive"
+
+    fallback_configured = bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip()) if settings.AI_FALLBACK_PROVIDER == "groq" else True
 
     return {
         "status": "healthy",
@@ -116,8 +130,10 @@ def get_detailed_health():
             },
             "ai": {
                 "provider": settings.AI_PROVIDER,
-                "model": settings.OPENAI_MODEL if settings.AI_PROVIDER == "openai" else "mock_adaptive",
-                "configured": ai_configured
+                "fallback_provider": settings.AI_FALLBACK_PROVIDER,
+                "model": ai_model,
+                "configured": ai_configured,
+                "fallback_configured": fallback_configured
             },
             "traffic": {
                 "provider": settings.TRAFFIC_PROVIDER,

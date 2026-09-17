@@ -29,17 +29,20 @@ Configure these in **Render Dashboard &rarr; Environment**:
 | `CORS_ORIGINS` | **Yes** | `https://yatri-setu.vercel.app,http://localhost:3000` | Comma-separated allowed frontend origins (no wildcards) |
 | `WEATHER_PROVIDER` | Optional | `openweather` (or `demo`) | Active weather adapter (`openweather` for live data) |
 | `WEATHER_API_KEY` | Optional | `your_openweathermap_api_key` | OpenWeather API key (backend only; never exposed to client) |
-| `AI_PROVIDER` | Optional | `openai` (or `mock`) | AI itinerary provider (`openai` for ChatGPT enrichment) |
-| `OPENAI_API_KEY` | Optional | `sk-proj-...` | OpenAI API key for natural language itinerary generation |
-| `OPENAI_MODEL` | Optional | `gpt-4o-mini` | Model identifier (defaults to `gpt-4o-mini`) |
+| `AI_PROVIDER` | Optional | `gemini` (or `groq`, `mock`) | Primary AI itinerary provider (`gemini` by default) |
+| `GEMINI_API_KEY` | Optional | `AIzaSy...` | Google Gemini API key for primary AI itinerary generation |
+| `GEMINI_MODEL` | Optional | `gemini-3.6-flash` | Gemini model name (default: `gemini-3.6-flash`) |
+| `AI_FALLBACK_PROVIDER` | Optional | `groq` | Secondary fallback AI provider (`groq` by default) |
+| `GROQ_API_KEY` | Optional | `gsk_...` | Groq API key for secondary fallback AI enrichment |
+| `GROQ_MODEL` | Optional | `openai/gpt-oss-120b` | Groq model name (default: `openai/gpt-oss-120b`) |
 | `ADMIN_SECRET_KEY` | Optional | `prod_secret_token_123` | Secret required for admin mutations when configured |
 | `PRESSURE_REFRESH_INTERVAL_SECONDS`| Optional | `300` | Automated dynamic crowd pressure recalculation cycle (seconds) |
-| `RATE_LIMIT_AI_PER_MINUTE` | Optional | `60` | Sliding window rate limit for AI itinerary generation |
+| `RATE_LIMIT_AI_PER_MINUTE` | Optional | `60` | Application-side sliding window rate limit (reduces risk of quota spikes; does not guarantee upstream quota headroom as quotas are account/provider dependent) |
 | `RATE_LIMIT_SOS_PER_MINUTE` | Optional | `120` | Sliding window rate limit for emergency distress alerts |
 
 > [!IMPORTANT]
 > **Zero-Key Resilient Default**:
-> If `WEATHER_API_KEY` or `OPENAI_API_KEY` are not configured, Yatri Setu **never crashes**. The system automatically operates in high-fidelity deterministic simulator mode with explicit provenance tags (`DEMO MODE — SYNTHETIC DATA`), ensuring uninterrupted judge demonstrations.
+> If `WEATHER_API_KEY`, `GEMINI_API_KEY`, or `GROQ_API_KEY` are not configured, Yatri Setu **never crashes**. The system automatically cascades from Gemini &rarr; Groq &rarr; MockAIProvider and OpenWeather &rarr; Demo Simulator with explicit provenance tags (`DEMO MODE — SYNTHETIC DATA`), ensuring uninterrupted judge demonstrations.
 
 ### B. Frontend Web App (Vercel)
 
@@ -113,9 +116,12 @@ Render and monitoring services should point their health checks to:
       "provenance": "REAL — EXTERNAL PROVIDER"
     },
     "ai": {
-      "provider": "openai",
-      "model": "gpt-4o-mini",
-      "configured": true
+      "provider": "gemini",
+      "model": "gemini-3.6-flash",
+      "configured": true,
+      "fallback_provider": "groq",
+      "fallback_model": "openai/gpt-oss-120b",
+      "fallback_configured": true
     },
     "traffic": {
       "provider": "demo",
@@ -137,7 +143,7 @@ Render and monitoring services should point their health checks to:
 | Subsystem | Real Available | Provider Error / Timeout | Missing API Key | Provenance Label |
 | :--- | :--- | :--- | :--- | :--- |
 | **Weather** | OpenWeather live data | Stale cache (15 min TTL) or Demo simulator | Demo mountain simulator | `REAL — EXTERNAL PROVIDER` (live)<br>`MIXED — STALE TELEMETRY FALLBACK` (stale)<br>`DEMO MODE — SYNTHETIC DATA` (demo) |
-| **AI Itinerary** | OpenAI `gpt-4o-mini` | Mock adaptive engine | Mock adaptive engine | Content tagged with engine provenance |
+| **AI Itinerary** | Google Gemini (`gemini-3.6-flash`) | Groq (`openai/gpt-oss-120b`) fallback &rarr; Mock adaptive engine | Cascades to Groq &rarr; Mock adaptive engine | Content tagged with `ai_provider_used` (`gemini`, `groq_fallback`, or `mock`) |
 | **Crowd Pressure** | 6-factor deterministic engine | Deterministic engine | Deterministic engine | `REAL — YATRI SETU NETWORK` |
 | **Capacity & Booking**| Single-source `HomestayRepository` | In-memory atomic store | Atomic store | `REAL — YATRI SETU NETWORK` |
 | **Safety / SOS** | Yatri Mitra volunteer network | In-memory atomic queue | Local queue | `REAL — YATRI SETU NETWORK` |

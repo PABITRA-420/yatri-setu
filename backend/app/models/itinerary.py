@@ -112,3 +112,4 @@ class AIItineraryOutput(BaseModel):
     why_this_itinerary: List[str]
     weather_adaptation_notice: Optional[str] = None
     days: List[AIDayOutput]
+    provider_used: Optional[str] = None

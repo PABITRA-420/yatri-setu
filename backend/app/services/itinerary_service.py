@@ -162,7 +162,7 @@ def _convert_ai_output_to_response(
         weather_forecast=context.weather,
         weather_adaptation_notice=ai_output.weather_adaptation_notice,
         why_this_itinerary=ai_output.why_this_itinerary,
-        ai_provider_used=provider_name,
+        ai_provider_used=ai_output.provider_used or provider_name,
         optimization_history=optimization_history or []
     )
 
@@ -235,14 +235,15 @@ async def optimize_smart_itinerary_async(
         custom_instruction=req.custom_instruction
     )
 
-    history.append(f"Directive '{req.instruction}' applied via {provider.provider_name}")
+    used_name = ai_output.provider_used or provider.provider_name
+    history.append(f"Directive '{req.instruction}' applied via {used_name}")
 
     return _convert_ai_output_to_response(
         ai_output=ai_output,
         context=context,
         itinerary_id=req.itinerary_id,
         optimization_history=history,
-        provider_name=provider.provider_name
+        provider_name=used_name
     )
 
 def optimize_smart_itinerary(req: ItineraryOptimizeRequest) -> ItineraryResponse:

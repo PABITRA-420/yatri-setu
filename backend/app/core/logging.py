@@ -10,9 +10,13 @@ from typing import List, Tuple
 # Regex patterns for sanitizing sensitive credentials and tokens
 SENSITIVE_PATTERNS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r"sk-[a-zA-Z0-9_\-]{20,}", re.IGNORECASE), "sk-***REDACTED***"),
+    (re.compile(r"gsk_[a-zA-Z0-9_\-]{20,}", re.IGNORECASE), "gsk_***REDACTED***"),
+    (re.compile(r"AIzaSy[a-zA-Z0-9_\-]{16,}", re.IGNORECASE), "AIzaSy***REDACTED***"),
     (re.compile(r"(Bearer\s+)[a-zA-Z0-9_\-\.]{20,}", re.IGNORECASE), r"\1***REDACTED***"),
     (re.compile(r"(appid=)[a-zA-Z0-9]{16,}", re.IGNORECASE), r"\1***REDACTED***"),
     (re.compile(r"(api_key=)[a-zA-Z0-9]{16,}", re.IGNORECASE), r"\1***REDACTED***"),
+    (re.compile(r"(\bkey=)[a-zA-Z0-9_\-]{10,}", re.IGNORECASE), r"\1***REDACTED***"),
+    (re.compile(r"(x-goog-api-key['\"]?\s*[:=]\s*['\"])[^'\"]+(['\"])", re.IGNORECASE), r"\1***REDACTED***\2"),
     (re.compile(r"(://[^:]+:)[^@]+(@)", re.IGNORECASE), r"\1***REDACTED***\2"),
     (re.compile(r"(password['\"]?\s*[:=]\s*['\"])[^'\"]+(['\"])", re.IGNORECASE), r"\1***REDACTED***\2"),
 ]
