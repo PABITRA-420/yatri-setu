@@ -398,7 +398,7 @@ export default function HomePage() {
                   Explainable Crowd Scoring
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                  Deterministic 6-factor algorithm combining historical footfall (35%), accommodation density (25%), seasonality (15%), holidays (10%), weather (10%), and road chokepoints (5%).
+                  Deterministic two-layer architecture: M1 6-factor tourist baseline (35% footfall, 25% booking density, 15% seasonality, 10% holidays, 10% weather, 5% transit chokepoints) combined with M7C live conditions and dynamic pressure recalculation.
                 </p>
               </div>
             </div>
@@ -410,10 +410,10 @@ export default function HomePage() {
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <h3 className="font-extrabold text-base text-stone-950 dark:text-white mb-2">
-                  Alternate-Destination Advisor
+                  Suggested Alternatives Advisor
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                  When Darjeeling reaches CRITICAL crowd levels (88/100), our similarity engine computes nearest serene matches like Kalimpong (87% match, 42% cost savings).
+                  When Darjeeling reaches critical crowd levels (88/100), our capacity-aware suitability engine evaluates road access, weather, and homestay units to suggest serene matches like Kalimpong (87% match, 42% cost savings).
                 </p>
               </div>
             </div>
@@ -462,7 +462,7 @@ export default function HomePage() {
                   Built-in Traveler Safety & SOS
                 </h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
-                  One-tap emergency broadcast with real-time GPS coordinates dispatched directly to local police, medical responders, and verified Yatri Mitra volunteers.
+                  One-tap emergency broadcast transmitting GPS coordinates to regional Yatri Mitra community volunteers and tourism safety desks, alongside verified direct-dial national emergency helplines (112, 1363, 1091).
                 </p>
               </div>
             </div>
@@ -542,7 +542,7 @@ export default function HomePage() {
               { step: '02', title: 'Advisor Recommendation', desc: 'Kalimpong suggested with 87% similarity & 42% cost savings' },
               { step: '03', title: 'Generate Itinerary', desc: 'AI 3-day crowd-avoiding route and local cultural experiences' },
               { step: '04', title: 'Reserve Homestay', desc: 'Book verified Sherpa cottage with 10% community fund contribution' },
-              { step: '05', title: 'Trigger Safety SOS', desc: 'Broadcast live GPS coords to police & Yatri Mitra volunteer responders' }
+              { step: '05', title: 'Trigger Safety SOS', desc: 'Broadcast live GPS coords to Yatri Mitra community responders & access 112 hotline' }
             ].map((s) => (
               <div key={s.step} className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors">
                 <div>

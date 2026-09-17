@@ -96,7 +96,7 @@ export default function CrowdIntelligencePage() {
             className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all self-start md:self-auto active:scale-95"
           >
             <Sparkles className="w-4 h-4" />
-            <span>View Recommended Alternatives</span>
+            <span>View Suggested Alternatives</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -254,7 +254,7 @@ export default function CrowdIntelligencePage() {
         <div className="space-y-3 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Recommended Next Action</span>
+            <span>Suggested Next Action</span>
           </div>
           <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Switch Destination to Kalimpong (87% Match)
