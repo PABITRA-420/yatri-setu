@@ -144,9 +144,12 @@ DESTINATION_CATALOG: Dict[str, Dict[str, Any]] = {
 }
 
 class MockAIProvider(BaseAIProvider):
+    def __init__(self, provider_name: str = "mock"):
+        self._provider_name = provider_name
+
     @property
     def provider_name(self) -> str:
-        return "mock"
+        return self._provider_name
 
     async def generate_itinerary(self, context: ItineraryContext) -> AIItineraryOutput:
         norm_id = context.destination_id.lower().strip()
@@ -272,7 +275,8 @@ class MockAIProvider(BaseAIProvider):
             overview_note=overview,
             why_this_itinerary=why_this,
             weather_adaptation_notice=weather_notice,
-            days=days
+            days=days,
+            provider_used=self._provider_name
         )
 
     async def optimize_itinerary(
@@ -369,5 +373,6 @@ class MockAIProvider(BaseAIProvider):
             overview_note=overview,
             why_this_itinerary=why_this,
             weather_adaptation_notice=weather_notice,
-            days=base.days
+            days=base.days,
+            provider_used=self._provider_name
         )

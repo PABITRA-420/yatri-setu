@@ -43,8 +43,16 @@ class Settings:
     # Dynamic Pressure Refresh Settings
     PRESSURE_REFRESH_INTERVAL_SECONDS: int = int(os.getenv("PRESSURE_REFRESH_INTERVAL_SECONDS", "300"))
 
-    # AI Provider Settings (SIH 2026: mock default ensures zero-API-key seamless demo)
-    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "mock")
+    # AI Provider Settings (Gemini primary, Groq fallback, Mock final fallback)
+    AI_PROVIDER: str = os.getenv("AI_PROVIDER", "gemini")
+    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY", None)
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+    AI_FALLBACK_PROVIDER: str = os.getenv("AI_FALLBACK_PROVIDER", "groq")
+    GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY", None)
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
+    # Legacy / Alternative AI Settings (preserved for backward compatibility)
     ANTHROPIC_API_KEY: Optional[str] = os.getenv("ANTHROPIC_API_KEY", None)
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY", None)
     ANTHROPIC_MODEL: str = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
