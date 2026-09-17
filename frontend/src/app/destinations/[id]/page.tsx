@@ -287,14 +287,25 @@ export default function DestinationDetailsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Weather Observation Block */}
                 <div className="bg-stone-50 dark:bg-stone-900/40 rounded-2xl p-5 border border-stone-200/60 dark:border-white/5 space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-stone-400 flex items-center gap-1.5">
                       <Thermometer className="w-4 h-4 text-amber-500" />
                       Mountain Climate
                     </span>
-                    <span className="text-[10px] text-stone-400 font-mono">
-                      {liveConditions.weather.cache_status === 'CACHED' ? 'Cached' : 'Live Feed'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {liveConditions.weather.provider_mode === 'REAL' ? (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          REAL (OpenWeather)
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          DEMO (Synthetic)
+                        </span>
+                      )}
+                      <span className="text-[10px] text-stone-400 font-mono">
+                        {liveConditions.weather.cache_status === 'CACHED' ? 'Cached' : liveConditions.weather.cache_status === 'STALE' ? 'Stale' : 'Live'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-baseline gap-3">

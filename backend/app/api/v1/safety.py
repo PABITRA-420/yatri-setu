@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Depends
 from app.models.safety import SosAlertRequest, SosAlertResponse
 from app.services.safety_service import trigger_sos_alert
 from app.services.safety.schemas import (
@@ -8,10 +8,11 @@ from app.services.safety.schemas import (
     OfficialEmergencyContact
 )
 from app.services.safety.service import safety_operations_service
+from app.core.rate_limit import sos_rate_limiter
 
 router = APIRouter(prefix="/safety", tags=["Traveler Safety & SOS"])
 
-@router.post("/sos", response_model=SosAlertResponse)
+@router.post("/sos", response_model=SosAlertResponse, dependencies=[Depends(sos_rate_limiter.check_rate_limit)])
 def trigger_sos(request: SosAlertRequest):
     """
     Emergency SOS trigger.

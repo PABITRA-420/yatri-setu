@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.models.itinerary import (
     ItineraryRequest,
     ItineraryResponse,
@@ -8,10 +8,11 @@ from app.services.itinerary_service import (
     generate_smart_itinerary_async,
     optimize_smart_itinerary_async
 )
+from app.core.rate_limit import ai_rate_limiter
 
 router = APIRouter(prefix="/itinerary", tags=["Adaptive AI Itinerary Planner"])
 
-@router.post("/generate", response_model=ItineraryResponse)
+@router.post("/generate", response_model=ItineraryResponse, dependencies=[Depends(ai_rate_limiter.check_rate_limit)])
 async def generate_itinerary(request: ItineraryRequest):
     """
     Generates a crowd-aware, weather-adapted, sustainable multi-day itinerary.
@@ -19,7 +20,7 @@ async def generate_itinerary(request: ItineraryRequest):
     """
     return await generate_smart_itinerary_async(request)
 
-@router.post("/optimize", response_model=ItineraryResponse)
+@router.post("/optimize", response_model=ItineraryResponse, dependencies=[Depends(ai_rate_limiter.check_rate_limit)])
 async def optimize_itinerary(request: ItineraryOptimizeRequest):
     """
     Adapts an existing itinerary to directives such as:

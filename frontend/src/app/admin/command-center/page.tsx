@@ -970,7 +970,9 @@ export default function AdminCommandCenterPage() {
                         {cond.weather.temperature_c.toFixed(0)}°C
                       </span>
                       <span>{cond.weather.precipitation_mm > 0 ? `${cond.weather.precipitation_mm.toFixed(1)} mm` : 'Dry'}</span>
-                      <span className="font-mono text-slate-500 text-[9px]">{cond.pressure_score.toFixed(0)}/100</span>
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-slate-700/60 text-slate-300 border border-slate-600/50">
+                        {cond.weather.provider_mode === 'REAL' ? 'REAL' : 'DEMO'}
+                      </span>
                     </div>
                   </div>
                 );

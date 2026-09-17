@@ -28,6 +28,7 @@ class WeatherObservation(BaseModel):
     best_hours_for_outdoors: Optional[str] = None
     source: str
     provider_mode: str  # REAL, DEMO, UNAVAILABLE
+    provenance_label: str = "DEMO MODE — SYNTHETIC DATA"  # REAL — EXTERNAL PROVIDER, DEMO MODE — SYNTHETIC DATA, etc.
     confidence: float = Field(..., ge=0.0, le=1.0)
     data_quality: str  # HIGH, MEDIUM, DEGRADED, UNKNOWN
     fetched_at: datetime = Field(default_factory=datetime.utcnow)
@@ -53,4 +54,5 @@ class WeatherImpactSignal(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     source: str
     provider_mode: str
+    provenance_label: str = "DEMO MODE — SYNTHETIC DATA"
     observed_at: datetime = Field(default_factory=datetime.utcnow)

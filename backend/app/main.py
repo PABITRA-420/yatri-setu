@@ -1,10 +1,19 @@
-from fastapi import FastAPI
+import logging
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
-from app.api.v1.api import api_router
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
-from app.core.database import init_db
-import app.models.entities # Register all models
+from app.core.config import settings
+from app.core.database import init_db, check_database_health
+from app.core.logging import setup_safe_logging
+from app.api.v1.api import api_router
+import app.models.entities  # Register all models
+
+logger = logging.getLogger(__name__)
+
+# Initialize safe logging filter
+setup_safe_logging()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -18,7 +27,7 @@ def on_startup():
     try:
         init_db()
     except Exception as e:
-        pass
+        logger.warning(f"Startup database initialization deferred: {e}")
 
 
 # CORS configuration
@@ -30,6 +39,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Exception handler for unhandled internal errors (prevents stack trace / credential leak)
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled error processing {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "An internal operational error occurred. Telemetry has been logged safely."}
+    )
+
+# Exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": "Request validation failed", "errors": exc.errors()}
+    )
+
 # Mount API V1
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
@@ -39,11 +65,68 @@ def root():
         "project": "Yatri Setu",
         "version": settings.VERSION,
         "status": "online",
+        "environment": settings.ENVIRONMENT,
         "hackathon": "Smart India Hackathon 2026",
         "core_differentiator": "Smart Crowd Management & Alternate-Destination Advisor",
         "docs_url": "/docs"
     }
 
 @app.get("/health", tags=["Health"])
-def health_check():
-    return {"status": "healthy"}
+def health_check(detailed: bool = False):
+    """
+    Concise health probe for load balancers and backward-compatible tests.
+    Pass ?detailed=true for full operational provider status.
+    """
+    if not detailed:
+        return {"status": "healthy"}
+    return get_detailed_health()
+
+@app.get("/api/health", tags=["Health"])
+def api_health_check(detailed: bool = True):
+    """
+    Safe operational health probe for Render, Vercel, and monitoring systems.
+    Strictly reports status and provenance without leaking secrets or credentials.
+    """
+    if not detailed:
+        return {"status": "healthy"}
+    return get_detailed_health()
+
+def get_detailed_health():
+    from app.services.weather.service import weather_service
+    from app.services.traffic.service import traffic_service
+
+    db_health = check_database_health()
+    
+    weather_mode = weather_service._provider.get_provider_mode()
+    weather_avail = weather_service._provider.is_available()
+
+    ai_configured = bool(settings.OPENAI_API_KEY and settings.OPENAI_API_KEY.strip()) if settings.AI_PROVIDER == "openai" else True
+
+    return {
+        "status": "healthy",
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+        "database": db_health,
+        "providers": {
+            "weather": {
+                "provider": settings.WEATHER_PROVIDER,
+                "mode": weather_mode,
+                "available": weather_avail,
+                "provenance": "REAL — EXTERNAL PROVIDER" if weather_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
+            },
+            "ai": {
+                "provider": settings.AI_PROVIDER,
+                "model": settings.OPENAI_MODEL if settings.AI_PROVIDER == "openai" else "mock_adaptive",
+                "configured": ai_configured
+            },
+            "traffic": {
+                "provider": settings.TRAFFIC_PROVIDER,
+                "available": traffic_service._provider.is_available()
+            }
+        },
+        "provenance_policy": {
+            "zero_key_demo_supported": True,
+            "real_data_distinguished": True,
+            "pii_protection": "STRICT_ZERO_PII_HOST_PANCHAYAT"
+        }
+    }
