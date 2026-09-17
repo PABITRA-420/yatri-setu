@@ -32,6 +32,21 @@ class CrowdResponse(BaseModel):
     hotel_occupancy_rate: str
     last_updated: str
 
+class AlternativeWeather(BaseModel):
+    """Structured weather observation for alternative destination cards."""
+    destination_id: str = Field(..., description="Destination identifier")
+    temperature: float = Field(..., description="Current temperature in Celsius")
+    temp_min_c: Optional[float] = Field(None, description="Minimum temperature in Celsius")
+    temp_max_c: Optional[float] = Field(None, description="Maximum temperature in Celsius")
+    condition: str = Field(..., description="Weather condition description")
+    humidity: Optional[int] = Field(None, description="Relative humidity percentage")
+    precipitation_chance: Optional[int] = Field(None, description="Precipitation probability percentage")
+    provenance_label: str = Field("DEMO MODE — SYNTHETIC DATA", description="Explicit weather provenance label")
+    provider_mode: str = Field("DEMO", description="Provider mode: REAL, DEMO, UNAVAILABLE")
+    cache_status: str = Field("LIVE", description="Cache status: LIVE, CACHED, STALE, DEMO")
+    observed_at: Optional[str] = Field(None, description="Observation timestamp")
+    temperature_range: Optional[str] = Field(None, description="Formatted temperature range (e.g. 14°C - 22°C)")
+
 class AlternativeRecommendation(BaseModel):
     id: str
     name: str
@@ -59,6 +74,7 @@ class AlternativeRecommendation(BaseModel):
     capacity_status: str = Field("HEALTHY", description="Accommodation capacity health: HEALTHY, LIMITED, FULL")
     available_capacity: Optional[int] = Field(None, description="Available accommodation units (rooms)")
     access_status: str = Field("OPEN", description="Corridor access status: OPEN, CAUTION, DISRUPTED")
+    weather: Optional[AlternativeWeather] = Field(None, description="Destination-specific canonical weather observation")
     weather_summary: Optional[str] = Field(None, description="Summary of current mountain weather")
     traffic_summary: Optional[str] = Field(None, description="Summary of connecting corridor traffic")
     homestay_availability: Optional[str] = Field(None, description="Status of authentic homestay inventory")

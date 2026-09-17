@@ -573,7 +573,23 @@ export async function fetchDestinationAlternatives(id: string): Promise<Alternat
           ],
           matching_attributes: ['Kanchenjunga Ridge Views', 'Colonial Monasteries', 'Tea & Orchid Culture', 'Himalayan Climate'],
           key_experience: 'Peaceful ridge exploration, flower nurseries & serene monastery chanting',
-          eco_tag: '🌿 52% Lower Carbon Footprint'
+          eco_tag: '🌿 52% Lower Carbon Footprint',
+          capacity_status: 'HEALTHY',
+          access_status: 'OPEN',
+          weather: {
+            destination_id: 'kalimpong',
+            temperature: 18.2,
+            temp_min_c: 14,
+            temp_max_c: 22,
+            condition: 'Mild Sunshine & Gentle Breeze',
+            humidity: 58,
+            precipitation_chance: 15,
+            provenance_label: 'DEMO MODE — SYNTHETIC DATA',
+            provider_mode: 'DEMO',
+            cache_status: 'DEMO',
+            temperature_range: '14°C - 22°C'
+          },
+          weather_summary: 'Mild Sunshine & Gentle Breeze, 18°C'
         },
         {
           id: 'rishop',
@@ -597,7 +613,23 @@ export async function fetchDestinationAlternatives(id: string): Promise<Alternat
           shared_highlights: ['Panoramic Himalayan snow peaks'],
           matching_attributes: ['Panoramic Sunrise Views', 'Alpine Walking Trails', 'Zero Traffic'],
           key_experience: 'Balcony sunrise over 300km of snowy Himalayan giants',
-          eco_tag: '⭐ Zero Noise & Dark Sky Haven'
+          eco_tag: '⭐ Zero Noise & Dark Sky Haven',
+          capacity_status: 'HEALTHY',
+          access_status: 'OPEN',
+          weather: {
+            destination_id: 'rishop',
+            temperature: 14.5,
+            temp_min_c: 8,
+            temp_max_c: 16,
+            condition: 'Crisp Alpine Clear',
+            humidity: 45,
+            precipitation_chance: 10,
+            provenance_label: 'DEMO MODE — SYNTHETIC DATA',
+            provider_mode: 'DEMO',
+            cache_status: 'DEMO',
+            temperature_range: '8°C - 16°C'
+          },
+          weather_summary: 'Crisp Alpine Clear, 15°C'
         },
         {
           id: 'lava',
@@ -621,7 +653,23 @@ export async function fetchDestinationAlternatives(id: string): Promise<Alternat
           shared_highlights: ['Alpine climate and rich birdlife'],
           matching_attributes: ['Pine Forest Canopies', 'Neora Valley Wildlife', 'High Elevation'],
           key_experience: 'Misty pine forest canopy trails and quiet Buddhist chanting',
-          eco_tag: '🌲 Neora Valley Eco-Sanctuary'
+          eco_tag: '🌲 Neora Valley Eco-Sanctuary',
+          capacity_status: 'HEALTHY',
+          access_status: 'OPEN',
+          weather: {
+            destination_id: 'lava',
+            temperature: 12.0,
+            temp_min_c: 9,
+            temp_max_c: 15,
+            condition: 'Misty Pine Woodlands',
+            humidity: 82,
+            precipitation_chance: 40,
+            provenance_label: 'DEMO MODE — SYNTHETIC DATA',
+            provider_mode: 'DEMO',
+            cache_status: 'DEMO',
+            temperature_range: '9°C - 15°C'
+          },
+          weather_summary: 'Misty Pine Woodlands, 12°C'
         }
       ]
     };
