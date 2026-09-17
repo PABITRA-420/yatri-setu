@@ -386,3 +386,93 @@ class TestTelemetryPersistence:
             assert db_ev.source == "YATRI_SETU_NETWORK"
         finally:
             db.close()
+
+
+class TestProcessRestartAndHydration:
+    """Verify that records survive simulated process restarts and hydrate from database."""
+
+    def test_booking_survives_process_restart_and_hydrates_from_db(self):
+        """Simulate backend process death: memory cleared, get_booking loads from SQL table."""
+        svc = BookingLifecycleService()
+        req = HomestayBookingRequest(
+            homestay_id="hs-kalimpong-01",
+            traveler_name="Karan Verma",
+            traveler_phone="+91 98111 22334",
+            traveler_email="karan@example.com",
+            emergency_contact="+91 98111 99887",
+            check_in_date="2026-11-25",
+            check_out_date="2026-11-27",
+            number_of_guests=2
+        )
+        record, _ = svc.create_booking(req)
+        booking_id = record.booking_id
+        assert record.state == BookingState.CONFIRMED
+
+        # SIMULATE PROCESS RESTART: wipe all in-memory dictionaries
+        svc._bookings.clear()
+        svc._idempotency_map.clear()
+        assert booking_id not in svc._bookings
+
+        # Hydrate from database
+        hydrated = svc.get_booking(booking_id)
+        assert hydrated is not None
+        assert hydrated.booking_id == booking_id
+        assert hydrated.traveler_name == "Karan Verma"
+        assert hydrated.traveler_phone == "+91 98111 22334"
+        assert hydrated.traveler_email == "karan@example.com"
+        assert hydrated.state == BookingState.CONFIRMED
+        assert hydrated.total_amount_inr == record.total_amount_inr
+        assert hydrated.digital_pass_qr_payload == record.digital_pass_qr_payload
+        assert hydrated.check_in_date == "2026-11-25"
+
+    def test_safety_incident_survives_process_restart(self):
+        """Emergency incidents persist and hydrate from database after repo restart."""
+        repo = SafetyIncidentRepository()
+        inc_id = f"inc-restart-{datetime.utcnow().strftime('%M%S')}"
+        incident = EmergencyIncident(
+            incident_id=inc_id,
+            destination_id="mirik",
+            user_name="Siddharth Roy",
+            user_phone="+91 98000 55667",
+            incident_type=IncidentType.SOS,
+            severity=IncidentSeverity.HIGH,
+            status=IncidentStatus.DELIVERED,
+            notes="Medical assistance needed",
+            created_at=datetime.utcnow().isoformat(),
+            idempotency_key=f"idem-{inc_id}"
+        )
+        repo.save_incident(incident)
+
+        # SIMULATE PROCESS RESTART: wipe in-memory cache
+        repo._incidents.clear()
+        repo._idempotency_map.clear()
+        assert inc_id not in repo._incidents
+
+        # Hydrate from database
+        hydrated = repo.get_incident(inc_id)
+        assert hydrated is not None
+        assert hydrated.incident_id == inc_id
+        assert hydrated.user_name == "Siddharth Roy"
+        assert hydrated.severity == IncidentSeverity.HIGH
+
+
+class TestNoSilentFallbackOnPostgresUnavailable:
+    """Verify that in production mode, an unreachable PostgreSQL does NOT silently fallback to SQLite."""
+
+    def test_production_postgres_failure_does_not_switch_to_sqlite(self):
+        """Health check maintains dialect='postgresql' and is_sqlite=False when connection fails."""
+        mock_engine = MagicMock()
+        mock_engine.dialect.name = "postgresql"
+        mock_engine.connect.side_effect = ConnectionError("Could not connect to PostgreSQL server: timeout")
+
+        with patch("app.core.database.engine", mock_engine), \
+             patch.dict(os.environ, {"ENVIRONMENT": "production", "DATABASE_URL": "postgresql://user:pass@host:5432/db"}):
+            health = check_database_health()
+            assert health["status"] == "degraded"
+            assert health["reachable"] is False
+            assert health["configured"] is True
+            assert health["dialect"] == "postgresql"
+            assert health["is_sqlite"] is False
+            # Crucially: it must NEVER claim is_sqlite is True
+            assert "sqlite" not in health["dialect"]
+
