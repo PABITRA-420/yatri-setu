@@ -77,11 +77,14 @@ class WeatherProviderAdapter(BaseDataSourceProvider):
                     )
 
                 # Fetch real weather
-                coords = DESTINATION_COORDINATES.get(normalized_id, (27.0410, 88.2663))
+                if normalized_id not in DESTINATION_COORDINATES:
+                    raise ValueError(f"Unknown destination '{destination_id}' for meteorological coordinates")
+                coords = DESTINATION_COORDINATES[normalized_id]
                 lat, lon = coords
+                api_key = settings.OPENWEATHER_API_KEY or settings.WEATHER_API_KEY
                 url = (
                     f"https://api.openweathermap.org/data/2.5/weather"
-                    f"?lat={lat}&lon={lon}&appid={settings.OPENWEATHER_API_KEY}&units=metric"
+                    f"?lat={lat}&lon={lon}&appid={api_key}&units=metric"
                 )
 
                 with httpx.Client(timeout=4.0) as client:

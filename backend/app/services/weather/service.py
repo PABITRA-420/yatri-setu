@@ -65,6 +65,8 @@ class WeatherService:
                 obs: WeatherObservation = cached_entry["observation"].model_copy()
                 obs.cache_status = "CACHED"
                 obs.expires_at = expires_at
+                if obs.provider_mode == "REAL":
+                    obs.provenance_label = "CACHED — OPENWEATHER"
                 return obs
 
         # Fetch fresh observation from provider

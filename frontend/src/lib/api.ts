@@ -808,25 +808,42 @@ export async function optimizeItinerary(payload: ItineraryOptimizeRequest): Prom
 }
 
 export async function fetchDestinationWeather(destinationId: string): Promise<WeatherForecast> {
+  const normId = destinationId.toLowerCase().trim();
   try {
-    const res = await fetch(`${API_BASE_URL}/destinations/${destinationId}/weather`, { cache: 'no-store' });
-    if (!res.ok) throw new Error('Weather API fetch failed');
+    const res = await fetch(`${API_BASE_URL}/destinations/${encodeURIComponent(normId)}/weather`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Weather API fetch failed with HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn(`Using fallback weather for ${destinationId}:`, err);
+    console.warn(`Backend weather unreachable for ${normId}. Using fallback telemetry:`, err);
+    // Destination-specific regional baselines rather than flat generic numbers
+    const fallbackProfiles: Record<string, { range: string; min: number; max: number; cond: string; rain: boolean; prob: number }> = {
+      darjeeling: { range: '11°C - 17°C', min: 11, max: 17, cond: 'Partly Cloudy with Ridge Mist', rain: false, prob: 35 },
+      kalimpong: { range: '14°C - 22°C', min: 14, max: 22, cond: 'Mild Mountain Sunshine', rain: false, prob: 20 },
+      lava: { range: '9°C - 15°C', min: 9, max: 15, cond: 'Pine Canopy Mist & Intermittent Drizzle', rain: true, prob: 65 },
+      lolegaon: { range: '12°C - 18°C', min: 12, max: 18, cond: 'Cool Forest Canopy Breeze', rain: false, prob: 30 },
+      rishop: { range: '7°C - 13°C', min: 7, max: 13, cond: 'Crisp Sub-Alpine Air', rain: false, prob: 10 },
+      mirik: { range: '13°C - 20°C', min: 13, max: 20, cond: 'Mild Lake Breezes', rain: false, prob: 15 }
+    };
+
+    const profile = fallbackProfiles[normId] || { range: '12°C - 19°C', min: 12, max: 19, cond: 'Partly Cloudy', rain: false, prob: 25 };
+
     return {
-      destination_id: destinationId,
-      destination_name: destinationId.charAt(0).toUpperCase() + destinationId.slice(1),
-      temperature_range_c: '12°C - 19°C',
-      temp_min_c: 12,
-      temp_max_c: 19,
-      condition: 'Partly Cloudy with Mountain Mist',
-      precipitation_chance_percent: destinationId === 'lava' ? 65 : 25,
-      rain_expected: destinationId === 'lava',
-      mountain_visibility_score: 85,
-      advisory: 'Clear morning views across Himalayan valleys. Light afternoon clouds.',
+      destination_id: normId,
+      destination_name: normId.charAt(0).toUpperCase() + normId.slice(1),
+      temperature_range_c: profile.range,
+      temp_min_c: profile.min,
+      temp_max_c: profile.max,
+      condition: profile.cond,
+      precipitation_chance_percent: profile.prob,
+      rain_expected: profile.rain,
+      mountain_visibility_score: 80,
+      advisory: 'Live telemetry currently offline. Displaying regional baseline estimates.',
       best_hours_for_outdoors: '07:00 AM - 01:00 PM',
-      is_demo_forecast: true
+      is_demo_forecast: true,
+      provider_source: 'Regional Fallback Estimator',
+      provenance_label: 'FALLBACK — TELEMETRY UNAVAILABLE',
+      cache_status: 'STALE',
+      provider_mode: 'DEMO'
     };
   }
 }

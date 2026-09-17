@@ -26,6 +26,8 @@ app = FastAPI(
 def on_startup():
     try:
         init_db()
+        from app.services.homestay_repository import homestay_repository
+        homestay_repository.sync_to_db()
     except Exception as e:
         logger.warning(f"Startup database initialization deferred: {e}")
 

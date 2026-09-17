@@ -1,4 +1,5 @@
 from typing import Dict, Any, Optional
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 class WeatherForecast(BaseModel):
@@ -15,8 +16,15 @@ class WeatherForecast(BaseModel):
     best_hours_for_outdoors: str
     is_demo_forecast: bool = True
     provider_source: str = "Yatri Setu Himalayan Meteorological Simulator"
+    humidity: Optional[int] = None
+    precipitation_mm: Optional[float] = None
+    wind_speed_kmh: Optional[float] = None
+    observed_at: Optional[datetime] = None
+    cache_status: Optional[str] = None
+    provenance_label: Optional[str] = None
+    provider_mode: Optional[str] = None
 
-# Deterministic realistic regional weather profiles
+# Deterministic realistic regional weather profiles (preserved for legacy tests and mock mode)
 DESTINATION_WEATHER: Dict[str, Dict[str, Any]] = {
     "darjeeling": {
         "destination_name": "Darjeeling",
@@ -113,11 +121,77 @@ class MockWeatherProvider(BaseWeatherProvider):
             advisory=data["advisory"],
             best_hours_for_outdoors=data["best_hours_for_outdoors"],
             is_demo_forecast=True,
-            provider_source="Yatri Setu Himalayan Meteorological Simulator"
+            provider_source="Yatri Setu Himalayan Meteorological Simulator",
+            provenance_label="DEMO MODE — SYNTHETIC DATA",
+            provider_mode="DEMO"
         )
 
-# Factory singleton
-weather_provider: BaseWeatherProvider = MockWeatherProvider()
+
+class CanonicalWeatherProvider(BaseWeatherProvider):
+    """
+    Connects tourist-facing weather calls directly to the unified WeatherService (M7C),
+    ensuring identical real OpenWeather observations, destination-specific coordinates,
+    shared TTL cache, and explicit provenance.
+    """
+    def get_weather(self, destination_id: str, date_range: Optional[str] = None) -> WeatherForecast:
+        from app.services.weather.service import weather_service
+        obs = weather_service.get_weather(destination_id)
+
+        temp_min = int(round(obs.temp_min_c))
+        temp_max = int(round(obs.temp_max_c))
+        temp_range = f"{temp_min}°C - {temp_max}°C"
+        if obs.destination_id in DESTINATION_WEATHER and obs.provider_mode == "DEMO":
+            rain_expected = DESTINATION_WEATHER[obs.destination_id].get("rain_expected", False)
+            visibility_score = DESTINATION_WEATHER[obs.destination_id].get("mountain_visibility_score", 85)
+        else:
+            rain_expected = (obs.precipitation_mm > 0.5 or obs.precipitation_probability >= 50)
+            base_score = min(100.0, (obs.visibility_km / 10.0) * 80.0)
+            if rain_expected:
+                base_score -= 25.0
+            visibility_score = int(max(10, min(100, round(base_score))))
+
+        is_demo = (obs.provider_mode != "REAL")
+
+        if obs.provider_mode == "REAL":
+            if obs.cache_status == "CACHED":
+                provider_source = "OpenWeatherMap (Cached)"
+                prov_label = "CACHED — OPENWEATHER"
+            elif obs.cache_status == "STALE":
+                provider_source = "OpenWeatherMap (Stale)"
+                prov_label = "MIXED — STALE TELEMETRY FALLBACK"
+            else:
+                provider_source = "OpenWeatherMap"
+                prov_label = "REAL — OPENWEATHER"
+        else:
+            provider_source = "Yatri Setu Himalayan Meteorological Simulator"
+            prov_label = "DEMO MODE — SYNTHETIC DATA"
+
+        return WeatherForecast(
+            destination_id=obs.destination_id,
+            destination_name=obs.destination_name,
+            temperature_range_c=temp_range,
+            temp_min_c=temp_min,
+            temp_max_c=temp_max,
+            condition=obs.weather_condition,
+            precipitation_chance_percent=obs.precipitation_probability,
+            rain_expected=rain_expected,
+            mountain_visibility_score=visibility_score,
+            advisory=obs.advisory,
+            best_hours_for_outdoors=obs.best_hours_for_outdoors,
+            is_demo_forecast=is_demo,
+            provider_source=provider_source,
+            humidity=obs.humidity,
+            precipitation_mm=obs.precipitation_mm,
+            wind_speed_kmh=obs.wind_speed_kmh,
+            observed_at=obs.observed_at,
+            cache_status=obs.cache_status,
+            provenance_label=prov_label,
+            provider_mode=obs.provider_mode
+        )
+
+
+# Factory singleton: defaults to CanonicalWeatherProvider wired to unified WeatherService
+weather_provider: BaseWeatherProvider = CanonicalWeatherProvider()
 
 def get_destination_weather(destination_id: str, date_range: Optional[str] = None) -> WeatherForecast:
     return weather_provider.get_weather(destination_id, date_range)

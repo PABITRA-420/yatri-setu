@@ -133,7 +133,9 @@ class DemoWeatherProvider(BaseWeatherProvider):
 
     def fetch_current(self, destination_id: str) -> WeatherObservation:
         dest_clean = destination_id.lower().strip()
-        data = DEMO_WEATHER_PROFILES.get(dest_clean, DEMO_WEATHER_PROFILES["kalimpong"])
+        if dest_clean not in DEMO_WEATHER_PROFILES:
+            raise ValueError(f"Unknown destination '{destination_id}' for demo meteorological profile")
+        data = DEMO_WEATHER_PROFILES[dest_clean]
         now = datetime.utcnow()
 
         return WeatherObservation(
@@ -224,8 +226,10 @@ class OpenWeatherProvider(BaseWeatherProvider):
         if not self.is_available():
             raise RuntimeError("OpenWeatherProvider API key is not configured")
 
-        coords = DESTINATION_COORDINATES.get(dest_clean, (27.0594, 88.4695))
-        lat, lon = coords
+        if dest_clean not in DESTINATION_COORDINATES:
+            raise ValueError(f"Unknown destination '{destination_id}' for meteorological coordinates")
+
+        lat, lon = DESTINATION_COORDINATES[dest_clean]
         url = (
             f"https://api.openweathermap.org/data/2.5/weather"
             f"?lat={lat}&lon={lon}&appid={self.api_key}&units=metric"
@@ -259,6 +263,11 @@ class OpenWeatherProvider(BaseWeatherProvider):
                 if "thunderstorm" in condition_main or wind_speed > 55.0 or rain_1h > 15.0:
                     severe = f"Severe Weather Alert: {condition} with high winds/rain in mountain corridor."
 
+                advisory_msg = (
+                    f"Observation: {condition} at {temp:.1f}°C, wind {wind_speed:.1f} km/h (Source: OpenWeatherMap). "
+                    f"Yatri Setu Advisory: Plan high-altitude trail walks before afternoon cloud development."
+                )
+
                 return WeatherObservation(
                     destination_id=dest_clean,
                     destination_name=dest_clean.title(),
@@ -274,11 +283,11 @@ class OpenWeatherProvider(BaseWeatherProvider):
                     weather_condition=condition,
                     severe_weather=severe,
                     visibility_km=round(visibility, 1),
-                    advisory=f"Live meteorological observation: {condition} at {temp:.1f}°C, wind {wind_speed:.1f} km/h.",
+                    advisory=advisory_msg,
                     best_hours_for_outdoors="Morning to early afternoon",
                     source="OPENWEATHERMAP_LIVE",
                     provider_mode="REAL",
-                    provenance_label="REAL — EXTERNAL PROVIDER",
+                    provenance_label="REAL — OPENWEATHER",
                     confidence=0.95,
                     data_quality="HIGH",
                     fetched_at=now,
