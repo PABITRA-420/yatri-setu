@@ -74,7 +74,17 @@ import {
 
 
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+// Production same-origin proxy router: on Vercel, routes via Next.js reverse proxy to eliminate CORS
+function getApiBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return '/api';
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Fallback seed data for rock-solid offline or rapid demo reliability
 const FALLBACK_DESTINATIONS: Destination[] = [
