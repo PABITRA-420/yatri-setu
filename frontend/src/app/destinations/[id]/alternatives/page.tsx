@@ -6,15 +6,18 @@ import Link from 'next/link';
 import { 
   AlternativesResponse, 
   DateAlternativesResponse, 
-  DestinationDecisionResponse 
+  DestinationDecisionResponse,
+  RouteCalculationResponse
 } from '@/types';
 import { 
   fetchDestinationAlternatives, 
   fetchDateAlternatives, 
   fetchDestinationDecision,
-  recordAlternativeAcceptance
+  recordAlternativeAcceptance,
+  fetchRouteEstimate
 } from '@/lib/api';
 import { AlternativeCard } from '@/components/AlternativeCard';
+import { YatriMap } from '@/components/YatriMap';
 import { getCrowdBadgeStyle, formatINR } from '@/lib/utils';
 import { 
   Sparkles, 
@@ -32,7 +35,12 @@ import {
   Leaf, 
   HelpCircle,
   Split,
-  ChevronRight
+  ChevronRight,
+  Navigation,
+  CloudSun,
+  Activity,
+  Layers,
+  Thermometer
 } from 'lucide-react';
 
 function AlternativesContent() {
@@ -46,6 +54,11 @@ function AlternativesContent() {
   const [dateData, setDateData] = useState<DateAlternativesResponse | null>(null);
   const [decision, setDecision] = useState<DestinationDecisionResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Routing and Interactive Map state (Milestone 8A)
+  const [selectedAltId, setSelectedAltId] = useState<string | null>(null);
+  const [routeData, setRouteData] = useState<RouteCalculationResponse | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
 
   // Preferred dates state
   const [prefStartDate, setPrefStartDate] = useState(searchParams.get('start') || '2026-12-25');
@@ -62,10 +75,37 @@ function AlternativesContent() {
       setAltData(alts);
       setDateData(dates);
       setDecision(dec);
+      if (alts && alts.alternatives.length > 0 && !selectedAltId) {
+        setSelectedAltId(alts.alternatives[0].id);
+      }
       setLoading(false);
     }
     load();
   }, [id, prefStartDate, prefEndDate]);
+
+  // Fetch road route whenever selected alternative changes
+  useEffect(() => {
+    const targetAltId = selectedAltId;
+    if (!targetAltId || !id) return;
+    let isMounted = true;
+
+    async function loadRoute(altId: string) {
+      setRouteLoading(true);
+      try {
+        const data = await fetchRouteEstimate(id, altId);
+        if (isMounted) {
+          setRouteData(data);
+        }
+      } catch (err) {
+        console.warn('Could not fetch route estimate:', err);
+      } finally {
+        if (isMounted) setRouteLoading(false);
+      }
+    }
+
+    loadRoute(targetAltId);
+    return () => { isMounted = false; };
+  }, [id, selectedAltId]);
 
   if (loading || !altData || !dateData) {
     return (
@@ -176,19 +216,209 @@ function AlternativesContent() {
       {/* SECTION A: CHANGE DESTINATION (Geographical Decongestion) */}
       {/* ========================================================= */}
       {activeTab === 'DESTINATION' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
+        <div className="space-y-8 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                Pathway A • Geographical Decongestion
+                Pathway A • Geographical Decongestion & Road Routing
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                Serene Alternate Destinations Near {altData.origin_destination_name}
+                Interactive Circuit Route Advisor
               </h2>
             </div>
             <span className="text-xs text-slate-500">
-              Ranked by similarity & crowd reduction
+              MapLibre + OpenFreeMap Liberty • Road travel intelligence
             </span>
+          </div>
+
+          {/* Interactive Circuit Map & Route Visualizer (Milestone 8A) */}
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
+                  Select Alternative to Route:
+                </span>
+                {altData.alternatives.map((alt) => (
+                  <button
+                    key={alt.id}
+                    type="button"
+                    onClick={() => setSelectedAltId(alt.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      selectedAltId === alt.id
+                        ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
+                        : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700'
+                    }`}
+                  >
+                    <span>{alt.name}</span>
+                    <span className="text-[10px] opacity-80 font-mono">({alt.crowd_score})</span>
+                  </button>
+                ))}
+              </div>
+
+              {routeLoading && (
+                <span className="text-xs font-semibold text-amber-500 flex items-center gap-1.5 animate-pulse">
+                  <Activity className="w-3.5 h-3.5 animate-spin" />
+                  <span>Computing road corridor...</span>
+                </span>
+              )}
+            </div>
+
+            {/* MapLibre Canvas Container */}
+            <YatriMap
+              height="440px"
+              originId={id}
+              selectedDestinationId={selectedAltId || undefined}
+              routeGeometry={routeData?.route_geometry}
+              routeDistanceKm={routeData?.distance_km}
+              routeDurationMin={routeData?.duration_minutes}
+              isRoadDistance={routeData?.is_road_distance}
+              provenanceLabel={routeData?.provenance_label}
+              onSelectDestination={(destId) => setSelectedAltId(destId)}
+            />
+
+            {/* Corridor Routing Intelligence Panel */}
+            {(() => {
+              const activeAlt = altData.alternatives.find((a) => a.id === selectedAltId) || altData.alternatives[0];
+              if (!activeAlt) return null;
+
+              return (
+                <div className="bg-white dark:bg-[#121824] rounded-3xl p-6 border border-stone-200/80 dark:border-white/10 shadow-xs space-y-5">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-stone-100 dark:border-white/5">
+                    {/* Origin Station */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-500 flex items-center justify-center font-bold text-sm border border-rose-500/20">
+                        <MapPin className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-rose-600 dark:text-rose-400 block">
+                          Origin Station
+                        </span>
+                        <h4 className="font-extrabold text-base text-stone-950 dark:text-white">
+                          {altData.origin_destination_name}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                            Crowd: {altData.origin_crowd_score}/100 ({altData.origin_crowd_level})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Middle Route Stats */}
+                    <div className="bg-stone-50 dark:bg-stone-900/60 px-5 py-3 rounded-2xl border border-stone-200/60 dark:border-white/5 text-center flex-1 max-w-md mx-auto">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <Navigation className="w-4 h-4 text-amber-500" />
+                        <span className="text-xs font-extrabold text-stone-900 dark:text-white">
+                          {routeData?.distance_km ?? activeAlt.distance_km} km
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold">
+                          {routeData?.is_road_distance ? 'Road Route' : 'Approx. Geographic (Haversine)'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-stone-600 dark:text-stone-300 flex items-center justify-center gap-3">
+                        <span>ETA: <strong>{routeData?.duration_minutes ? `~${routeData.duration_minutes} min` : 'Calculating...'}</strong></span>
+                        <span>•</span>
+                        <span>Mode: <strong>{routeData?.transit_mode || 'Shared Jeep'}</strong></span>
+                      </div>
+                      {routeData?.road_condition && (
+                        <div className="text-[10px] text-stone-500 mt-1 italic">
+                          {routeData.road_condition}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recommended Alternative Station */}
+                    <div className="flex items-center gap-3 text-right">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-600 dark:text-emerald-400 block">
+                          Selected Alternative
+                        </span>
+                        <h4 className="font-extrabold text-base text-stone-950 dark:text-white">
+                          {activeAlt.name}
+                        </h4>
+                        <div className="flex items-center justify-end gap-2 mt-0.5">
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            Crowd: {activeAlt.crowd_score}/100 ({activeAlt.crowd_level})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center font-bold text-sm border border-emerald-500/20">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telemetry Chips Row: Weather, Capacity, Traffic */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    {/* Weather */}
+                    <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-2xl border border-stone-200/50 dark:border-white/5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-stone-400 flex items-center gap-1">
+                          <Thermometer className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Weather ({activeAlt.name})</span>
+                        </span>
+                        <span className="text-[9px] font-bold text-stone-400">
+                          {activeAlt.weather?.provenance_label || 'REAL — OPENWEATHER'}
+                        </span>
+                      </div>
+                      <div className="font-extrabold text-sm text-stone-900 dark:text-white">
+                        {activeAlt.weather?.temperature !== undefined 
+                          ? `${activeAlt.weather.temperature}°C • ${activeAlt.weather.condition}`
+                          : (activeAlt.weather_summary || 'Mild Mountain Climate')}
+                      </div>
+                      {activeAlt.weather?.precipitation_chance !== undefined && (
+                        <div className="text-[10px] text-stone-500">
+                          Precipitation Chance: {activeAlt.weather.precipitation_chance}%
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Capacity & Homestays */}
+                    <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-2xl border border-stone-200/50 dark:border-white/5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-stone-400 flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Capacity & Access</span>
+                        </span>
+                        <span className="text-[9px] font-bold text-emerald-500">
+                          {activeAlt.access_status || 'OPEN'}
+                        </span>
+                      </div>
+                      <div className="font-extrabold text-sm text-stone-900 dark:text-white">
+                        Capacity: {activeAlt.capacity_status || 'HEALTHY'} ({activeAlt.available_capacity ? `${activeAlt.available_capacity}% Available` : 'Available'})
+                      </div>
+                      <div className="text-[10px] text-stone-500">
+                        {activeAlt.homestay_availability || 'Verified panchayat homestays available'}
+                      </div>
+                    </div>
+
+                    {/* Operational Provenance */}
+                    <div className="bg-stone-50 dark:bg-stone-900/40 p-3 rounded-2xl border border-stone-200/50 dark:border-white/5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-stone-400 flex items-center gap-1">
+                          <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>Data Provenance</span>
+                        </span>
+                        <span className="text-[9px] font-bold text-stone-400 font-mono">
+                          M7C/M7D + M8A
+                        </span>
+                      </div>
+                      <div className="font-bold text-[11px] text-stone-800 dark:text-stone-200 line-clamp-1">
+                        {routeData?.provenance_label || 'DEMO MODE — SYNTHETIC DATA'}
+                      </div>
+                      <div className="text-[10px] text-stone-500">
+                        Traffic: {routeData?.traffic_condition || 'Normal Corridor Flow'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Architecture Boundary Disclaimer */}
+                  <p className="text-[11px] text-stone-500 dark:text-stone-400 italic pt-1 border-t border-stone-100 dark:border-white/5">
+                    MapLibre/OpenFreeMap provides vector map visualization. Road travel metrics are calculated via routing-ready Himalayan network topology. Authoritative crowd & capacity decisions are managed deterministically by Yatri Setu M7C/M7D; map display does not decide recommended destinations.
+                  </p>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Quick Summary Pill of #1 Recommendation */}
@@ -229,18 +459,21 @@ function AlternativesContent() {
             </div>
           )}
 
-          {/* Alternative Cards */}
+          {/* Alternative Cards with Active Selection for Map */}
           <div className="space-y-6">
             {altData.alternatives.map((alt) => (
               <AlternativeCard
                 key={alt.id}
                 alternative={alt}
                 originName={altData.origin_destination_name}
+                isSelected={alt.id === selectedAltId}
+                onSelectForMap={(altId) => setSelectedAltId(altId)}
               />
             ))}
           </div>
         </div>
       )}
+
 
       {/* ==================================================== */}
       {/* SECTION B: CHANGE DATES (Temporal Decongestion)      */}

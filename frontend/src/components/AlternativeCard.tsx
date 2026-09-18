@@ -12,17 +12,22 @@ import {
   ShieldCheck,
   Compass,
   ArrowUpRight,
-  Leaf
+  Leaf,
+  Navigation
 } from 'lucide-react';
 
 interface AlternativeCardProps {
   alternative: AlternativeRecommendation;
   originName: string;
+  isSelected?: boolean;
+  onSelectForMap?: (id: string) => void;
 }
 
 export const AlternativeCard: React.FC<AlternativeCardProps> = ({
   alternative,
-  originName
+  originName,
+  isSelected = false,
+  onSelectForMap
 }) => {
   const crowdBadge = getCrowdBadgeStyle(alternative.crowd_level);
 
@@ -35,7 +40,11 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
   };
 
   return (
-    <div className="editorial-card group rounded-3xl overflow-hidden bg-white dark:bg-[#121824] border border-stone-200/80 dark:border-white/10 shadow-xs hover:shadow-md transition-all duration-300">
+    <div className={`editorial-card group rounded-3xl overflow-hidden bg-white dark:bg-[#121824] border shadow-xs hover:shadow-md transition-all duration-300 ${
+      isSelected 
+        ? 'border-emerald-500/80 ring-2 ring-emerald-500/30' 
+        : 'border-stone-200/80 dark:border-white/10'
+    }`}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
         {/* Left: Visual & Highlights */}
         <div className="lg:col-span-5 relative min-h-[260px] lg:min-h-full overflow-hidden bg-stone-900">
@@ -211,12 +220,29 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
 
           {/* Action Row */}
           <div className="pt-4 border-t border-stone-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <Link
-              href={`/destinations/${alternative.id}`}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold text-stone-800 dark:text-stone-200 transition-colors text-center"
-            >
-              Explore Details
-            </Link>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <Link
+                href={`/destinations/${alternative.id}`}
+                className="px-3.5 py-2.5 rounded-xl border border-stone-200 dark:border-white/10 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-bold text-stone-800 dark:text-stone-200 transition-colors text-center"
+              >
+                Explore
+              </Link>
+
+              {onSelectForMap && (
+                <button
+                  type="button"
+                  onClick={() => onSelectForMap(alternative.id)}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-900 dark:text-white'
+                  }`}
+                >
+                  <Navigation className="w-3.5 h-3.5" />
+                  <span>{isSelected ? 'Route on Map ✓' : 'Map Route'}</span>
+                </button>
+              )}
+            </div>
 
             <Link
               href={`/itinerary?destination=${alternative.id}`}
@@ -227,6 +253,7 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
+
         </div>
       </div>
     </div>

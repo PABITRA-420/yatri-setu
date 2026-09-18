@@ -58,8 +58,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": "Request validation failed", "errors": exc.errors()}
     )
 
-# Mount API V1
+# Mount API (supporting both /api and /api/v1)
 app.include_router(api_router, prefix=settings.API_V1_STR)
+if settings.API_V1_STR != "/api/v1":
+    app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/", tags=["Health"])
 def root():
@@ -96,11 +98,15 @@ def api_health_check(detailed: bool = True):
 def get_detailed_health():
     from app.services.weather.service import weather_service
     from app.services.traffic.service import traffic_service
+    from app.services.routing.service import routing_service
 
     db_health = check_database_health()
     
     weather_mode = weather_service._provider.get_provider_mode()
     weather_avail = weather_service._provider.is_available()
+
+    routing_mode = routing_service.get_provider_mode()
+    routing_avail = routing_service.is_available()
 
     ai_provider = settings.AI_PROVIDER.lower().strip()
     if ai_provider == "gemini":
@@ -129,6 +135,12 @@ def get_detailed_health():
                 "mode": weather_mode,
                 "available": weather_avail,
                 "provenance": "REAL — EXTERNAL PROVIDER" if weather_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
+            },
+            "routing": {
+                "provider": settings.ROUTING_PROVIDER,
+                "mode": routing_mode,
+                "available": routing_avail,
+                "provenance": "REAL — OSRM (OPENSTREETMAP)" if routing_mode == "osrm" else "DEMO MODE — SYNTHETIC DATA"
             },
             "ai": {
                 "provider": settings.AI_PROVIDER,

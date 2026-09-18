@@ -8,6 +8,7 @@ import { fetchDestinationDetails, fetchDestinationCrowd, fetchHomestays, fetchDe
 import { CrowdGauge } from '@/components/CrowdGauge';
 import { HomestayCard } from '@/components/HomestayCard';
 import { EmptyState } from '@/components/EmptyState';
+import { YatriMap } from '@/components/YatriMap';
 import { formatINR, getCrowdBadgeStyle } from '@/lib/utils';
 import { 
   MapPin, 
@@ -458,7 +459,51 @@ export default function DestinationDetailsPage() {
             </div>
           )}
 
+          {/* Regional Circuit Map & Arterial Corridor Network (Milestone 8A) */}
+          <div className="bg-white dark:bg-[#121824] rounded-3xl p-7 sm:p-8 border border-stone-200/80 dark:border-white/10 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100 dark:border-white/5">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shrink-0">
+                  <Compass className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-stone-950 dark:text-white tracking-tight flex items-center gap-2">
+                    Regional Himalayan Circuit Map
+                  </h2>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    Live crowd, capacity & road accessibility across connected hill stations
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href={`/destinations/${destination.id}/alternatives`}
+                className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 transition-colors border border-amber-500/20 self-start sm:self-auto"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Open Route Advisor</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <YatriMap
+              height="400px"
+              originId={destination.id}
+              onSelectDestination={(destId) => {
+                if (destId !== destination.id) {
+                  router.push(`/destinations/${destId}`);
+                }
+              }}
+            />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400 pt-1">
+              <span>Click any destination pin to inspect details or explore alternative routes.</span>
+              <span className="font-mono text-[10px] text-stone-400">Style: OpenFreeMap Liberty • Engine: MapLibre GL JS</span>
+            </div>
+          </div>
+
           {/* Attractions */}
+
           <div className="space-y-4">
             <h2 className="text-xl font-extrabold text-stone-950 dark:text-white tracking-tight">
               Key Attractions & Real-time Footfall

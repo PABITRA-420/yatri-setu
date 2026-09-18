@@ -1786,4 +1786,30 @@ export interface RuralAdminSummary {
   provenance: string;
 }
 
+// Milestone 8A: MapLibre + OpenFreeMap + Routing-Ready Architecture
+export interface RouteGeometry {
+  type: string;
+  coordinates: [number, number][]; // [longitude, latitude] pairs
+}
+
+export interface RouteCalculationResponse {
+  origin_destination_id: string;
+  origin_name: string;
+  destination_destination_id: string;
+  destination_name: string;
+  distance_km: number;
+  duration_minutes: number;
+  route_geometry: RouteGeometry;
+  provider: string; // 'osrm' | 'demo' | 'fallback'
+  fetched_at: string;
+  provenance_label: string;
+  is_road_distance: boolean;
+  transit_mode?: string;
+  road_condition?: string;
+  elevation_gain_m?: number;
+  carbon_emissions_kg?: number;
+  traffic_condition?: string;
+  notes?: string;
+}
+
 
