@@ -111,6 +111,15 @@ def get_detailed_health():
 
     traffic_mode = traffic_service._provider.get_provider_mode()
     traffic_avail = traffic_service._provider.is_available()
+    if traffic_mode == "REAL":
+        traffic_provenance = "REAL — TOMTOM TRAFFIC" if traffic_avail else "UNAVAILABLE — SAFE FALLBACK"
+        traffic_reported_mode = "REAL" if traffic_avail else "UNAVAILABLE"
+    elif traffic_mode == "UNAVAILABLE":
+        traffic_provenance = "UNAVAILABLE — SAFE FALLBACK"
+        traffic_reported_mode = "UNAVAILABLE"
+    else:
+        traffic_provenance = "DEMO MODE — SYNTHETIC DATA"
+        traffic_reported_mode = "DEMO"
 
     ai_provider = settings.AI_PROVIDER.lower().strip()
     if ai_provider == "gemini":
@@ -155,9 +164,9 @@ def get_detailed_health():
             },
             "traffic": {
                 "provider": settings.TRAFFIC_PROVIDER,
-                "mode": traffic_mode,
+                "mode": traffic_reported_mode,
                 "available": traffic_avail,
-                "provenance": "REAL — TOMTOM TRAFFIC" if traffic_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
+                "provenance": traffic_provenance
             }
         },
         "routing": {
@@ -174,9 +183,9 @@ def get_detailed_health():
         },
         "traffic": {
             "provider": settings.TRAFFIC_PROVIDER,
-            "mode": traffic_mode,
+            "mode": traffic_reported_mode,
             "available": traffic_avail,
-            "provenance": "REAL — TOMTOM TRAFFIC" if traffic_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
+            "provenance": traffic_provenance
         },
         "provenance_policy": {
             "zero_key_demo_supported": True,

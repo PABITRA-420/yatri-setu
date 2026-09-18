@@ -380,22 +380,63 @@ class TomTomTrafficProvider(BaseTrafficProvider):
     exact travel time with live delays versus historical free-flow conditions.
     """
 
-    def __init__(self, api_key: Any = _UNSET, timeout: float = 4.0):
+    def __init__(self, api_key: Any = _UNSET, timeout: float = 6.0):
         if api_key is not _UNSET:
-            self.api_key = api_key
+            raw_key = api_key
         else:
-            self.api_key = getattr(settings, "TOMTOM_API_KEY", None) or settings.TRAFFIC_API_KEY
+            raw_key = getattr(settings, "TOMTOM_API_KEY", None) or settings.TRAFFIC_API_KEY
+        
+        if raw_key:
+            cleaned = str(raw_key).strip().strip('"').strip("'")
+            if len(cleaned) == 38 and cleaned.endswith("tomtom"):
+                cleaned = cleaned[:-6]
+            self.api_key = cleaned if cleaned else None
+        else:
+            self.api_key = None
+
         self.timeout = timeout
+        self._last_connectivity_check: Optional[tuple] = None
+
+    def check_connectivity(self, force: bool = False) -> bool:
+        """
+        Tests actual provider connectivity and authentication against TomTom API.
+        Caches result for 60 seconds to avoid API quota drain and health check latency.
+        """
+        if not self.api_key or not self.api_key.strip():
+            return False
+
+        now = datetime.utcnow()
+        if not force and self._last_connectivity_check is not None:
+            last_time, status = self._last_connectivity_check
+            if (now - last_time).total_seconds() < 60:
+                return status
+
+        # Fast minimal probe on a known route (Siliguri region)
+        test_url = (
+            f"https://api.tomtom.com/routing/1/calculateRoute/"
+            f"26.7200,88.4200:26.7250,88.4250/json?key={self.api_key}&traffic=false"
+        )
+        import httpx
+        try:
+            with httpx.Client(timeout=httpx.Timeout(3.0, connect=1.5)) as client:
+                resp = client.get(test_url)
+                is_connected = (resp.status_code == 200)
+                self._last_connectivity_check = (now, is_connected)
+                return is_connected
+        except Exception as e:
+            logger.debug(f"TomTom connectivity check failed: {e}")
+            self._last_connectivity_check = (now, False)
+            return False
 
     def is_available(self) -> bool:
-        return bool(self.api_key and self.api_key.strip())
+        return self.check_connectivity()
 
     def get_provider_mode(self) -> str:
         return "REAL"
 
     def fetch_traffic(self, destination_id: str) -> DestinationTrafficSummary:
         dest_clean = destination_id.lower().strip()
-        if not self.is_available():
+        if not self.api_key or not self.api_key.strip():
             raise RuntimeError("TomTom traffic provider API key is not configured")
 
         corridors = TOMTOM_CORRIDOR_WAYPOINTS.get(dest_clean)
@@ -413,89 +454,99 @@ class TomTomTrafficProvider(BaseTrafficProvider):
 
         import httpx
 
-        # Query live traffic for each corridor
-        for corridor in corridors:
-            orig_lat, orig_lon = corridor["origin_coords"]
-            dest_lat, dest_lon = corridor["dest_coords"]
-            hist_min = corridor["historical_min"]
+        # Query live traffic for each corridor with persistent client session
+        with httpx.Client(timeout=httpx.Timeout(self.timeout, connect=2.0)) as client:
+            for corridor in corridors:
+                orig_lat, orig_lon = corridor["origin_coords"]
+                dest_lat, dest_lon = corridor["dest_coords"]
+                fallback_hist_min = corridor["historical_min"]
 
-            url = (
-                f"https://api.tomtom.com/routing/1/calculateRoute/"
-                f"{orig_lat:.4f},{orig_lon:.4f}:{dest_lat:.4f},{dest_lon:.4f}/json"
-                f"?key={self.api_key}&traffic=true&travelMode=car"
-            )
+                url = (
+                    f"https://api.tomtom.com/routing/1/calculateRoute/"
+                    f"{orig_lat:.4f},{orig_lon:.4f}:{dest_lat:.4f},{dest_lon:.4f}/json"
+                    f"?key={self.api_key}&traffic=true&travelMode=car&computeTravelTimeFor=all"
+                )
 
-            cur_min = hist_min
-            delay_sec = 0
-            incident_desc = None
-            road_status = "CLEAR"
-
-            try:
-                with httpx.Client(timeout=httpx.Timeout(self.timeout, connect=1.5)) as client:
+                try:
                     resp = client.get(url)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        routes_data = data.get("routes", [])
-                        if routes_data:
-                            summary = routes_data[0].get("summary", {})
-                            travel_time_sec = summary.get("travelTimeInSeconds", hist_min * 60)
-                            no_traffic_sec = summary.get("noTrafficTravelTimeInSeconds", hist_min * 60)
-                            delay_sec = summary.get("trafficDelayInSeconds", 0)
-
-                            cur_min = max(1, int(round(travel_time_sec / 60.0)))
-                            if no_traffic_sec > 0:
-                                hist_min = max(1, int(round(no_traffic_sec / 60.0)))
-                    else:
+                    if resp.status_code != 200:
                         logger.warning(
                             f"TomTom API returned status {resp.status_code} for {corridor['route_id']}: {resp.text[:100]}"
                         )
+                        self._last_connectivity_check = (now, False)
                         raise RuntimeError(f"TomTom API error HTTP {resp.status_code}")
-            except Exception as e:
-                logger.warning(f"TomTom corridor query failed for {corridor['route_id']}: {e}")
-                raise
 
-            ratio = round(cur_min / hist_min, 2)
-            anomaly_pct = round(((cur_min - hist_min) / hist_min) * 100, 1)
+                    data = resp.json()
+                    routes_data = data.get("routes", [])
+                    if not routes_data or not isinstance(routes_data, list):
+                        raise ValueError(f"Malformed TomTom response: missing routes for {corridor['route_id']}")
 
-            if delay_sec > 900 or ratio >= 1.6:
-                road_status = "RESTRICTED"
-                has_restricted = True
-                total_incidents += 1
-                incident_desc = f"TomTom Traffic Alert: {delay_sec // 60}m congestion delay along corridor"
-            elif delay_sec > 300 or ratio >= 1.25:
-                road_status = "SLOW"
-                if delay_sec > 300:
+                    summary = routes_data[0].get("summary", {})
+                    if not summary or not isinstance(summary, dict):
+                        raise ValueError(f"Malformed TomTom response: missing summary for {corridor['route_id']}")
+
+                    travel_time_sec = summary.get("travelTimeInSeconds")
+                    if travel_time_sec is None:
+                        raise ValueError(f"Malformed TomTom response: missing travelTimeInSeconds for {corridor['route_id']}")
+
+                    no_traffic_sec = summary.get("noTrafficTravelTimeInSeconds") or summary.get("historicTrafficTravelTimeInSeconds")
+                    delay_sec = summary.get("trafficDelayInSeconds", 0)
+
+                    cur_min = max(1, int(round(travel_time_sec / 60.0)))
+                    if no_traffic_sec and no_traffic_sec > 0:
+                        hist_min = max(1, int(round(no_traffic_sec / 60.0)))
+                    else:
+                        hist_min = fallback_hist_min
+
+                except Exception as e:
+                    logger.warning(f"TomTom corridor query failed for {corridor['route_id']}: {e}")
+                    raise
+
+                ratio = round(cur_min / max(1, hist_min), 2)
+                anomaly_pct = round(((cur_min - hist_min) / max(1, hist_min)) * 100.0, 1)
+
+                incident_desc = None
+                if delay_sec >= 900 or ratio >= 1.6:
+                    road_status = "RESTRICTED"
+                    has_restricted = True
+                    total_incidents += 1
+                    incident_desc = f"TomTom Traffic Alert: {delay_sec // 60}m congestion delay along corridor"
+                elif delay_sec >= 300 or ratio >= 1.25:
+                    road_status = "SLOW"
                     total_incidents += 1
                     incident_desc = f"TomTom Delay: {delay_sec // 60}m transit slowdown"
-            else:
-                road_status = "CLEAR"
+                elif delay_sec > 60:
+                    road_status = "SLOW"
+                    incident_desc = f"TomTom Delay: {delay_sec // 60}m minor delay"
+                else:
+                    road_status = "CLEAR"
 
-            level = classify_route_congestion(ratio)
+                level = classify_route_congestion(ratio)
 
-            obs = RouteTrafficObservation(
-                route_id=corridor["route_id"],
-                route_name=corridor["route_name"],
-                origin=corridor["origin"],
-                destination_id=dest_clean,
-                current_travel_time_min=cur_min,
-                historical_travel_time_min=hist_min,
-                travel_time_ratio=ratio,
-                travel_time_anomaly_percent=anomaly_pct,
-                congestion_level=level,
-                road_status=road_status,
-                incident_count=1 if incident_desc else 0,
-                incident_description=incident_desc
-            )
-            routes_obs.append(obs)
+                obs = RouteTrafficObservation(
+                    route_id=corridor["route_id"],
+                    route_name=corridor["route_name"],
+                    origin=corridor["origin"],
+                    destination_id=dest_clean,
+                    current_travel_time_min=cur_min,
+                    historical_travel_time_min=hist_min,
+                    travel_time_ratio=ratio,
+                    travel_time_anomaly_percent=anomaly_pct,
+                    congestion_level=level,
+                    road_status=road_status,
+                    incident_count=1 if incident_desc else 0,
+                    incident_description=incident_desc
+                )
+                routes_obs.append(obs)
 
-            total_ratio += ratio
-            if ratio > max_ratio and ratio > 1.15:
-                max_ratio = ratio
-                primary_bottleneck = corridor["route_name"]
+                total_ratio += ratio
+                if ratio > max_ratio and ratio > 1.15:
+                    max_ratio = ratio
+                    primary_bottleneck = corridor["route_name"]
 
         route_count = max(1, len(routes_obs))
         avg_ratio = round(total_ratio / route_count, 2)
-        avg_anomaly = round(((avg_ratio - 1.0) * 100), 1)
+        avg_anomaly = round(((avg_ratio - 1.0) * 100.0), 1)
 
         congestion_score = round(max(0.0, min(100.0, (avg_ratio - 0.8) * 80.0)), 1)
 
@@ -509,6 +560,8 @@ class TomTomTrafficProvider(BaseTrafficProvider):
         dest_name = dest_clean.capitalize()
         if dest_clean in DEMO_CORRIDOR_DATA:
             dest_name = DEMO_CORRIDOR_DATA[dest_clean]["name"]
+
+        self._last_connectivity_check = (now, True)
 
         return DestinationTrafficSummary(
             destination_id=dest_clean,

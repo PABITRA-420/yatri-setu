@@ -58,7 +58,16 @@ class Settings:
     # Traffic Provider Settings (demo | tomtom | google | unavailable)
     TRAFFIC_PROVIDER: str = os.getenv("TRAFFIC_PROVIDER", "tomtom")
     TRAFFIC_API_KEY: Optional[str] = os.getenv("TRAFFIC_API_KEY", None)
-    TOMTOM_API_KEY: Optional[str] = os.getenv("TOMTOM_API_KEY", os.getenv("TRAFFIC_API_KEY", None))
+
+    @property
+    def TOMTOM_API_KEY(self) -> Optional[str]:
+        raw = os.getenv("TOMTOM_API_KEY", os.getenv("TRAFFIC_API_KEY", None))
+        if not raw:
+            return None
+        cleaned = raw.strip().strip('"').strip("'")
+        if len(cleaned) == 38 and cleaned.endswith("tomtom"):
+            cleaned = cleaned[:-6]
+        return cleaned if cleaned else None
 
     # Road Routing Provider Settings (demo | osrm | fallback)
     ROUTING_PROVIDER: str = os.getenv("ROUTING_PROVIDER", "osrm")
