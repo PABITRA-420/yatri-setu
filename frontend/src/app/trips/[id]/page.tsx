@@ -58,7 +58,7 @@ export default function TripDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Active Trip Header */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-slate-900 text-white rounded-[24px] p-6 sm:p-8 shadow-[0_12px_40px_rgba(23,23,20,0.06)] flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -78,7 +78,7 @@ export default function TripDashboardPage() {
         {/* SOS Emergency Trigger Button */}
         <Link
           href="/safety/sos"
-          className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-extrabold text-xs shadow-lg shadow-rose-600/40 active:scale-95 transition-all flex items-center gap-2 self-start md:self-auto"
+          className="px-6 py-3.5 rounded-[20px] bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-extrabold text-xs shadow-lg shadow-rose-600/40 active:scale-95 transition-all flex items-center gap-2 self-start md:self-auto"
         >
           <ShieldAlert className="w-5 h-5 animate-pulse" />
           <span>TRIGGER SOS RESCUE BEACON</span>
@@ -88,7 +88,7 @@ export default function TripDashboardPage() {
       {/* Main Grid: Digital Pass & Live Safety Info */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Digital Pass Card (Left 5 Cols) */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -100,7 +100,7 @@ export default function TripDashboardPage() {
             </div>
 
             {/* QR Visual */}
-            <div className="w-40 h-40 bg-white p-3 rounded-2xl border border-slate-200 shadow-inner mx-auto flex items-center justify-center">
+            <div className="w-40 h-40 bg-[#FCFAF6] p-3 rounded-[20px] border border-slate-200 shadow-inner mx-auto flex items-center justify-center">
               <QrCode className="w-32 h-32 text-slate-900" />
             </div>
 
@@ -136,7 +136,7 @@ export default function TripDashboardPage() {
         {/* Right 7 Cols: Weather Alert, Packing Checklist, Itinerary Link */}
         <div className="lg:col-span-7 space-y-6">
           {/* Weather Advisory */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 flex items-start gap-3">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-[20px] p-5 flex items-start gap-3">
             <div className="p-2 rounded-xl bg-amber-500 text-white shrink-0 mt-0.5">
               <Sun className="w-5 h-5" />
             </div>
@@ -151,7 +151,7 @@ export default function TripDashboardPage() {
           </div>
 
           {/* Packing & Eco Guidelines Checklist */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-white">
                 Traveler Checklist & Eco Guidelines
@@ -189,7 +189,7 @@ export default function TripDashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
               href="/itinerary?destination=kalimpong"
-              className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-amber-500/40 transition-colors flex items-center justify-between"
+              className="p-4 rounded-[20px] bg-[#FCFAF6] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-amber-500/40 transition-colors flex items-center justify-between"
             >
               <div>
                 <span className="text-xs font-bold text-slate-900 dark:text-white block">
@@ -202,7 +202,7 @@ export default function TripDashboardPage() {
 
             <Link
               href="/safety/sos"
-              className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 shadow-sm hover:bg-rose-500/20 transition-colors flex items-center justify-between text-rose-700 dark:text-rose-400"
+              className="p-4 rounded-[20px] bg-rose-500/10 border border-rose-500/30 shadow-sm hover:bg-rose-500/20 transition-colors flex items-center justify-between text-rose-700 dark:text-rose-400"
             >
               <div>
                 <span className="text-xs font-bold block">
