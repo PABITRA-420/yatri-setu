@@ -4,7 +4,7 @@ Defines normalized weather observations, forecasts, impact signals, and cache st
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
 
 
@@ -14,6 +14,10 @@ class WeatherObservation(BaseModel):
     destination_name: str
     observed_at: datetime = Field(default_factory=datetime.utcnow)
     forecast_for: Optional[str] = None  # YYYY-MM-DD for forecast, None for current
+    reading_type: Literal["CURRENT", "FORECAST"] = Field(
+        "CURRENT",
+        description="'CURRENT' = live observation; 'FORECAST' = model prediction for future date"
+    )
     temperature_c: float
     temp_min_c: float
     temp_max_c: float

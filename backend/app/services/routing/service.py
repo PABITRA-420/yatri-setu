@@ -109,7 +109,8 @@ class RoutingService:
             from app.services.traffic.service import traffic_service
             traffic_summary = traffic_service.get_traffic(norm_dest)
             if traffic_summary:
-                response.traffic_condition = f"{traffic_summary.corridor_traffic_level} ({traffic_summary.access_status})"
+                congestion = int(traffic_summary.overall_congestion_score)
+                response.traffic_condition = f"Congestion {congestion}/100 ({traffic_summary.access_status})"
         except Exception:
             pass
 

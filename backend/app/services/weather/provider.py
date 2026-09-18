@@ -181,6 +181,7 @@ class DemoWeatherProvider(BaseWeatherProvider):
                 destination_name=base.destination_name,
                 observed_at=now,
                 forecast_for=f_date,
+                reading_type="FORECAST",
                 temperature_c=round(base.temperature_c + temp_drift, 1),
                 temp_min_c=round(base.temp_min_c + temp_drift, 1),
                 temp_max_c=round(base.temp_max_c + temp_drift, 1),
@@ -354,7 +355,7 @@ class UnavailableWeatherProvider(BaseWeatherProvider):
         now = datetime.utcnow()
         return [
             WeatherObservation(
-                **{**obs.model_dump(), "forecast_for": (now + timedelta(days=i)).strftime("%Y-%m-%d")}
+                **{**obs.model_dump(), "forecast_for": (now + timedelta(days=i)).strftime("%Y-%m-%d"), "reading_type": "FORECAST"}
             )
             for i in range(1, days + 1)
         ]

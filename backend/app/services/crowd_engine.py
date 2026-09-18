@@ -268,16 +268,31 @@ def compute_dynamic_crowd_factors(destination_id: str) -> Tuple[Dict[str, float]
     }
 
     # Strict Provenance Classification
-    if meta["has_real_booking"] or meta["has_real_traffic"] or meta["has_real_weather"]:
-        if meta["has_real_traffic"] and meta["has_real_weather"]:
-            meta["provenance_label"] = "REAL — LIVE TELEMETRY & BOOKINGS"
-            meta["provider_mode"] = "REAL"
-        else:
-            meta["provenance_label"] = "MIXED — TELEMETRY & BASELINE"
-            meta["provider_mode"] = "MIXED"
+    # Distinguishes 5 honest provenance tiers — never conflates BASELINE with REAL or DEMO.
+    if meta["has_real_traffic"] and meta["has_real_weather"] and meta["has_real_booking"]:
+        # All three live streams confirmed
+        meta["provenance_label"] = "REAL — LIVE TELEMETRY & BOOKINGS"
+        meta["provider_mode"] = "REAL"
+    elif meta["has_real_traffic"] and meta["has_real_weather"]:
+        # Traffic + weather are live; booking from baseline
+        meta["provenance_label"] = "REAL — LIVE TRAFFIC & WEATHER (BOOKING BASELINE)"
+        meta["provider_mode"] = "REAL"
+    elif (meta["has_real_traffic"] or meta["has_real_weather"]) and meta["has_real_booking"]:
+        # At least one sensor stream + live bookings
+        meta["provenance_label"] = "MIXED — LIVE SENSOR + BOOKING TELEMETRY"
+        meta["provider_mode"] = "MIXED"
+    elif meta["has_real_traffic"] or meta["has_real_weather"]:
+        # Only one sensor stream live; booking from baseline
+        meta["provenance_label"] = "MIXED — PARTIAL LIVE TELEMETRY + BASELINE"
+        meta["provider_mode"] = "MIXED"
+    elif meta["has_real_booking"]:
+        # Only booking data from PostgreSQL; everything else calibrated
+        meta["provenance_label"] = "COMPUTED — BOOKING TELEMETRY + CALENDAR & SEASON"
+        meta["provider_mode"] = "COMPUTED"
     else:
-        meta["provenance_label"] = "DEMO MODE — SYNTHETIC DATA"
-        meta["provider_mode"] = "DEMO"
+        # No live feeds available — calibrated regional baseline only
+        meta["provenance_label"] = "BASELINE — CALIBRATED REGIONAL PROFILES"
+        meta["provider_mode"] = "BASELINE"
 
     return factors, meta
 
@@ -295,8 +310,9 @@ def calculate_crowd_score(destination_id: str, custom_factors: Dict[str, float] 
     """
     norm_id = destination_id.lower().strip()
     provenance_meta: Dict[str, Any] = {
-        "provenance_label": "REAL — LIVE TELEMETRY & BOOKINGS",
-        "provider_mode": "REAL",
+        # Initialized as PENDING — overwritten by compute_dynamic_crowd_factors result
+        "provenance_label": "COMPUTED — PENDING LIVE FACTORS",
+        "provider_mode": "COMPUTED",
         "traffic_status": None,
         "hotel_occupancy": None
     }

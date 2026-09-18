@@ -62,7 +62,11 @@ class AlternativeRecommendation(BaseModel):
     original_crowd_score: int = Field(88, description="Origin destination crowd score")
     alternative_crowd_score: int = Field(42, description="Alternative destination crowd score")
     crowd_reduction_percent: int = Field(..., description="Percentage crowd reduction vs original")
-    distance_km: float
+    # Distance fields — clearly distinguished by provenance
+    distance_km: float = Field(..., description="Primary distance (road if OSRM available, else geographic)")
+    geographic_distance_km: Optional[float] = Field(None, description="Haversine straight-line geographic distance in km")
+    road_distance_km: Optional[float] = Field(None, description="OSRM road network distance in km (None if unavailable)")
+    distance_provenance: str = Field("HAVERSINE_GEOGRAPHIC_ESTIMATE", description="'OSRM_ROAD_DISTANCE' or 'HAVERSINE_GEOGRAPHIC_ESTIMATE'")
     estimated_cost_per_day: int
     cost_difference_percent: int # e.g. -35%
     reasons_to_recommend: List[str]

@@ -1,5 +1,5 @@
 import math
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.data.seed_data import DESTINATIONS_DATA
 from app.models.crowd import (
     AlternativeRecommendation, AlternativesResponse, CrowdLevel, AlternativeWeather
@@ -106,6 +106,10 @@ from app.services.capacity.service import capacity_service
 from app.services.capacity.schemas import CapacityHealthStatus
 from app.services.traffic.service import traffic_service
 from app.services.weather.service import weather_service
+try:
+    from app.services.routing.service import routing_service as _routing_service
+except Exception:
+    _routing_service = None
 
 def compute_suitability_score(
     similarity: int,
@@ -219,13 +223,27 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
         if crowd_data.crowd_score > origin_crowd.crowd_score:
             continue
 
-        # Compute multi-attribute similarity and distance
+        # Compute multi-attribute similarity and Haversine geographic distance
         similarity = compute_similarity(origin_dest, dest)
-        dist = haversine_distance_km(
+        geo_dist = haversine_distance_km(
             origin_dest["coordinates"]["lat"], origin_dest["coordinates"]["lng"],
             dest["coordinates"]["lat"], dest["coordinates"]["lng"]
         )
 
+        # Attempt OSRM road distance; fall back to Haversine geographic distance
+        road_dist: Optional[float] = None
+        dist_provenance = "HAVERSINE_GEOGRAPHIC_ESTIMATE"
+        try:
+            if _routing_service is not None:
+                route_resp = _routing_service.calculate_route(origin_id_norm, dest_id)
+                if route_resp.is_road_distance:
+                    road_dist = round(route_resp.distance_km, 1)
+                    dist_provenance = "OSRM_ROAD_DISTANCE"
+        except Exception:
+            pass  # Silently fall back to Haversine
+
+        # Primary distance for UI: road distance if available, else geographic
+        dist = road_dist if road_dist is not None else geo_dist
         alt_cost = dest["attributes"]["avg_cost_per_day_inr"]
         cost_diff_percent = int(round(((alt_cost - origin_cost) / origin_cost) * 100))
 
@@ -345,6 +363,9 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
                 alternative_crowd_score=crowd_data.crowd_score,
                 crowd_reduction_percent=reduction_percent,
                 distance_km=dist,
+                geographic_distance_km=geo_dist,
+                road_distance_km=road_dist,
+                distance_provenance=dist_provenance,
                 estimated_cost_per_day=alt_cost,
                 cost_difference_percent=cost_diff_percent,
                 reasons_to_recommend=reasons,

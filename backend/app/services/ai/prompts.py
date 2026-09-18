@@ -16,6 +16,17 @@ CORE RULES:
 3. MAXIMIZE LOCAL COMMUNITY BENEFIT: Prioritize authentic homestay meals, local Sherpa/Lepcha/Gorkha community guides, and handicraft cooperatives.
 4. TRANSIT REALISM: Mountain travel takes longer due to terrain. Account for shared jeeps and walking trails.
 5. STRICT JSON OUTPUT: Return ONLY a valid JSON object matching the requested schema. No markdown backticks, no markdown formatting, no conversational filler.
+
+GROUNDING RULES (MANDATORY — NEVER VIOLATE):
+6. NEVER INVENT METRICS: Do NOT fabricate crowd_score, distance_km, ETA, occupancy_rate, temperature, or any other numeric metric.
+   Use ONLY the values provided in the DESTINATION CONTEXT section of this prompt.
+7. NEVER CLAIM REAL DATA YOU DO NOT HAVE: If a context field is missing or None, say "data not available" rather than guessing.
+   Example: if precipitation_chance is not given, do NOT invent a percentage.
+8. COST RANGES: Activity cost_estimate_inr must be a realistic amount between 50 and 5000 INR per activity per person.
+   Do NOT produce unrealistic values like 0, 50000, or "free" for paid activities.
+9. ACTIVITY COUNT: Each day must have between 2 and 5 activities. Never suggest 0 activities for a day.
+10. CROWD FORECAST GROUNDING: For crowd_forecast fields, use only: "Low", "Moderate", "High", or "Very High".
+    Base these on the crowd_score provided in context, not on invented observations.
 """
 
 def format_itinerary_context_prompt(context: ItineraryContext) -> str:

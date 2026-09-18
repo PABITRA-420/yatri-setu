@@ -7,7 +7,52 @@ route transit estimates, and village sustainability metrics.
 import uuid
 import asyncio
 import concurrent.futures
+import logging
 from typing import List, Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
+
+VALID_CROWD_FORECAST_VALUES = {"Low", "Moderate", "High", "Very High"}
+ACTIVITY_COST_MIN_INR = 50
+ACTIVITY_COST_MAX_INR = 5000
+
+
+def _validate_ai_output(ai_output, context) -> None:
+    """
+    Post-generation validation guard against LLM hallucination.
+    Checks for unrealistic costs, activity counts, and invalid crowd forecast values.
+    Sanitizes in-place and logs AI_HALLUCINATION_RISK warnings.
+    """
+    for day in (ai_output.days or []):
+        # Activity count check
+        if len(day.activities) < 2 or len(day.activities) > 5:
+            logger.warning(
+                f"AI_HALLUCINATION_RISK: Day {day.day_number} has {len(day.activities)} activities "
+                f"(expected 2-5) for dest='{context.destination_id}'"
+            )
+
+        for act in day.activities:
+            # Cost sanity check
+            if not (ACTIVITY_COST_MIN_INR <= act.cost_estimate_inr <= ACTIVITY_COST_MAX_INR):
+                logger.warning(
+                    f"AI_HALLUCINATION_RISK: Activity '{act.title}' has cost {act.cost_estimate_inr} INR "
+                    f"outside allowed range [{ACTIVITY_COST_MIN_INR}, {ACTIVITY_COST_MAX_INR}]. Clamping."
+                )
+                act.cost_estimate_inr = max(ACTIVITY_COST_MIN_INR, min(ACTIVITY_COST_MAX_INR, act.cost_estimate_inr))
+
+            # Crowd forecast value check
+            if act.crowd_forecast not in VALID_CROWD_FORECAST_VALUES:
+                logger.warning(
+                    f"AI_HALLUCINATION_RISK: Activity '{act.title}' has invalid crowd_forecast='{act.crowd_forecast}'. "
+                    f"Normalizing to context score."
+                )
+                score = context.crowd_score
+                act.crowd_forecast = (
+                    "Low" if score <= 25 else
+                    "Moderate" if score <= 50 else
+                    "High" if score <= 75 else
+                    "Very High"
+                )
 
 from app.models.itinerary import (
     ItineraryRequest,
@@ -182,6 +227,7 @@ async def generate_smart_itinerary_async(
     context = _build_context(req.destination_id, user_prefs)
     provider = get_ai_provider(provider_override)
     ai_output = await provider.generate_itinerary(context)
+    _validate_ai_output(ai_output, context)
     
     return _convert_ai_output_to_response(
         ai_output=ai_output,
@@ -234,6 +280,7 @@ async def optimize_smart_itinerary_async(
         instruction=req.instruction,
         custom_instruction=req.custom_instruction
     )
+    _validate_ai_output(ai_output, context)
 
     used_name = ai_output.provider_used or provider.provider_name
     history.append(f"Directive '{req.instruction}' applied via {used_name}")

@@ -27,6 +27,7 @@ import {
   ArrowUpRight
 } from 'lucide-react';
 import { DestinationCard } from '@/components/DestinationCard';
+import { DataSourcesPanel } from '@/components/DataSourcesPanel';
 import { DestinationSummary } from '@/types';
 
 export default function HomePage() {
@@ -296,6 +297,13 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      </section>
+
+      {/* Live Data Sources Panel — Honest Provenance Transparency */}
+      <section className="relative w-full py-8 z-10">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <DataSourcesPanel />
+        </div>
       </section>
 
       {/* Experience / Category Section (Editorial Tiles) */}

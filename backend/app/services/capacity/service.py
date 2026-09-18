@@ -129,16 +129,23 @@ class DestinationCapacityService:
         actual_occupancy = occupied_units / max(1, total_units)
         health_status = classify_capacity_health(actual_occupancy)
 
-        # Capacity confidence and completeness
+        # Capacity confidence and completeness + provenance
         if listed_properties > 0 and active_properties > 0:
             data_status = CapacityDataStatus.AVAILABLE
             confidence = CapacityConfidence.HIGH
+            # Source depends on whether records came from DB or seed memory
+            src = "HOMESTAY_REPOSITORY_INTEGRATION"
+            pmode = "REAL"
         elif listed_properties > 0:
             data_status = CapacityDataStatus.PARTIAL
             confidence = CapacityConfidence.MEDIUM
+            src = "SEED_REGISTRY_PARTIAL"
+            pmode = "BASELINE"
         else:
             data_status = CapacityDataStatus.PARTIAL
             confidence = CapacityConfidence.MEDIUM
+            src = "SEED_REGISTRY_BASELINE"
+            pmode = "BASELINE"
 
         estimated_daily_host_capacity = total_units * 2 # Standard 2 guests per room
 
@@ -158,9 +165,9 @@ class DestinationCapacityService:
             capacity_confidence=confidence,
             unit_type="rooms",
             last_updated=datetime.utcnow().isoformat(),
-            source="HOMESTAY_REPOSITORY_INTEGRATION",
-            provider_mode="REAL",
-            data_quality="HIGH"
+            source=src,
+            provider_mode=pmode,
+            data_quality="HIGH" if pmode == "REAL" else "MEDIUM"
         )
 
 
