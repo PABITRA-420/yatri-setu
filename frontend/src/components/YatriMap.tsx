@@ -14,6 +14,7 @@ import {
   ShieldCheck, 
   Activity, 
   Sparkles,
+  RefreshCw,
   Info
 } from 'lucide-react';
 
@@ -100,7 +101,43 @@ export const CANONICAL_CIRCUIT_NODES: CircuitDestinationNode[] = [
   }
 ];
 
-const OPENFREEMAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+export const MAP_STYLES = {
+  openfreemap: {
+    id: 'openfreemap',
+    name: 'OpenFreeMap Liberty',
+    url: 'https://tiles.openfreemap.org/styles/liberty'
+  },
+  carto: {
+    id: 'carto',
+    name: 'Carto Voyager',
+    url: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+  },
+  osm: {
+    id: 'osm',
+    name: 'OpenStreetMap Standard',
+    spec: {
+      version: 8,
+      sources: {
+        'osm-tiles': {
+          type: 'raster',
+          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+          tileSize: 256,
+          attribution: '&copy; OpenStreetMap contributors'
+        }
+      },
+      layers: [
+        {
+          id: 'osm-tiles-layer',
+          type: 'raster',
+          source: 'osm-tiles',
+          minzoom: 0,
+          maxzoom: 19
+        }
+      ]
+    }
+  }
+};
+
 const CIRCUIT_CENTER_LNG_LAT: [number, number] = [88.45, 27.04];
 const DEFAULT_ZOOM = 10.2;
 
@@ -142,53 +179,212 @@ export const YatriMap: React.FC<YatriMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
+  const [activeStyleKey, setActiveStyleKey] = useState<'openfreemap' | 'carto' | 'osm'>('openfreemap');
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [isStyleFallback, setIsStyleFallback] = useState(false);
+
+  // Helper to safely render route layers
+  const syncRouteLayer = useCallback((map: maplibregl.Map) => {
+    if (!map || !map.isStyleLoaded()) return;
+
+    const sourceId = 'yatri-route-source';
+    const layerId = 'yatri-route-layer';
+    const casingLayerId = 'yatri-route-casing-layer';
+
+    if (map.getLayer(layerId)) map.removeLayer(layerId);
+    if (map.getLayer(casingLayerId)) map.removeLayer(casingLayerId);
+    if (map.getSource(sourceId)) map.removeSource(sourceId);
+
+    if (!routeGeometry) return;
+
+    let coordinates: [number, number][] = [];
+    if (Array.isArray(routeGeometry)) {
+      coordinates = routeGeometry;
+    } else if (routeGeometry.coordinates && Array.isArray(routeGeometry.coordinates)) {
+      coordinates = routeGeometry.coordinates as [number, number][];
+    }
+
+    if (coordinates.length < 2) return;
+
+    try {
+      map.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: coordinates
+          }
+        }
+      });
+
+      // Outer glow casing
+      map.addLayer({
+        id: casingLayerId,
+        type: 'line',
+        source: sourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#f59e0b',
+          'line-width': 7,
+          'line-opacity': 0.4,
+          'line-blur': 2
+        }
+      });
+
+      // Sharp inner path
+      map.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': isRoadDistance ? '#f59e0b' : '#38bdf8',
+          'line-width': isRoadDistance ? 4 : 3,
+          'line-opacity': 0.95,
+          'line-dasharray': isRoadDistance ? [1, 0] : [2, 2]
+        }
+      });
+
+      // Auto-fit bounds
+      const bounds = coordinates.reduce(
+        (b, coord) => b.extend(coord as [number, number]),
+        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+      );
+      map.fitBounds(bounds, {
+        padding: { top: 60, bottom: 60, left: 60, right: 60 },
+        maxZoom: 12,
+        duration: 1000
+      });
+    } catch (err) {
+      console.warn('Could not render route layer on map:', err);
+    }
+  }, [routeGeometry, isRoadDistance]);
 
   // Initialize MapLibre
   useEffect(() => {
     if (!mapContainerRef.current) return;
     if (mapRef.current) return;
 
+    let styleLoadTimeout: NodeJS.Timeout | null = null;
+    let mapInstance: maplibregl.Map | null = null;
+
     try {
-      const map = new maplibregl.Map({
+      const selectedStyle = MAP_STYLES[activeStyleKey];
+      const initialStyle: any = 'url' in selectedStyle ? selectedStyle.url : selectedStyle.spec;
+
+      mapInstance = new maplibregl.Map({
         container: mapContainerRef.current,
-        style: OPENFREEMAP_STYLE_URL,
+        style: initialStyle,
         center: center,
         zoom: zoom,
         interactive: interactive,
         attributionControl: false
       });
 
+      mapRef.current = mapInstance;
+
       if (showControls) {
-        map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+        mapInstance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
       }
 
-      map.on('load', () => {
-        mapRef.current = map;
+      // If OpenFreeMap vector style takes > 3.5s (e.g. ISP throttling/DNS timeout), fallback automatically
+      styleLoadTimeout = setTimeout(() => {
+        if (mapInstance && !mapInstance.isStyleLoaded() && activeStyleKey === 'openfreemap') {
+          console.warn('OpenFreeMap style timed out, auto-falling back to Carto Voyager...');
+          setIsStyleFallback(true);
+          setActiveStyleKey('carto');
+          mapInstance.setStyle(MAP_STYLES.carto.url);
+        }
+      }, 3500);
+
+      const handleReady = () => {
+        if (styleLoadTimeout) clearTimeout(styleLoadTimeout);
         setMapLoaded(true);
-      });
-
-      map.on('error', (e: any) => {
-        console.warn('MapLibre encounter warning or style reload:', e);
-      });
-
-      return () => {
-        markersRef.current.forEach((m) => m.remove());
-        markersRef.current = [];
-        map.remove();
-        mapRef.current = null;
+        mapInstance?.resize();
+        if (mapInstance) syncRouteLayer(mapInstance);
       };
-    } catch (err) {
+
+      mapInstance.on('load', handleReady);
+      mapInstance.on('styledata', () => {
+        if (mapInstance?.isStyleLoaded()) {
+          setMapLoaded(true);
+          syncRouteLayer(mapInstance);
+        }
+      });
+
+      mapInstance.on('error', (e: any) => {
+        console.warn('MapLibre event error:', e);
+        // If initial style fetch completely failed, switch to Carto or OSM
+        if (activeStyleKey === 'openfreemap' && !mapInstance?.isStyleLoaded()) {
+          setIsStyleFallback(true);
+          setActiveStyleKey('carto');
+          mapInstance?.setStyle(MAP_STYLES.carto.url);
+        }
+      });
+
+      // Quick resize check after container finishes DOM layout
+      setTimeout(() => mapInstance?.resize(), 100);
+      setTimeout(() => mapInstance?.resize(), 500);
+
+    } catch (err: any) {
       console.error('Failed to initialize MapLibre GL:', err);
-      setMapError('Interactive WebGL map failed to initialize in this browser environment.');
+      setMapError('Interactive WebGL map failed to initialize in this browser.');
     }
+
+    // Container ResizeObserver for seamless sizing in dynamic page layouts
+    let resizeObserver: ResizeObserver | null = null;
+    if (mapContainerRef.current && typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        mapRef.current?.resize();
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    return () => {
+      if (styleLoadTimeout) clearTimeout(styleLoadTimeout);
+      if (resizeObserver) resizeObserver.disconnect();
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+      mapInstance?.remove();
+      mapRef.current = null;
+    };
   }, []);
 
-  // Update Markers & Popups
+  // Handle manual style change
+  const handleStyleSelect = useCallback((styleKey: 'openfreemap' | 'carto' | 'osm') => {
+    setActiveStyleKey(styleKey);
+    const map = mapRef.current;
+    if (!map) return;
+
+    try {
+      const selected = MAP_STYLES[styleKey];
+      if ('url' in selected && selected.url) {
+        map.setStyle(selected.url);
+      } else if ('spec' in selected && selected.spec) {
+        map.setStyle(selected.spec as any);
+      }
+
+      map.once('styledata', () => {
+        syncRouteLayer(map);
+      });
+    } catch (err) {
+      console.warn('Style switch failed:', err);
+    }
+  }, [syncRouteLayer]);
+
+  // Update Markers & Popups immediately on map readiness or node change
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded) return;
+    if (!map) return;
 
     // Clear previous markers
     markersRef.current.forEach((m) => m.remove());
@@ -210,11 +406,11 @@ export const YatriMap: React.FC<YatriMapProps> = ({
       if (isOrigin) {
         pinColor = '#f59e0b'; // Amber luxury origin
         badgeLabel = 'ORIGIN';
-        ringClass = 'ring-4 ring-amber-400/50 animate-pulse';
+        ringClass = 'ring-4 ring-amber-400/70 animate-pulse scale-110';
       } else if (isSelected) {
         pinColor = '#10b981'; // Emerald selected alternative
         badgeLabel = 'SELECTED';
-        ringClass = 'ring-4 ring-emerald-400/60 shadow-lg shadow-emerald-500/30';
+        ringClass = 'ring-4 ring-emerald-400/80 shadow-lg shadow-emerald-500/40 scale-110';
       } else if ((node.crowd_score || 0) > 75) {
         pinColor = '#ef4444'; // Rose high crowd
       } else if ((node.crowd_score || 0) < 35) {
@@ -232,7 +428,7 @@ export const YatriMap: React.FC<YatriMapProps> = ({
               ${badgeLabel}
             </span>
           ` : ''}
-          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xl transition-all group-hover:scale-115 ${ringClass}"
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-xl transition-all group-hover:scale-120 ${ringClass}"
                style="background: ${pinColor}; border: 2.5px solid white;">
             <span>${node.name.slice(0, 1)}</span>
           </div>
@@ -289,93 +485,12 @@ export const YatriMap: React.FC<YatriMapProps> = ({
     });
   }, [nodes, originId, selectedDestinationId, mapLoaded, onSelectDestination]);
 
-  // Update Route Geometry Layer
+  // Update Route Geometry Layer when route data or map state changes
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-
-    const sourceId = 'yatri-route-source';
-    const layerId = 'yatri-route-layer';
-    const casingLayerId = 'yatri-route-casing-layer';
-
-    // Remove existing layer/source if present
-    if (map.getLayer(layerId)) map.removeLayer(layerId);
-    if (map.getLayer(casingLayerId)) map.removeLayer(casingLayerId);
-    if (map.getSource(sourceId)) map.removeSource(sourceId);
-
-    if (!routeGeometry) return;
-
-    let coordinates: [number, number][] = [];
-    if (Array.isArray(routeGeometry)) {
-      coordinates = routeGeometry;
-    } else if (routeGeometry.coordinates && Array.isArray(routeGeometry.coordinates)) {
-      coordinates = routeGeometry.coordinates as [number, number][];
-    }
-
-    if (coordinates.length < 2) return;
-
-    // Add GeoJSON source
-    map.addSource(sourceId, {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: coordinates
-        }
-      }
-    });
-
-    // Add outer glow casing
-    map.addLayer({
-      id: casingLayerId,
-      type: 'line',
-      source: sourceId,
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
-      paint: {
-        'line-color': '#f59e0b',
-        'line-width': 8,
-        'line-opacity': 0.35,
-        'line-blur': 3
-      }
-    });
-
-    // Add crisp inner road line (amber for road, dashed cyan for haversine)
-    map.addLayer({
-      id: layerId,
-      type: 'line',
-      source: sourceId,
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
-      paint: {
-        'line-color': isRoadDistance ? '#f59e0b' : '#38bdf8',
-        'line-width': isRoadDistance ? 4 : 3,
-        'line-opacity': 0.95,
-        'line-dasharray': isRoadDistance ? [1, 0] : [2, 2]
-      }
-    });
-
-    // Fit map bounds to frame both points smoothly
-    try {
-      const bounds = coordinates.reduce(
-        (b, coord) => b.extend(coord as [number, number]),
-        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
-      );
-      map.fitBounds(bounds, {
-        padding: { top: 60, bottom: 60, left: 60, right: 60 },
-        maxZoom: 12,
-        duration: 1200
-      });
-    } catch (err) {
-      console.warn('Could not fit bounds to route:', err);
-    }
-  }, [routeGeometry, mapLoaded, isRoadDistance]);
+    if (!map) return;
+    syncRouteLayer(map);
+  }, [syncRouteLayer, routeGeometry, isRoadDistance]);
 
   const handleResetCamera = useCallback(() => {
     if (!mapRef.current) return;
@@ -391,18 +506,18 @@ export const YatriMap: React.FC<YatriMapProps> = ({
       {/* Map Canvas Container */}
       <div 
         ref={mapContainerRef} 
-        style={{ height: height }} 
+        style={{ height: height, minHeight: '380px' }} 
         className="w-full bg-stone-950"
       />
 
-      {/* Fallback Display if WebGL/MapLibre Fails */}
+      {/* Fallback Display if WebGL Fails */}
       {mapError && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-900/95 p-6 text-center text-white z-20">
           <AlertTriangle className="w-10 h-10 text-amber-400 mb-3" />
-          <h4 className="font-extrabold text-base mb-1">Map Visualization Unavailable</h4>
+          <h4 className="font-extrabold text-base mb-1">Map Visualization Offline</h4>
           <p className="text-xs text-stone-300 max-w-md mb-4">{mapError}</p>
           <div className="bg-stone-800/80 p-3.5 rounded-2xl text-left text-xs space-y-1.5 border border-white/10 max-w-sm w-full">
-            <span className="font-bold text-amber-400 block text-[10px] uppercase">Circuit Coordinate Reference</span>
+            <span className="font-bold text-amber-400 block text-[10px] uppercase">Himalayan Circuit Stations</span>
             <div className="grid grid-cols-2 gap-2 text-[11px] text-stone-300">
               <div>Darjeeling: 27.04° N, 88.27° E</div>
               <div>Kalimpong: 27.06° N, 88.47° E</div>
@@ -416,7 +531,7 @@ export const YatriMap: React.FC<YatriMapProps> = ({
       {/* Floating Header Banner */}
       <div className="absolute top-3.5 left-3.5 z-10 flex flex-wrap items-center gap-2 pointer-events-none">
         <div className="pointer-events-auto glass-pill px-3 py-1.5 rounded-2xl bg-stone-950/80 dark:bg-stone-900/90 text-white text-xs font-extrabold flex items-center gap-2 border border-white/15 shadow-lg backdrop-blur-md">
-          <Compass className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
+          <Compass className="w-3.5 h-3.5 text-amber-400" />
           <span>Eastern Himalayan Circuit Map</span>
         </div>
 
@@ -424,7 +539,7 @@ export const YatriMap: React.FC<YatriMapProps> = ({
           <div className="pointer-events-auto px-3 py-1.5 rounded-2xl bg-stone-950/90 text-white text-xs font-bold flex items-center gap-2 border border-amber-500/40 shadow-lg backdrop-blur-md">
             <Navigation className="w-3.5 h-3.5 text-amber-400" />
             <span>
-              {routeDistanceKm} km {isRoadDistance ? 'Road' : 'Approx. Geographic'}
+              {routeDistanceKm} km {isRoadDistance ? 'Road Corridor' : 'Geographic Estimate'}
             </span>
             {routeDurationMin !== undefined && isRoadDistance && (
               <span className="text-stone-400">• ~{routeDurationMin} min</span>
@@ -433,13 +548,50 @@ export const YatriMap: React.FC<YatriMapProps> = ({
         )}
       </div>
 
-      {/* Floating Bottom Metadata & Provenance Bar */}
+      {/* Floating Bottom Metadata, Style Switcher & Provenance Bar */}
       <div className="absolute bottom-3.5 left-3.5 right-3.5 z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pointer-events-none">
-        {/* Left Provenance Badge */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          <div className="glass-pill px-2.5 py-1 rounded-xl bg-stone-950/85 text-[10px] font-bold text-stone-300 border border-white/10 shadow-md backdrop-blur-md flex items-center gap-1.5">
+        {/* Left: Active Tile Provider & Switcher */}
+        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5">
+          <div className="glass-pill px-2 py-1 rounded-xl bg-stone-950/85 text-[10px] font-bold text-stone-300 border border-white/10 shadow-md backdrop-blur-md flex items-center gap-1.5">
             <Layers className="w-3 h-3 text-amber-400" />
-            <span>OpenFreeMap Liberty • MapLibre GL JS</span>
+            <span>{MAP_STYLES[activeStyleKey].name}</span>
+            {isStyleFallback && (
+              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/30 text-amber-300 font-mono">FALLBACK</span>
+            )}
+          </div>
+
+          {/* Quick Style Switcher Pills */}
+          <div className="hidden md:flex items-center gap-1 bg-stone-950/80 p-0.5 rounded-xl border border-white/10 text-[9px] font-bold">
+            <button
+              type="button"
+              onClick={() => handleStyleSelect('openfreemap')}
+              className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
+                activeStyleKey === 'openfreemap' ? 'bg-amber-500 text-stone-950' : 'text-stone-400 hover:text-white'
+              }`}
+              title="OpenFreeMap Liberty Vector Style"
+            >
+              Liberty
+            </button>
+            <button
+              type="button"
+              onClick={() => handleStyleSelect('carto')}
+              className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
+                activeStyleKey === 'carto' ? 'bg-amber-500 text-stone-950' : 'text-stone-400 hover:text-white'
+              }`}
+              title="Carto Voyager Clean Terrain"
+            >
+              Carto
+            </button>
+            <button
+              type="button"
+              onClick={() => handleStyleSelect('osm')}
+              className={`px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
+                activeStyleKey === 'osm' ? 'bg-amber-500 text-stone-950' : 'text-stone-400 hover:text-white'
+              }`}
+              title="OpenStreetMap Standard Raster (Fail-safe)"
+            >
+              OSM
+            </button>
           </div>
 
           {provenanceLabel && (
@@ -450,7 +602,7 @@ export const YatriMap: React.FC<YatriMapProps> = ({
           )}
         </div>
 
-        {/* Right Camera Reset Action */}
+        {/* Right: Camera Reset Action */}
         <div className="pointer-events-auto flex items-center gap-1.5 self-end sm:self-auto">
           <button
             type="button"

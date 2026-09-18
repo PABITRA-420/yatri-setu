@@ -86,6 +86,20 @@ function getApiBaseUrl(): string {
 
 const API_BASE_URL = getApiBaseUrl();
 
+/**
+ * Safely constructs a valid URL for fetch regardless of whether API_BASE_URL
+ * is an absolute URL (e.g. http://localhost:8000/api) or a relative path (e.g. /api).
+ */
+export function buildApiUrl(path: string): URL {
+  const base = getApiBaseUrl();
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    return new URL(`${base}${cleanPath}`);
+  }
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+  return new URL(`${base}${cleanPath}`, origin);
+}
+
 // Fallback seed data for rock-solid offline or rapid demo reliability
 const FALLBACK_DESTINATIONS: Destination[] = [
   {
@@ -443,7 +457,7 @@ const FALLBACK_HOMESTAYS: Homestay[] = [
 
 export async function fetchDestinations(query?: string, crowdLevel?: string): Promise<DestinationSummary[]> {
   try {
-    const url = new URL(`${API_BASE_URL}/destinations`);
+    const url = buildApiUrl('/destinations');
     if (query) url.searchParams.set('query', query);
     if (crowdLevel) url.searchParams.set('crowd_level', crowdLevel);
 
@@ -910,7 +924,7 @@ export async function fetchDestinationWeather(destinationId: string): Promise<We
 
 export async function fetchHomestays(destinationId?: string): Promise<Homestay[]> {
   try {
-    const url = new URL(`${API_BASE_URL}/homestays`);
+    const url = buildApiUrl('/homestays');
     if (destinationId) url.searchParams.set('destination_id', destinationId);
     const res = await fetch(url.toString(), { cache: 'no-store' });
     if (!res.ok) throw new Error('API fetch failed');
@@ -1212,7 +1226,7 @@ export async function fetchDateAlternatives(
   preferredEndDate: string = '2026-12-27'
 ): Promise<DateAlternativesResponse> {
   try {
-    const url = new URL(`${API_BASE_URL}/destinations/${destinationId}/date-alternatives`);
+    const url = buildApiUrl(`/destinations/${destinationId}/date-alternatives`);
     url.searchParams.set('preferred_start_date', preferredStartDate);
     url.searchParams.set('preferred_end_date', preferredEndDate);
     const res = await fetch(url.toString(), { cache: 'no-store' });
@@ -1273,7 +1287,7 @@ export async function fetchDestinationDecision(
   budget: string = 'Moderate'
 ): Promise<DestinationDecisionResponse> {
   try {
-    const url = new URL(`${API_BASE_URL}/destinations/${destinationId}/decision`);
+    const url = buildApiUrl(`/destinations/${destinationId}/decision`);
     url.searchParams.set('start_date', startDate);
     url.searchParams.set('end_date', endDate);
     url.searchParams.set('budget', budget);
@@ -1565,7 +1579,7 @@ export async function fetchExperiences(
   verifiedOnly: boolean = true
 ): Promise<Experience[]> {
   try {
-    const url = new URL(`${API_BASE_URL}/experiences`);
+    const url = buildApiUrl('/experiences');
     if (destinationId) url.searchParams.set('destination_id', destinationId);
     url.searchParams.set('verified_only', String(verifiedOnly));
     const res = await fetch(url.toString(), { cache: 'no-store' });
@@ -1675,7 +1689,7 @@ export async function fetchPanchayatDashboard(): Promise<PanchayatDashboard> {
 
 export async function fetchPanchayatVerifications(status?: string): Promise<PanchayatVerificationItem[]> {
   try {
-    const url = new URL(`${API_BASE_URL}/panchayat/verifications`);
+    const url = buildApiUrl('/panchayat/verifications');
     if (status) url.searchParams.set('status', status);
     const res = await fetch(url.toString(), { cache: 'no-store' });
     if (!res.ok) throw new Error('Verification queue fetch failed');
@@ -2705,7 +2719,7 @@ export async function fetchRouteEstimate(
   const normDest = destinationId.toLowerCase().trim();
 
   try {
-    const url = new URL(`${API_BASE_URL}/routing/route`);
+    const url = buildApiUrl('/routing/route');
     url.searchParams.set('origin', normOrig);
     url.searchParams.set('destination', normDest);
     if (transitMode) {
