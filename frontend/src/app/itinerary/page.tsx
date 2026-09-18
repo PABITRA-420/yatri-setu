@@ -139,7 +139,7 @@ function ItineraryPlannerContent() {
         </div>
 
         {/* AI Provider Status Pill */}
-        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3 shrink-0 shadow-sm">
+        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-[20px] p-3.5 flex items-center gap-3 shrink-0 shadow-sm">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           <div className="text-xs">
             <div className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -158,7 +158,7 @@ function ItineraryPlannerContent() {
       {/* Preferences Form Card */}
       <form
         onSubmit={handleGenerate}
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6"
+        className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Destination Selector */}
@@ -325,7 +325,7 @@ function ItineraryPlannerContent() {
       {itinerary && (
         <div className="space-y-6">
           {/* Summary Badges Banner */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-[24px] p-6 sm:p-8 shadow-[0_12px_40px_rgba(23,23,20,0.06)] flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-extrabold tracking-wider uppercase">
@@ -350,7 +350,7 @@ function ItineraryPlannerContent() {
             </div>
 
             {/* Estimated Total Budget */}
-            <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center min-w-[210px]">
+            <div className="bg-[#FCFAF6]/10 backdrop-blur-md p-4 rounded-[20px] border border-white/10 text-center min-w-[210px]">
               <div className="flex items-center justify-center gap-1 mb-1">
                 <span className="text-[10px] uppercase font-bold text-slate-300">
                   Estimated Total Spend
@@ -370,7 +370,7 @@ function ItineraryPlannerContent() {
 
           {/* Weather Intelligence Card */}
           {itinerary.weather_forecast && (
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] p-5 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-3">
                   <div className={`p-2.5 rounded-xl ${itinerary.weather_forecast.rain_expected ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
@@ -417,7 +417,7 @@ function ItineraryPlannerContent() {
 
           {/* "Why This Itinerary?" AI Strategic Reasoning Drawer */}
           {itinerary.why_this_itinerary && itinerary.why_this_itinerary.length > 0 && (
-            <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 space-y-3">
+            <div className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-[20px] p-5 space-y-3">
               <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider">
                 <Info className="w-4 h-4" />
                 <span>Why Yatri Setu Recommended This Plan</span>
@@ -435,7 +435,7 @@ function ItineraryPlannerContent() {
 
           {/* Sustainability & Tourism Impact Scorecard */}
           {itinerary.tourism_impact && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="bg-[#FCFAF6] dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-[20px] p-6 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
@@ -450,7 +450,7 @@ function ItineraryPlannerContent() {
                     </span>
                   </div>
                 </div>
-                <div className="text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
+                <div className="text-xs font-bold text-[#183A32] dark:text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
                   Rating: {itinerary.sustainability_score}/100 ({itinerary.sustainability_classification})
                 </div>
               </div>
@@ -508,7 +508,7 @@ function ItineraryPlannerContent() {
           )}
 
           {/* Interactive "Adapt Itinerary with AI" Directives Bar */}
-          <div className="bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-slate-900/5 dark:from-slate-900 dark:to-slate-950 rounded-2xl p-6 border-2 border-amber-500/30 shadow-md space-y-4">
+          <div className="bg-gradient-to-br from-amber-500/10 via-rose-500/5 to-slate-900/5 dark:from-slate-900 dark:to-slate-950 rounded-[20px] p-6 border-2 border-amber-500/30 shadow-md space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500" />
@@ -537,7 +537,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'MAKE_CHEAPER'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
@@ -551,7 +551,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'MORE_RELAXED'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -565,7 +565,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'MORE_NATURE'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <Trees className="w-3.5 h-3.5 text-emerald-600" />
@@ -579,7 +579,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'MORE_CULTURE'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <Landmark className="w-3.5 h-3.5 text-indigo-500" />
@@ -593,7 +593,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'RAIN_SAFE'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <Umbrella className="w-3.5 h-3.5 text-blue-500" />
@@ -607,7 +607,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'AVOID_CROWDS'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
@@ -621,7 +621,7 @@ function ItineraryPlannerContent() {
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
                   activeDirective === 'FAMILY_FRIENDLY'
                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
+                    : 'bg-[#FCFAF6] dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400'
                 }`}
               >
                 <Baby className="w-3.5 h-3.5 text-orange-500" />
@@ -636,7 +636,7 @@ function ItineraryPlannerContent() {
                 value={customPrompt}
                 onChange={(e) => setCustomPrompt(e.target.value)}
                 placeholder="Or type custom prompt: e.g. Add an early morning birdwatching hike and local cheese tasting..."
-                className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
+                className="flex-1 px-4 py-2.5 bg-[#FCFAF6] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && customPrompt.trim()) {
                     handleOptimize('CUSTOM', customPrompt.trim());
@@ -661,7 +661,7 @@ function ItineraryPlannerContent() {
                 {itinerary.optimization_history.map((step, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 text-[10px] whitespace-nowrap"
+                    className="px-2 py-0.5 rounded-md bg-[#FCFAF6]/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 text-[10px] whitespace-nowrap"
                   >
                     {step}
                   </span>
@@ -674,7 +674,7 @@ function ItineraryPlannerContent() {
           <ItineraryTimeline days={itinerary.days} personMultiplier={numberOfTravelers} />
 
           {/* Next Step in SIH Demo Flow: Select Homestay */}
-          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-[20px] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
                 Next Step in Demo: Choose a Verified {itinerary.destination_name} Homestay
