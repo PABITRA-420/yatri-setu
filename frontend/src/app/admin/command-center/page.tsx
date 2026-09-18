@@ -75,6 +75,7 @@ import {
   triggerSafetyRetentionScrub,
   fetchRuralAdminSummary
 } from '@/lib/api';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { formatINR } from '@/lib/utils';
 import {
@@ -666,7 +667,7 @@ export default function AdminCommandCenterPage() {
               <Flame className="w-4 h-4 text-rose-400" />
             </div>
             <div className="mt-2 text-3xl font-black text-rose-400">
-              {data?.destinations.filter(d => d.is_chokepoint).length ?? 1}
+              {(Array.isArray(data?.destinations) ? data.destinations : []).filter(d => d.is_chokepoint).length}
             </div>
             <p className="mt-1 text-xs text-slate-400">
               Darjeeling Mall & Ghoom Junction
@@ -701,7 +702,7 @@ export default function AdminCommandCenterPage() {
         </div>
 
         {/* Provider Trust Strip (Milestone 5) */}
-        {providerStatuses.length > 0 && (
+        {Array.isArray(providerStatuses) && providerStatuses.length > 0 && (
           <div className="bg-slate-900/70 border border-slate-800 rounded-xl px-5 py-4 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
               <div className="flex items-center gap-2">
@@ -825,7 +826,7 @@ export default function AdminCommandCenterPage() {
           </div>
 
           {/* Circuit Destination Telemetry Breakdown */}
-          {circuitDemand?.destinations && Object.keys(circuitDemand.destinations).length > 0 && (
+          {circuitDemand?.destinations && typeof circuitDemand.destinations === 'object' && Object.keys(circuitDemand.destinations).length > 0 && (
             <div className="space-y-2 pt-2 border-t border-slate-800">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 Destination Demand Telemetry Across Circuit
@@ -913,7 +914,7 @@ export default function AdminCommandCenterPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-              {circuitConditions && Object.entries(circuitConditions).map(([destId, cond]) => {
+              {circuitConditions && typeof circuitConditions === 'object' && Object.entries(circuitConditions).map(([destId, cond]) => {
                 const isSelected = selectedDestId === destId;
                 return (
                   <div
@@ -1082,7 +1083,7 @@ export default function AdminCommandCenterPage() {
                     Primary Causal Drivers Shaping Today&apos;s Recalculation
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {selectedCond.top_drivers.map((drv, idx) => (
+                    {(Array.isArray(selectedCond?.top_drivers) ? selectedCond.top_drivers : []).map((drv, idx) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-800/80 text-xs"
@@ -1136,83 +1137,90 @@ export default function AdminCommandCenterPage() {
             </div>
 
             <div className="space-y-3">
-              {data?.destinations.map((dest) => {
-                const isSelected = selectedDestId === dest.destination_id;
-                return (
-                  <div
-                    key={dest.destination_id}
-                    onClick={() => handleSelectDestination(dest.destination_id)}
-                    className={`cursor-pointer rounded-xl p-4 transition-all duration-200 border ${
-                      isSelected
-                        ? 'bg-slate-800/90 border-emerald-500/80 ring-2 ring-emerald-500/20 shadow-xl'
-                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-white text-base">{dest.destination_name}</h3>
-                          {dest.is_chokepoint && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
-                              HOTSPOT
-                            </span>
-                          )}
+              {Array.isArray(data?.destinations) && data.destinations.length > 0 ? (
+                data.destinations.map((dest) => {
+                  const isSelected = selectedDestId === dest.destination_id;
+                  return (
+                    <div
+                      key={dest.destination_id}
+                      onClick={() => handleSelectDestination(dest.destination_id)}
+                      className={`cursor-pointer rounded-xl p-4 transition-all duration-200 border ${
+                        isSelected
+                          ? 'bg-slate-800/90 border-emerald-500/80 ring-2 ring-emerald-500/20 shadow-xl'
+                          : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-white text-base">{dest.destination_name}</h3>
+                            {dest.is_chokepoint && (
+                              <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
+                                HOTSPOT
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-400 mt-0.5">{dest.state}</p>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">{dest.state}</p>
-                      </div>
 
-                      <div className="text-right">
-                        <div className="text-xl font-black text-white">
-                          {dest.pressure_score}
-                          <span className="text-xs text-slate-400 font-normal"> / 100</span>
+                        <div className="text-right">
+                          <div className="text-xl font-black text-white">
+                            {dest.pressure_score}
+                            <span className="text-xs text-slate-400 font-normal"> / 100</span>
+                          </div>
+                          <div className="mt-1">
+                            {getPressureBadge(dest.pressure_level)}
+                          </div>
                         </div>
-                        <div className="mt-1">
-                          {getPressureBadge(dest.pressure_level)}
+                      </div>
+
+                      {/* Pressure Bar */}
+                      <div className="mt-3">
+                        <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              dest.pressure_score >= 75
+                                ? 'bg-rose-500'
+                                : dest.pressure_score >= 50
+                                ? 'bg-amber-500'
+                                : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${dest.pressure_score}%` }}
+                          />
                         </div>
                       </div>
-                    </div>
 
-                    {/* Pressure Bar */}
-                    <div className="mt-3">
-                      <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            dest.pressure_score >= 75
-                              ? 'bg-rose-500'
-                              : dest.pressure_score >= 50
-                              ? 'bg-amber-500'
-                              : 'bg-emerald-500'
-                          }`}
-                          style={{ width: `${dest.pressure_score}%` }}
-                        />
+                      {/* Quick Telemetry Footnote */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
+                        <div className="flex items-center gap-1.5">
+                          <Hotel className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Occupancy: <strong className="text-slate-200">{dest.occupancy_percent}%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="truncate max-w-[180px]">{dest.traffic_status}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Quick Telemetry Footnote */}
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-                      <div className="flex items-center gap-1.5">
-                        <Hotel className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Occupancy: <strong className="text-slate-200">{dest.occupancy_percent}%</strong></span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="truncate max-w-[180px]">{dest.traffic_status}</span>
-                      </div>
+                      {/* Evidence Drawer trigger */}
+                      {isSelected && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEvidenceDrawer(dest.destination_id); }}
+                          className="mt-2 w-full py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:bg-indigo-500/20 transition"
+                        >
+                          <FileText className="w-3 h-3" />
+                          View Raw Evidence
+                        </button>
+                      )}
                     </div>
-
-                    {/* Evidence Drawer trigger */}
-                    {isSelected && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openEvidenceDrawer(dest.destination_id); }}
-                        className="mt-2 w-full py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[11px] font-semibold flex items-center justify-center gap-1.5 hover:bg-indigo-500/20 transition"
-                      >
-                        <FileText className="w-3 h-3" />
-                        View Raw Evidence
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="p-6 rounded-xl bg-slate-900/60 border border-slate-800 text-center text-slate-400">
+                  <p className="text-sm font-semibold">No monitored destination telemetry available</p>
+                  <p className="text-xs text-slate-500 mt-1">Regional telemetry stream is currently reconnecting...</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1289,7 +1297,7 @@ export default function AdminCommandCenterPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-2">
-                    {pressureDetail.signals.map((sig) => (
+                    {(Array.isArray(pressureDetail?.signals) ? pressureDetail.signals : []).map((sig) => (
                       <div
                         key={sig.signal_key}
                         className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition"
@@ -1378,7 +1386,7 @@ export default function AdminCommandCenterPage() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 pt-2">
-                      {forecast.forecast_days.map((day) => (
+                      {(Array.isArray(forecast?.forecast_days) ? forecast.forecast_days : []).map((day) => (
                         <div
                           key={day.date}
                           className={`p-3 rounded-xl border text-center transition ${
@@ -1466,7 +1474,7 @@ export default function AdminCommandCenterPage() {
                       </div>
                     </div>
 
-                    {forecastPerf.provider_contributions && forecastPerf.provider_contributions.length > 0 && (
+                    {Array.isArray(forecastPerf?.provider_contributions) && forecastPerf.provider_contributions.length > 0 && (
                       <div className="space-y-2 pt-1">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signal Contribution to Error</div>
                         {forecastPerf.provider_contributions.map((pc) => (
@@ -1640,7 +1648,7 @@ export default function AdminCommandCenterPage() {
                     </div>
 
                     <div className="space-y-2">
-                      {simResult.beneficiary_destinations.map((b) => (
+                      {(Array.isArray(simResult?.beneficiary_destinations) ? simResult.beneficiary_destinations : []).map((b) => (
                         <div
                           key={b.destination_id}
                           className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800/80 text-xs"
@@ -1826,7 +1834,7 @@ export default function AdminCommandCenterPage() {
           {baselineTab === 'splits' && (
             <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {baselineReport?.split_metrics?.map((split) => (
+                {(Array.isArray(baselineReport?.split_metrics) ? baselineReport.split_metrics : []).map((split) => (
                   <div key={split.split_name} className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">{split.split_name} Split</span>
@@ -1862,7 +1870,7 @@ export default function AdminCommandCenterPage() {
 
           {baselineTab === 'destinations' && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              {baselineReport?.error_by_destination?.map((d) => (
+              {(Array.isArray(baselineReport?.error_by_destination) ? baselineReport.error_by_destination : []).map((d) => (
                 <div key={d.destination_id} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2 text-center">
                   <div className="text-xs font-bold text-white truncate">{d.destination_name}</div>
                   <div className="text-[10px] text-slate-500 font-mono">{d.sample_count} observations</div>
@@ -1878,7 +1886,7 @@ export default function AdminCommandCenterPage() {
 
           {baselineTab === 'seasons' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {baselineReport?.error_by_season?.map((szn) => (
+              {(Array.isArray(baselineReport?.error_by_season) ? baselineReport.error_by_season : []).map((szn) => (
                 <div key={szn.season_name} className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white">{szn.season_name}</span>
@@ -2252,7 +2260,7 @@ export default function AdminCommandCenterPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {featureImportance?.features?.map((item) => (
+                {(Array.isArray(featureImportance?.features) ? featureImportance.features : []).map((item) => (
                   <div key={item.feature} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
@@ -2333,7 +2341,7 @@ export default function AdminCommandCenterPage() {
 
               {/* Forecast Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {mlForecast?.forecast?.map((day, idx) => (
+                {(Array.isArray(mlForecast?.forecast) ? mlForecast.forecast : []).map((day, idx) => (
                   <div
                     key={day.date}
                     className={`p-3.5 rounded-xl border text-center space-y-2 transition-all ${
@@ -2556,13 +2564,13 @@ export default function AdminCommandCenterPage() {
                     </div>
                     <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
                       <div className="text-lg font-black text-indigo-400">
-                        {flowScenario.allocations.filter(a => a.absorption_status === 'ACCEPTED').length}
+                        {(Array.isArray(flowScenario?.allocations) ? flowScenario.allocations : []).filter(a => a.absorption_status === 'ACCEPTED').length}
                       </div>
                       <div className="text-[9px] text-slate-400">Accepting Nodes</div>
                     </div>
                   </div>
 
-                  {flowScenario.warnings.length > 0 && (
+                  {Array.isArray(flowScenario?.warnings) && flowScenario.warnings.length > 0 && (
                     <div className="text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded p-2 flex items-start gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-400" />
                       <span>{flowScenario.warnings[0]}</span>
@@ -2579,7 +2587,7 @@ export default function AdminCommandCenterPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {flowScenario.allocations.map((alloc) => (
+                  {(Array.isArray(flowScenario?.allocations) ? flowScenario.allocations : []).map((alloc) => (
                     <div
                       key={alloc.destination_id}
                       className={`p-4 rounded-xl border transition-all ${
@@ -2769,7 +2777,7 @@ export default function AdminCommandCenterPage() {
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
-                  {conversionSummary.funnel_stages.map((stage, idx) => (
+                  {(Array.isArray(conversionSummary?.funnel_stages) ? conversionSummary.funnel_stages : []).map((stage, idx) => (
                     <div
                       key={stage.stage}
                       className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-2 relative group hover:border-slate-700 transition"
@@ -2823,7 +2831,7 @@ export default function AdminCommandCenterPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono">
-                      {Object.values(conversionSummary.destinations).map((dest) => (
+                      {Object.values(conversionSummary?.destinations || {}).map((dest) => (
                         <tr key={dest.destination_id} className="hover:bg-slate-800/40 transition">
                           <td className="py-2.5 px-3 font-sans font-semibold text-white">
                             {dest.destination_name}
@@ -2927,7 +2935,7 @@ export default function AdminCommandCenterPage() {
                     {/* Per-Signal Evidence Rows */}
                     <div className="space-y-3">
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per-Signal Observations</div>
-                      {evidenceData.signal_evidences?.map((se) => (
+                      {(Array.isArray(evidenceData?.signal_evidences) ? evidenceData.signal_evidences : []).map((se) => (
                         <div key={se.signal_key} className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2">
@@ -2948,7 +2956,7 @@ export default function AdminCommandCenterPage() {
                           </div>
 
                           {/* Raw observation rows */}
-                          {se.raw_observations?.length > 0 && (
+                          {Array.isArray(se.raw_observations) && se.raw_observations.length > 0 && (
                             <div className="mt-2 space-y-1">
                               {se.raw_observations.map((obs, i) => (
                                 <div key={i} className="flex items-center justify-between text-[10px] text-slate-400 bg-slate-900/60 px-2.5 py-1.5 rounded-lg">
@@ -3182,7 +3190,7 @@ export default function AdminCommandCenterPage() {
 
           {/* Incidents Table / Cards */}
           <div className="space-y-3">
-            {safetyIncidents
+            {(Array.isArray(safetyIncidents) ? safetyIncidents : [])
               .filter((inc) => safetyFilterSeverity === 'ALL' || inc.severity === safetyFilterSeverity)
               .filter((inc) => safetyFilterStatus === 'ALL' || inc.status === safetyFilterStatus)
               .map((inc) => (
@@ -3410,7 +3418,7 @@ export default function AdminCommandCenterPage() {
                   <span>Immutable Incident Progression Timeline</span>
                 </h4>
                 <div className="space-y-2 relative border-l-2 border-slate-800 ml-3 pl-4">
-                  {selectedIncident.audit_trail.map((entry, idx) => (
+                  {(Array.isArray(selectedIncident?.audit_trail) ? selectedIncident.audit_trail : []).map((entry, idx) => (
                     <div key={idx} className="relative space-y-0.5">
                       <div className="absolute -left-[23px] top-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-slate-900" />
                       <div className="flex items-center gap-2 text-xs">

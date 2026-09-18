@@ -3,6 +3,17 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+
+// Configure MapLibre Web Worker explicitly to avoid relative script resolution to Next.js HTML pages
+if (typeof window !== 'undefined') {
+  try {
+    if ((maplibregl as any)?.config) {
+      (maplibregl as any).config.WORKER_URL = `${window.location.origin}/maplibre-gl-worker.mjs`;
+    }
+  } catch (e) {
+    console.warn('[YatriMap] Could not set maplibregl.config.WORKER_URL:', e);
+  }
+}
 import { RouteGeometry } from '@/types';
 import { 
   Compass, 
@@ -275,6 +286,7 @@ export const YatriMap: React.FC<YatriMapProps> = ({
     if (mapRef.current) return;
 
     let styleLoadTimeout: NodeJS.Timeout | null = null;
+    let secondFallbackTimeout: NodeJS.Timeout | null = null;
     let mapInstance: maplibregl.Map | null = null;
 
     try {
@@ -296,18 +308,38 @@ export const YatriMap: React.FC<YatriMapProps> = ({
         mapInstance.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
       }
 
-      // If OpenFreeMap vector style takes > 3.5s (e.g. ISP throttling/DNS timeout), fallback automatically
+      // Multi-tiered style fallback: OpenFreeMap vector -> Carto Voyager vector -> OpenStreetMap raster
+
       styleLoadTimeout = setTimeout(() => {
         if (mapInstance && !mapInstance.isStyleLoaded() && activeStyleKey === 'openfreemap') {
           console.warn('OpenFreeMap style timed out, auto-falling back to Carto Voyager...');
           setIsStyleFallback(true);
           setActiveStyleKey('carto');
-          mapInstance.setStyle(MAP_STYLES.carto.url);
+          try {
+            mapInstance.setStyle(MAP_STYLES.carto.url);
+          } catch (err) {
+            console.warn('Carto fallback style error:', err);
+          }
         }
       }, 3500);
 
+      secondFallbackTimeout = setTimeout(() => {
+        if (mapInstance && !mapInstance.isStyleLoaded()) {
+          console.warn('Vector styles delayed, auto-falling back to OpenStreetMap raster standard...');
+          setIsStyleFallback(true);
+          setActiveStyleKey('osm');
+          try {
+            mapInstance.setStyle(MAP_STYLES.osm.spec as any);
+          } catch (err) {
+            console.warn('OSM fallback style error:', err);
+            setMapError('Interactive map tiles temporarily unreachable. Circuit recommendations below remain active.');
+          }
+        }
+      }, 7500);
+
       const handleReady = () => {
         if (styleLoadTimeout) clearTimeout(styleLoadTimeout);
+        if (secondFallbackTimeout) clearTimeout(secondFallbackTimeout);
         setMapLoaded(true);
         mapInstance?.resize();
         if (mapInstance) syncRouteLayer(mapInstance);
@@ -323,11 +355,25 @@ export const YatriMap: React.FC<YatriMapProps> = ({
 
       mapInstance.on('error', (e: any) => {
         console.warn('MapLibre event error:', e);
-        // If initial style fetch completely failed, switch to Carto or OSM
-        if (activeStyleKey === 'openfreemap' && !mapInstance?.isStyleLoaded()) {
-          setIsStyleFallback(true);
-          setActiveStyleKey('carto');
-          mapInstance?.setStyle(MAP_STYLES.carto.url);
+        // If initial style fetch failed, cascade fallback
+        if (!mapInstance?.isStyleLoaded()) {
+          if (activeStyleKey === 'openfreemap') {
+            setIsStyleFallback(true);
+            setActiveStyleKey('carto');
+            try {
+              mapInstance?.setStyle(MAP_STYLES.carto.url);
+            } catch (err) {
+              console.warn('Carto style set error:', err);
+            }
+          } else if (activeStyleKey === 'carto') {
+            setIsStyleFallback(true);
+            setActiveStyleKey('osm');
+            try {
+              mapInstance?.setStyle(MAP_STYLES.osm.spec as any);
+            } catch (err) {
+              setMapError('Map tiles temporarily unreachable.');
+            }
+          }
         }
       });
 
@@ -351,6 +397,7 @@ export const YatriMap: React.FC<YatriMapProps> = ({
 
     return () => {
       if (styleLoadTimeout) clearTimeout(styleLoadTimeout);
+      if (secondFallbackTimeout) clearTimeout(secondFallbackTimeout);
       if (resizeObserver) resizeObserver.disconnect();
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
@@ -390,7 +437,9 @@ export const YatriMap: React.FC<YatriMapProps> = ({
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    nodes.forEach((node) => {
+    const safeNodes = Array.isArray(nodes) ? nodes : CANONICAL_CIRCUIT_NODES;
+
+    safeNodes.forEach((node) => {
       const isOrigin = originId && node.id.toLowerCase() === originId.toLowerCase();
       const isSelected = selectedDestinationId && node.id.toLowerCase() === selectedDestinationId.toLowerCase();
 
