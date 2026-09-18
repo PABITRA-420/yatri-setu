@@ -93,11 +93,11 @@ function BookingConfirmationContent() {
       {booking ? (
         <div className="space-y-6">
           {/* Success Banner */}
-          <div className="bg-emerald-500/10 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 text-center space-y-3">
+          <div className="bg-emerald-500/10 border-2 border-emerald-500/30 rounded-[24px] p-6 sm:p-8 text-center space-y-3">
             <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <span className="px-3 py-1 rounded-full bg-emerald-600 text-white font-black text-xs uppercase tracking-wider">
+            <span className="px-3 py-1 rounded-full bg-[#183A32] text-white font-black text-xs uppercase tracking-wider">
               Booking Confirmed • Verified Homestay Pass
             </span>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
@@ -109,7 +109,7 @@ function BookingConfirmationContent() {
           </div>
 
           {/* Digital Boarding Pass Ticket */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-xl">
+          <div className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[24px] overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-[0_12px_40px_rgba(23,23,20,0.06)]">
             {/* Ticket Header */}
             <div className="bg-gradient-to-r from-amber-600 to-rose-600 p-6 text-white flex items-center justify-between">
               <div>
@@ -126,7 +126,7 @@ function BookingConfirmationContent() {
                 <span className="text-[10px] uppercase font-bold text-amber-200 block">
                   Pass Reference
                 </span>
-                <span className="font-mono font-bold text-base bg-white/20 px-2.5 py-1 rounded-lg">
+                <span className="font-mono font-bold text-base bg-[#FCFAF6]/20 px-2.5 py-1 rounded-lg">
                   {booking.booking_id}
                 </span>
               </div>
@@ -194,8 +194,8 @@ function BookingConfirmationContent() {
               </div>
 
               {/* QR Code Column */}
-              <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center">
-                <div className="w-36 h-36 bg-white p-2 rounded-xl shadow-inner border border-slate-200 flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center p-4 rounded-[20px] bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="w-36 h-36 bg-[#FCFAF6] p-2 rounded-xl shadow-inner border border-slate-200 flex items-center justify-center">
                   <QrCode className="w-28 h-28 text-slate-900" />
                 </div>
                 <span className="text-[10px] font-mono text-slate-400 mt-2 block">
@@ -243,7 +243,7 @@ function BookingConfirmationContent() {
 
           <form
             onSubmit={handleBookingSubmit}
-            className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6"
+            className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[24px] p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -325,7 +325,7 @@ function BookingConfirmationContent() {
             </div>
 
             {/* Green Credits In-Platform Voucher Box */}
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-[20px] p-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                   <Leaf className="w-5 h-5" />
@@ -335,7 +335,7 @@ function BookingConfirmationContent() {
                     <span className="text-xs font-black text-slate-900 dark:text-white">
                       Apply 30 Green Credits
                     </span>
-                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                    <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-[#183A32] dark:text-emerald-300">
                       Save ₹300
                     </span>
                   </div>
@@ -352,12 +352,12 @@ function BookingConfirmationContent() {
                   onChange={(e) => setApplyGreenCredits(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#FCFAF6] after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-[#183A32]"></div>
               </label>
             </div>
 
             {/* Dynamic Tariff Breakdown */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-2xl border border-slate-200/60 dark:border-slate-700 space-y-2.5 text-xs">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-[20px] border border-slate-200/60 dark:border-slate-700 space-y-2.5 text-xs">
               <div className="flex justify-between text-slate-600 dark:text-slate-300">
                 <span>Stay Tariff (₹{nightlyRate.toLocaleString('en-IN')} × {nights} {nights === 1 ? 'Night' : 'Nights'}):</span>
                 <span className="font-semibold">{formatINR(dynamicSubtotal)}</span>
