@@ -268,25 +268,25 @@ def compute_dynamic_crowd_factors(destination_id: str) -> Tuple[Dict[str, float]
     }
 
     # Strict Provenance Classification
-    # Distinguishes 5 honest provenance tiers — never conflates BASELINE with REAL or DEMO.
+    # Distinguishes 5 honest provenance tiers — composite crowd score is COMPUTED, not raw sensor output.
     if meta["has_real_traffic"] and meta["has_real_weather"] and meta["has_real_booking"]:
-        # All three live streams confirmed
-        meta["provenance_label"] = "REAL — LIVE TELEMETRY & BOOKINGS"
-        meta["provider_mode"] = "REAL"
+        # All three operational streams confirmed; footfall remains historical baseline
+        meta["provenance_label"] = "COMPUTED — LIVE TELEMETRY & BOOKINGS (FOOTFALL BASELINE)"
+        meta["provider_mode"] = "COMPUTED"
     elif meta["has_real_traffic"] and meta["has_real_weather"]:
-        # Traffic + weather are live; booking from baseline
-        meta["provenance_label"] = "REAL — LIVE TRAFFIC & WEATHER (BOOKING BASELINE)"
-        meta["provider_mode"] = "REAL"
+        # Traffic + weather are live; booking & footfall from calibrated baseline
+        meta["provenance_label"] = "COMPUTED — LIVE TRAFFIC & WEATHER (BOOKING & FOOTFALL BASELINE)"
+        meta["provider_mode"] = "COMPUTED"
     elif (meta["has_real_traffic"] or meta["has_real_weather"]) and meta["has_real_booking"]:
-        # At least one sensor stream + live bookings
-        meta["provenance_label"] = "MIXED — LIVE SENSOR + BOOKING TELEMETRY"
+        # One sensor stream + live bookings; footfall from baseline
+        meta["provenance_label"] = "MIXED — LIVE SENSOR & BOOKING TELEMETRY (FOOTFALL BASELINE)"
         meta["provider_mode"] = "MIXED"
     elif meta["has_real_traffic"] or meta["has_real_weather"]:
-        # Only one sensor stream live; booking from baseline
+        # Only one sensor stream live; booking & footfall from baseline
         meta["provenance_label"] = "MIXED — PARTIAL LIVE TELEMETRY + BASELINE"
         meta["provider_mode"] = "MIXED"
     elif meta["has_real_booking"]:
-        # Only booking data from PostgreSQL; everything else calibrated
+        # Only booking data from PostgreSQL; sensors & footfall from baseline
         meta["provenance_label"] = "COMPUTED — BOOKING TELEMETRY + CALENDAR & SEASON"
         meta["provider_mode"] = "COMPUTED"
     else:
@@ -383,7 +383,7 @@ def calculate_crowd_score(destination_id: str, custom_factors: Dict[str, float] 
         peak_hours = "11:00 AM - 01:30 PM (Deolo Park summit)"
         best_time_today = "Anytime; Deolo Hill is best enjoyed between 09:00 AM - 11:30 AM"
         traffic_status = "Smooth / Normal Flow"
-        occupancy = "44% (Healthy & Readily Available)"
+        occupancy = "44% (Regional Seasonal Baseline)"
 
     elif norm_id in ["lava", "lolegaon", "rishop"]:
         why_crowded = [

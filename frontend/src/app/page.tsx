@@ -133,7 +133,7 @@ export default function HomePage() {
     },
     {
       name: 'Panchayat Homestays',
-      desc: 'Verified rural cottages where 100% of tariff directly supports hosts',
+      desc: 'Panchayat-registered cottages where 90% of tariff directly supports hosts',
       icon: HomeIcon,
       query: 'homestays',
       image: 'https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=600&q=80'

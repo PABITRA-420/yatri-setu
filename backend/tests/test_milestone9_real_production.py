@@ -116,8 +116,8 @@ def test_compute_dynamic_crowd_factors_provenance():
     assert "traffic_factor" in factors
     mode = meta.get("provider_mode")
     provenance = meta.get("provenance_label")
-    assert mode in ("REAL", "MIXED", "DEMO")
-    assert ("REAL" in provenance or "MIXED" in provenance or "DEMO" in provenance)
+    assert mode in ("REAL", "MIXED", "DEMO", "COMPUTED", "BASELINE")
+    assert any(tier in provenance for tier in ("REAL", "MIXED", "DEMO", "COMPUTED", "BASELINE"))
 
 
 def test_health_detailed_endpoint_includes_all_providers():
@@ -159,4 +159,4 @@ def test_crowd_endpoint_includes_provenance():
     assert "factors" in data
     assert "provenance_label" in data
     assert "provider_mode" in data
-    assert data["provider_mode"] in ("REAL", "MIXED", "DEMO")
+    assert data["provider_mode"] in ("REAL", "MIXED", "COMPUTED", "BASELINE", "DEMO")

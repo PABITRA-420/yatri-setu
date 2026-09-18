@@ -51,7 +51,7 @@ export default function HostBookingsPage() {
               Guest Reservations & Travel Passes
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-              Direct traveler bookings with verified digital travel passes and guaranteed 90% payout
+              Direct traveler bookings with verified digital travel passes and configured 90% host payout policy
             </p>
           </div>
 

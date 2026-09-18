@@ -530,9 +530,9 @@ export async function fetchDestinationCrowd(id: string): Promise<CrowdResponse> 
         : 'Kalimpong has moderate, peaceful footfall with ample breathing space and active orchid nurseries.',
       why_crowded: isDarjeeling
         ? [
-            'Peak holiday season coinciding with clear sunrise views at Tiger Hill (95% observation deck saturation).',
-            'Hill Cart Road and Mall Road experiencing severe vehicular queueing up to Ghoom railway crossing.',
-            'Hotel & resort occupancy across Central Darjeeling is currently exceeding 91% capacity.',
+            'Peak holiday season coinciding with sunrise views at Tiger Hill (high observation deck footfall).',
+            'Hill Cart Road and Mall Road experiencing vehicular queueing toward Ghoom railway crossing.',
+            'Hotel & resort occupancy across Central Darjeeling is elevated during peak hours (~90% seasonal baseline).',
             'Spillover day-trippers from Siliguri leading to prolonged pedestrian congestion at Chowrasta.'
           ]
         : [
@@ -553,7 +553,7 @@ export async function fetchDestinationCrowd(id: string): Promise<CrowdResponse> 
         { name: 'Transit Route & Bottleneck Density', key: 'traffic_factor', raw_value: isDarjeeling ? 95 : 25, weight_percentage: 5, weighted_contribution: isDarjeeling ? 4.8 : 1.2, description: 'Narrow mountain highway choke points' }
       ],
       live_traffic_status: isDarjeeling ? 'Heavy Delays (+45 min transit time)' : 'Smooth / Normal Flow',
-      hotel_occupancy_rate: isDarjeeling ? '91% (Critical)' : '44% (Healthy & Readily Available)',
+      hotel_occupancy_rate: isDarjeeling ? '90% (Regional Seasonal Baseline)' : '44% (Regional Seasonal Baseline)',
       last_updated: 'Just now'
     };
   }
@@ -729,8 +729,8 @@ export async function generateItinerary(payload: {
       pace: payload.pace,
       interests: payload.interests,
       total_estimated_budget_inr: 4600,
-      crowd_avoidance_rating: '91% Overcrowding Avoided vs. Central Darjeeling',
-      local_economic_impact_tag: '🌱 85% of your spend directly empowers rural Gorkha & Lepcha host families',
+      crowd_avoidance_rating: 'Significantly Lower Congestion vs. Central Darjeeling (Computed)',
+      local_economic_impact_tag: '🌱 Configured 90% direct host family retention policy model',
       days: [
         {
           day_number: 1,

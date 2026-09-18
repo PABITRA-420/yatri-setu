@@ -355,7 +355,7 @@ class MockAIProvider(BaseAIProvider):
                 if day.activities:
                     day.activities[0].time_slot = "05:45 AM - 07:45 AM (Dawn Dawn Slot - 0 Crowds)"
                     day.activities[0].crowd_forecast = "Low"
-            overview = f"Off-peak anti-crowd itinerary for {dest_name}. Bypasses 95% of tourist vehicular congestion."
+            overview = f"Off-peak anti-crowd itinerary for {dest_name}. Bypasses peak tourist vehicular congestion."
 
         elif clean_inst == "FAMILY_FRIENDLY":
             why_this.insert(0, "Family-centric safety: Filtered out steep technical scrambles; selected gentle paved walks, interactive crafts, and child-safe dining.")

@@ -446,7 +446,7 @@ function ItineraryPlannerContent() {
                       Village Sustainability & Economic Impact Scorecard
                     </h3>
                     <span className="text-[11px] text-slate-500">
-                      Deterministic verification: spending stays inside the Himalayan Panchayat ecosystem
+                      Deterministic policy model: estimated hyperlocal spending retention and community fund allocation
                     </span>
                   </div>
                 </div>
@@ -494,13 +494,13 @@ function ItineraryPlannerContent() {
 
                 <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800">
                   <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">
-                    Carbon Footprint Saved
+                    Estimated Carbon Offset
                   </span>
                   <div className="text-lg font-black text-teal-600 dark:text-teal-400">
                     {itinerary.tourism_impact.carbon_saved_vs_private_car_kg} kg CO₂
                   </div>
                   <span className="text-[10px] text-slate-500">
-                    vs private chartered cab
+                    computed vs private chartered cab
                   </span>
                 </div>
               </div>

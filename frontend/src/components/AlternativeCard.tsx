@@ -75,9 +75,14 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
 
           {/* Bottom Overlay Info */}
           <div className="absolute bottom-4 left-4 right-4 text-white">
-            <div className="flex items-center gap-1 text-xs text-amber-300 font-medium mb-1">
-              <MapPin className="w-3.5 h-3.5" />
-              <span>{alternative.distance_km} km from {originName}</span>
+            <div className="flex items-center gap-1.5 text-xs text-amber-300 font-medium mb-1 flex-wrap">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span>{alternative.road_distance_km ?? alternative.distance_km} km road route</span>
+              {alternative.geographic_distance_km && (
+                <span className="text-[10px] text-stone-300 font-normal">
+                  ({alternative.geographic_distance_km} km straight-line)
+                </span>
+              )}
             </div>
             <h3 className="text-2xl font-extrabold tracking-tight">{alternative.name}</h3>
             <p className="text-xs text-stone-200 line-clamp-2 mt-0.5 leading-relaxed">

@@ -45,7 +45,7 @@ const MARQUEE_ITEMS: MarqueeItem[] = [
     type: 'perk',
     badge: 'COMMUNITY PERK',
     text: 'Zero Booking Fee + Complimentary organic breakfast on all Panchayat-verified cottages',
-    highlight: '100% Direct Host Benefit',
+    highlight: '90% Direct Host Share',
     link: '/homestays',
     actionText: 'Browse Stays'
   },

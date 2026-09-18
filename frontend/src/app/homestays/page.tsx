@@ -72,13 +72,13 @@ function HomestaysContent() {
               Yatri Setu Rural Community Guarantee
             </h3>
             <p className="text-xs sm:text-sm text-stone-300 mt-0.5 leading-relaxed">
-              Zero middlemen commission. 100% of room tariff goes directly to host families, plus a 10% contribution to the village rural development fund.
+              Zero predatory commercial markups. 90% of booking value is policy-allocated to local host families, and 5% supports the Gram Panchayat village development fund.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5 self-start md:self-auto shrink-0 text-xs font-semibold bg-white/10 px-4 py-2 rounded-2xl border border-white/10">
-          <span>✓ 100% Verified Hosts</span>
+          <span>✓ Panchayat Registered</span>
           <span>•</span>
           <span>✓ Hygiene Certified</span>
         </div>

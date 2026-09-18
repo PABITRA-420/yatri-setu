@@ -632,7 +632,7 @@ export default function AdminCommandCenterPage() {
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs">
                 <Cpu className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="text-slate-300 font-medium">Confidence:</span>
-                <span className="text-indigo-300 font-semibold">{data ? `${Math.round(data.average_data_confidence * 100)}%` : '91%'}</span>
+                <span className="text-indigo-300 font-semibold">{data ? `${Math.round(data.average_data_confidence * 100)}%` : (loading ? 'Calculating...' : '--')}</span>
               </div>
               <button
                 onClick={() => { loadCommandCenter(); loadDestinationDetails(selectedDestId); loadDemandTelemetry(); loadConditionsTelemetry(selectedDestId); }}

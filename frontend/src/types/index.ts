@@ -113,6 +113,9 @@ export interface AlternativeRecommendation {
   alternative_crowd_score: number;
   crowd_reduction_percent: number;
   distance_km: number;
+  geographic_distance_km?: number;
+  road_distance_km?: number;
+  distance_provenance?: string;
   estimated_cost_per_day: number;
   cost_difference_percent: number;
   reasons_to_recommend: string[];
