@@ -69,7 +69,7 @@ function AlternativesContent() {
   if (loading || !altData || !dateData) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center animate-pulse">
-        <div className="h-10 w-64 bg-stone-200 dark:bg-stone-800 rounded-2xl mx-auto mb-4" />
+        <div className="h-10 w-64 bg-stone-200 dark:bg-stone-800 rounded-[20px] mx-auto mb-4" />
         <div className="h-6 w-96 bg-stone-200 dark:bg-stone-800 rounded-xl mx-auto" />
       </div>
     );
@@ -83,7 +83,7 @@ function AlternativesContent() {
       <div>
         <Link
           href={`/destinations/${id}/crowd`}
-          className="inline-flex items-center gap-2 text-xs font-bold text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 mb-2 transition-colors"
+          className="inline-flex items-center gap-2 text-xs font-bold text-[#706E68] hover:text-[#171714] dark:hover:text-stone-200 mb-2 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to {altData.origin_destination_name} Crowd Intelligence</span>
@@ -91,7 +91,7 @@ function AlternativesContent() {
       </div>
 
       {/* Primary Flow Management Hero Banner */}
-      <div className={`rounded-[2.5rem] p-8 sm:p-12 text-white shadow-2xl border transition-all ${
+      <div className={`rounded-[2.5rem] p-8 sm:p-12 text-white shadow-[0_20px_55px_rgba(23,23,20,0.10)] border transition-all ${
         isOvercrowded 
           ? 'bg-stone-950 border-rose-900/40' 
           : 'bg-stone-950 border-stone-800'
@@ -103,7 +103,7 @@ function AlternativesContent() {
                 <Flame className="w-3.5 h-3.5 animate-pulse" />
                 <span>Crowd Pressure: {altData.origin_crowd_score}/100</span>
               </span>
-              <span className="px-3 py-1 rounded-full bg-white/10 text-[10px] font-bold uppercase tracking-widest text-stone-300">
+              <span className="px-3 py-1 rounded-full bg-[#FCFAF6]/10 text-[10px] font-bold uppercase tracking-widest text-stone-300">
                 SIH 2026 Tourist Flow Engine
               </span>
             </div>
@@ -122,18 +122,18 @@ function AlternativesContent() {
           </div>
 
           {/* Recommended Flow Action Card */}
-          <div className="glass-panel p-6 rounded-3xl text-center min-w-[280px] self-start lg:self-auto shrink-0 space-y-3">
+          <div className="glass-panel p-6 rounded-[24px] text-center min-w-[280px] self-start lg:self-auto shrink-0 space-y-3">
             <span className="text-[10px] uppercase font-bold tracking-widest text-amber-700 dark:text-amber-400 block">
               Recommended Flow Action
             </span>
-            <div className="px-4 py-2.5 rounded-2xl bg-amber-400 text-stone-950 font-extrabold text-xs tracking-wide shadow-xs">
+            <div className="px-4 py-2.5 rounded-[20px] bg-amber-400 text-[#171714] font-extrabold text-xs tracking-wide shadow-xs">
               {decision?.recommended_action === 'CHANGE_DESTINATION' 
                 ? 'A. CHANGE DESTINATION' 
                 : decision?.recommended_action === 'CHANGE_DATES'
                 ? 'B. CHANGE TRAVEL DATES'
                 : 'KEEP DESTINATION'}
             </div>
-            <p className="text-xs text-stone-600 dark:text-stone-300 leading-relaxed">
+            <p className="text-xs text-[#706E68] dark:text-stone-300 leading-relaxed">
               {decision?.recommended_action === 'CHANGE_DESTINATION'
                 ? 'Divert to Kalimpong (87% Match, 52% lower crowd)'
                 : 'Shift to calm mid-week or post-holiday dates'}
@@ -143,14 +143,14 @@ function AlternativesContent() {
       </div>
 
       {/* Dual Pathway Switcher / Tabs */}
-      <div className="flex items-center justify-center p-1.5 bg-stone-200/70 dark:bg-stone-900 rounded-2xl max-w-lg mx-auto border border-stone-300/80 dark:border-white/10">
+      <div className="flex items-center justify-center p-1.5 bg-stone-200/70 dark:bg-stone-900 rounded-[20px] max-w-lg mx-auto border border-stone-300/80 dark:border-white/10">
         <button
           type="button"
           onClick={() => setActiveTab('DESTINATION')}
           className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'DESTINATION'
-              ? 'bg-white dark:bg-[#121824] text-stone-950 dark:text-white shadow-xs'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white'
+              ? 'bg-[#FCFAF6] dark:bg-[#121824] text-[#171714] dark:text-white shadow-xs'
+              : 'text-[#706E68] dark:text-stone-400 hover:text-[#171714] dark:hover:text-white'
           }`}
         >
           <Compass className="w-4 h-4 text-amber-600" />
@@ -162,8 +162,8 @@ function AlternativesContent() {
           onClick={() => setActiveTab('DATES')}
           className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'DATES'
-              ? 'bg-white dark:bg-[#121824] text-stone-950 dark:text-white shadow-xs'
-              : 'text-stone-600 dark:text-stone-400 hover:text-stone-950 dark:hover:text-white'
+              ? 'bg-[#FCFAF6] dark:bg-[#121824] text-[#171714] dark:text-white shadow-xs'
+              : 'text-[#706E68] dark:text-stone-400 hover:text-[#171714] dark:hover:text-white'
           }`}
         >
           <Calendar className="w-4 h-4 text-amber-600" />
@@ -192,9 +192,9 @@ function AlternativesContent() {
 
           {/* Quick Summary Pill of #1 Recommendation */}
           {altData.alternatives.length > 0 && (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-[20px] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-[#183A32] text-white font-bold flex items-center justify-center shrink-0">
                   #1
                 </div>
                 <div>
@@ -208,12 +208,12 @@ function AlternativesContent() {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white font-bold text-[10px]">
+                <span className="px-2.5 py-1 rounded-full bg-[#183A32] text-white font-bold text-[10px]">
                   {Math.abs(altData.alternatives[0].cost_difference_percent)}% Cheaper
                 </span>
                 <Link
                   href={`/itinerary?destination=${altData.alternatives[0].id}`}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold hover:bg-amber-600 transition-colors"
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-[#FCFAF6] dark:text-slate-900 font-bold hover:bg-amber-600 transition-colors"
                 >
                   Quick Select →
                 </Link>
@@ -254,7 +254,7 @@ function AlternativesContent() {
           </div>
 
           {/* Comparative Callout */}
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-3">
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-[20px] p-5 text-xs text-amber-900 dark:text-amber-300 flex items-start gap-3">
             <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <strong className="block text-sm mb-0.5">Stay at {altData.origin_destination_name} with up to 70% lower footfall:</strong>
@@ -269,7 +269,7 @@ function AlternativesContent() {
               return (
                 <div
                   key={idx}
-                  className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
+                  className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
                 >
                   <div>
                     {/* Header with Window Label & Crowd Badge */}
@@ -327,7 +327,7 @@ function AlternativesContent() {
                   <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
                     <Link
                       href={`/itinerary?destination=${altData.origin_destination_id}&start=${dateAlt.start_date}&end=${dateAlt.end_date}`}
-                      className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-amber-600 dark:hover:bg-amber-500 dark:hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                      className="w-full py-2.5 rounded-xl bg-slate-900 dark:bg-[#FCFAF6] text-white dark:text-slate-900 hover:bg-amber-600 dark:hover:bg-amber-500 dark:hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                     >
                       <Calendar className="w-3.5 h-3.5" />
                       <span>Choose These Dates & Plan</span>
