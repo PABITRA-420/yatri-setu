@@ -135,14 +135,14 @@ export default function SosSafetyScreen() {
       {isAlertActive && alertData ? (
         <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
           {/* Pulsing Red Emergency Broadcast Banner */}
-          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white rounded-3xl p-6 sm:p-8 shadow-2xl space-y-4 border-2 border-red-400 animate-pulse">
+          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white rounded-[24px] p-6 sm:p-8 shadow-[0_20px_55px_rgba(23,23,20,0.10)] space-y-4 border-2 border-red-400 animate-pulse">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white text-rose-600 flex items-center justify-center font-black">
+                <div className="w-12 h-12 rounded-[20px] bg-[#FCFAF6] text-rose-600 flex items-center justify-center font-black">
                   <Radio className="w-7 h-7 animate-spin" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold tracking-widest bg-white/20 px-2 py-0.5 rounded">
+                  <span className="text-[10px] uppercase font-bold tracking-widest bg-[#FCFAF6]/20 px-2 py-0.5 rounded">
                     Distress Signal Transmitted
                   </span>
                   <h2 className="text-xl sm:text-2xl font-black mt-0.5">
@@ -156,7 +156,7 @@ export default function SosSafetyScreen() {
                 type="button"
                 onClick={toggleSirenAudio}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  alarmSounding ? 'bg-amber-400 text-slate-900 shadow-lg' : 'bg-white/20 hover:bg-white/30 text-white'
+                  alarmSounding ? 'bg-amber-400 text-slate-900 shadow-lg' : 'bg-[#FCFAF6]/20 hover:bg-[#FCFAF6]/30 text-white'
                 }`}
               >
                 {alarmSounding ? <Volume2 className="w-4 h-4 animate-bounce" /> : <VolumeX className="w-4 h-4" />}
@@ -177,7 +177,7 @@ export default function SosSafetyScreen() {
           </div>
 
           {/* Nearest Dispatched Responders Card */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[24px] p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                 <Navigation className="w-5 h-5 text-rose-600" />
@@ -193,7 +193,7 @@ export default function SosSafetyScreen() {
               {alertData.nearest_responders.map((responder, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="p-4 rounded-[20px] bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -221,7 +221,7 @@ export default function SosSafetyScreen() {
 
                     <a
                       href={`tel:${responder.phone}`}
-                      className="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center transition-colors"
+                      className="p-2.5 rounded-xl bg-[#183A32] hover:bg-[#183A32] text-white shadow-sm flex items-center justify-center transition-colors"
                       title="Direct Call"
                     >
                       <PhoneCall className="w-4 h-4" />
@@ -232,7 +232,7 @@ export default function SosSafetyScreen() {
             </div>
 
             {/* Traveler Safety Directives */}
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs text-slate-700 dark:text-slate-300 space-y-2">
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-[20px] p-4 text-xs text-slate-700 dark:text-slate-300 space-y-2">
               <span className="font-bold text-amber-700 dark:text-amber-400 block uppercase tracking-wider text-[11px]">
                 Traveler Emergency Instructions:
               </span>
@@ -260,14 +260,14 @@ export default function SosSafetyScreen() {
         </div>
       ) : (
         /* SOS Trigger Screen */
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-10 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-8">
+        <div className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[24px] p-6 sm:p-10 border border-slate-200/80 dark:border-slate-800 shadow-[0_12px_40px_rgba(23,23,20,0.06)] space-y-8">
           {/* Big Circular SOS Button */}
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <button
               type="button"
               onClick={handleTriggerSOS}
               disabled={loading}
-              className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-tr from-red-600 via-rose-600 to-red-500 text-white font-black text-2xl sm:text-3xl shadow-2xl shadow-rose-600/50 hover:scale-105 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center gap-2 border-4 border-rose-300/40 group relative"
+              className="w-48 h-48 sm:w-56 sm:h-56 rounded-full bg-gradient-to-tr from-red-600 via-rose-600 to-red-500 text-white font-black text-2xl sm:text-3xl shadow-[0_20px_55px_rgba(23,23,20,0.10)] shadow-rose-600/50 hover:scale-105 active:scale-95 transition-all duration-300 flex flex-col items-center justify-center gap-2 border-4 border-rose-300/40 group relative"
             >
               <div className="absolute inset-0 rounded-full border-2 border-rose-400 animate-ping opacity-40" />
               <ShieldAlert className="w-12 h-12 text-white group-hover:animate-bounce" />
@@ -343,7 +343,7 @@ export default function SosSafetyScreen() {
       )}
 
       {/* National Helplines Directory */}
-      <div className="bg-slate-50 dark:bg-slate-900/60 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800">
+      <div className="bg-slate-50 dark:bg-slate-900/60 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800">
         <h3 className="font-bold text-sm text-slate-900 dark:text-white mb-3">
           National & State Tourist Safety Helplines
         </h3>
@@ -354,7 +354,7 @@ export default function SosSafetyScreen() {
             { name: 'Women Helpline', num: '1091' },
             { name: 'Disaster Control', num: '1070' },
           ].map((h) => (
-            <div key={h.name} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700">
+            <div key={h.name} className="bg-[#FCFAF6] dark:bg-slate-800 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700">
               <span className="text-[10px] text-slate-400 font-bold uppercase block">{h.name}</span>
               <span className="text-base font-black text-rose-600 dark:text-rose-400">{h.num}</span>
             </div>
