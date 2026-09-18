@@ -1,23 +1,69 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 
-/* MapLibre WebGL Canvas & Marker Layout Stabilization */
+/* =========================================================
+   YATRI SETU — VISUAL-ONLY PREMIUM SYSTEM
+   IMPORTANT: This file changes presentation only.
+   No route, component, content, data, API, state or interaction
+   is changed by this stylesheet.
+   ========================================================= */
+
+:root {
+  --background: #F5F2EA;
+  --foreground: #171714;
+  --surface: #FCFAF6;
+  --surface-soft: #F0ECE3;
+  --forest: #183A32;
+  --forest-2: #214B41;
+  --forest-soft: #E7EEE9;
+  --saffron: #C98A2E;
+  --muted: #706E68;
+  --border: rgba(23,23,20,.10);
+  --success: #3F7657;
+  --warning: #B7832F;
+  --danger: #B94A48;
+  --premium-shadow: 0 12px 40px rgba(23,23,20,.06);
+  --premium-shadow-hover: 0 20px 55px rgba(23,23,20,.10);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: var(--font-serif), Georgia, serif;
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+.font-editorial {
+  font-family: var(--font-serif);
+  letter-spacing: -.015em;
+}
+
+/* Keep MapLibre layout stable */
 .maplibregl-map {
   width: 100% !important;
   height: 100% !important;
   position: relative !important;
   overflow: hidden;
 }
-
 .maplibregl-canvas-container,
 .maplibregl-canvas {
   width: 100% !important;
   height: 100% !important;
   position: absolute !important;
-  top: 0;
-  left: 0;
+  inset: 0;
 }
-
 .maplibregl-marker {
   position: absolute !important;
   top: 0;
@@ -25,203 +71,189 @@
   will-change: transform;
   z-index: 5;
 }
+.maplibregl-popup { z-index: 10; }
 
-.maplibregl-popup {
-  z-index: 10;
+/* Smooth scrolling compatibility */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-scrolling iframe { pointer-events: none; }
+
+/* ---------- Global visual polish ---------- */
+::selection {
+  background: rgba(201,138,46,.20);
+  color: #183A32;
 }
 
-:root {
-  --background: #F6F4F0;
-  --foreground: #1A1816;
-  --surface-card: #FFFFFF;
-  --surface-subtle: #EDE9E2;
-  --border-subtle: rgba(28, 25, 23, 0.1);
-
-  /* Neomorphic soft dual shadows */
-  --neo-flat: 6px 6px 14px rgba(28, 25, 23, 0.05), -6px -6px 14px rgba(255, 255, 255, 0.9);
-  --neo-hover: 8px 8px 20px rgba(28, 25, 23, 0.08), -8px -8px 20px rgba(255, 255, 255, 1);
-  --neo-inset: inset 2px 2px 5px rgba(28, 25, 23, 0.06), inset -2px -2px 5px rgba(255, 255, 255, 0.8);
+a, button, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: var(--font-serif), Georgia, Cambria, "Times New Roman", Times, serif;
+button, a {
+  transition-timing-function: cubic-bezier(.16,1,.3,1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0C0F14;
-    --foreground: #F2EFE9;
-    --surface-card: #131722;
-    --surface-subtle: #191E2C;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-
-    --neo-flat: 6px 6px 16px rgba(0, 0, 0, 0.45), -6px -6px 16px rgba(255, 255, 255, 0.03);
-    --neo-hover: 8px 8px 22px rgba(0, 0, 0, 0.55), -8px -8px 22px rgba(255, 255, 255, 0.04);
-    --neo-inset: inset 2px 2px 5px rgba(0, 0, 0, 0.4), inset -2px -2px 5px rgba(255, 255, 255, 0.03);
-  }
+main {
+  min-height: 60vh;
 }
 
-html.lenis, html.lenis body {
-  height: auto;
+main img {
+  max-width: 100%;
 }
 
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
+/* Existing white/slate cards become editorial surfaces.
+   Selector specificity intentionally stays presentation-only. */
+main .bg-white {
+  background-color: var(--surface);
 }
 
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
+main .bg-slate-50,
+main .bg-stone-50 {
+  background-color: var(--surface-soft);
 }
 
-.lenis.lenis-stopped {
-  overflow: hidden;
+main .border-slate-200,
+main .border-slate-200\/80,
+main .border-stone-200,
+main .border-stone-200\/80 {
+  border-color: var(--border);
 }
 
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
+/* Common cards: retain every existing element, only refine appearance. */
+main .rounded-3xl,
+main .rounded-2xl {
+  box-shadow: var(--premium-shadow);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+main .rounded-3xl:hover,
+main .rounded-2xl:hover {
+  box-shadow: var(--premium-shadow-hover);
 }
 
-.font-editorial {
-  font-family: var(--font-serif);
-  letter-spacing: -0.015em;
-}
-
-/* Neomorphic soft cards & surfaces */
+/* Reduce the old heavy/neomorphic look without touching components. */
 .neo-card {
-  background: #FFFFFF;
-  box-shadow: var(--neo-flat);
-  border: 1px solid rgba(28, 25, 23, 0.07);
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 260ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms ease;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--premium-shadow);
+  transition: transform 500ms cubic-bezier(.16,1,.3,1),
+              box-shadow 500ms cubic-bezier(.16,1,.3,1),
+              border-color 300ms ease;
 }
-
-.dark .neo-card {
-  background: #131722;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
 .neo-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--neo-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--premium-shadow-hover);
+  border-color: rgba(24,58,50,.16);
 }
 
-/* Neomorphic & Bordered Buttons */
-.btn-neo-primary {
-  background: #1C1917;
-  color: #FFFFFF;
-  border: 1.5px solid #292524;
-  box-shadow: 0 4px 12px rgba(28, 25, 23, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.btn-neo-primary:hover {
-  background: #B45309;
-  border-color: #D97706;
-  box-shadow: 0 6px 18px rgba(180, 83, 9, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.btn-neo-primary:active {
-  transform: translateY(1px);
-  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.dark .btn-neo-primary {
-  background: #F5F5F4;
-  color: #0C0A09;
-  border: 1.5px solid #E7E5E4;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
-.dark .btn-neo-primary:hover {
-  background: #FBBF24;
-  border-color: #FCD34D;
-  color: #1C1917;
-}
-
-.btn-neo-secondary {
-  background: #FFFFFF;
-  color: #1C1917;
-  border: 1.5px solid #E7E5E4;
-  box-shadow: 2px 2px 8px rgba(28, 25, 23, 0.04), -2px -2px 8px rgba(255, 255, 255, 0.8);
-  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.btn-neo-secondary:hover {
-  background: #F5F5F4;
-  border-color: #D6D3D1;
-  box-shadow: 3px 3px 12px rgba(28, 25, 23, 0.07);
-  transform: translateY(-1px);
-}
-
-.dark .btn-neo-secondary {
-  background: #191E2C;
-  color: #F5F5F4;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.dark .btn-neo-secondary:hover {
-  background: #202638;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Glassmorphic floating surfaces */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 16px 36px -10px rgba(28, 25, 23, 0.08), 0 0 0 1px rgba(28, 25, 23, 0.05);
-}
-
-.dark .glass-panel {
-  background: rgba(19, 23, 34, 0.82);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.5);
+  background: rgba(252,250,246,.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(23,23,20,.09);
+  box-shadow: 0 16px 42px rgba(23,23,20,.08);
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1.5px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: rgba(252,250,246,.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(23,23,20,.09);
+  box-shadow: 0 6px 20px rgba(23,23,20,.06);
 }
 
-.dark .glass-pill {
-  background: rgba(19, 23, 34, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+/* Existing primary/secondary button classes */
+.btn-neo-primary {
+  background: var(--forest);
+  color: white;
+  border: 1px solid var(--forest);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(24,58,50,.16);
+}
+.btn-neo-primary:hover {
+  background: var(--forest-2);
+  border-color: var(--forest-2);
+  box-shadow: 0 12px 30px rgba(24,58,50,.22);
+  transform: translateY(-1px);
+}
+.btn-neo-primary:active { transform: translateY(1px); }
+
+.btn-neo-secondary {
+  background: rgba(252,250,246,.9);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+}
+.btn-neo-secondary:hover {
+  background: white;
+  border-color: rgba(23,23,20,.18);
+  box-shadow: 0 8px 24px rgba(23,23,20,.06);
+  transform: translateY(-1px);
 }
 
+/* Form controls */
+main input,
+main select,
+main textarea {
+  border-color: var(--border);
+  background-color: rgba(252,250,246,.9);
+  color: var(--foreground);
+  border-radius: 14px;
+  outline: none;
+}
+main input:focus,
+main select:focus,
+main textarea:focus {
+  border-color: rgba(24,58,50,.38);
+  box-shadow: 0 0 0 4px rgba(24,58,50,.08);
+}
+
+/* Premium image treatment */
+main img.rounded-3xl,
+main img.rounded-2xl,
+main img.rounded-xl {
+  object-fit: cover;
+}
+main .group:hover img {
+  transform: scale(1.035);
+  transition: transform 700ms cubic-bezier(.16,1,.3,1);
+}
+
+/* Existing status colors remain semantically intact, but are softened. */
+main .bg-emerald-50 { background-color: #E7EEE9; }
+main .bg-amber-50 { background-color: #F6EDDB; }
+main .bg-rose-50 { background-color: #F8E9E7; }
+
+/* Subtle utility for existing content blocks */
+.premium-surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--premium-shadow);
+}
+
+/* Existing fade animation remains available */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fadeIn {
-  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: fadeIn .5s cubic-bezier(.16,1,.3,1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
-    animation-duration: 0.01ms !important;
+    animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Mobile breathing room; no layout/flow changes. */
+@media (max-width: 640px) {
+  main .rounded-3xl { border-radius: 22px; }
+  main .rounded-2xl { border-radius: 18px; }
 }
