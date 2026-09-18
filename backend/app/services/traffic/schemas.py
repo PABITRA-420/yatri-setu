@@ -45,6 +45,7 @@ class DestinationTrafficSummary(BaseModel):
     data_quality: str  # HIGH, MEDIUM, DEGRADED, UNKNOWN
     fetched_at: datetime = Field(default_factory=datetime.utcnow)
     cache_status: str = "LIVE"  # LIVE, CACHED, STALE, UNAVAILABLE
+    provenance_label: Optional[str] = "DEMO MODE — SYNTHETIC DATA"
     expires_at: Optional[datetime] = None
 
 

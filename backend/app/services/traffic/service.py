@@ -27,10 +27,10 @@ class TrafficService:
     TTL caching, stale fallback, and deterministic impact modeling.
     """
 
-    def __init__(self, ttl_seconds: int = DEFAULT_TRAFFIC_TTL_SECONDS):
+    def __init__(self, ttl_seconds: int = DEFAULT_TRAFFIC_TTL_SECONDS, provider: Optional[BaseTrafficProvider] = None):
         self.ttl_seconds = ttl_seconds
         self._cache: Dict[str, Dict[str, Any]] = {}
-        self._provider: BaseTrafficProvider = self._initialize_provider()
+        self._provider: BaseTrafficProvider = provider if provider is not None else self._initialize_provider()
 
     def _initialize_provider(self) -> BaseTrafficProvider:
         mode = (settings.TRAFFIC_PROVIDER or "demo").lower().strip()
@@ -87,6 +87,7 @@ class TrafficService:
                 stale_summary.cache_status = "STALE"
                 stale_summary.data_quality = "DEGRADED"
                 stale_summary.confidence = max(0.4, stale_summary.confidence * 0.7)
+                stale_summary.provenance_label = "MIXED — STALE TELEMETRY FALLBACK"
                 return stale_summary
 
             # Fall back to safe demo provider
@@ -95,6 +96,7 @@ class TrafficService:
             fallback.cache_status = "STALE"
             fallback.data_quality = "DEGRADED"
             fallback.confidence = 0.50
+            fallback.provenance_label = "DEMO MODE — SYNTHETIC DATA"
             return fallback
 
     def calculate_traffic_impact(self, summary: DestinationTrafficSummary) -> TrafficImpactSignal:

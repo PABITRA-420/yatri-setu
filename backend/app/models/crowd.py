@@ -31,6 +31,9 @@ class CrowdResponse(BaseModel):
     live_traffic_status: str
     hotel_occupancy_rate: str
     last_updated: str
+    provenance_label: Optional[str] = "REAL — DATABASE & TELEMETRY"
+    provider_mode: Optional[str] = "REAL"
+    data_quality: Optional[str] = "HIGH" 
 
 class AlternativeWeather(BaseModel):
     """Structured weather observation for alternative destination cards."""

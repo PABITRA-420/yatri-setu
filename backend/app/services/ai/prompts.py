@@ -95,7 +95,7 @@ Instruction: {instruction}
 Additional User Notes: {custom_instruction or 'None'}
 
 CURRENT ITINERARY TO MODIFY:
-{json.dumps(current_itinerary, indent=2)}
+{json.dumps(current_itinerary, indent=2, default=str)}
 
 DESTINATION CURRENT ENVIRONMENT:
 - Destination: {context.destination_name}

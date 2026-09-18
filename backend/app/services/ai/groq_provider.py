@@ -36,6 +36,9 @@ def _clean_json_text(raw_text: str) -> str:
     return text.strip()
 
 
+_UNSET = object()
+
+
 class GroqAIProvider(BaseAIProvider):
     """
     Fallback AI provider connecting to Groq OpenAI-compatible chat completions API via httpx.
@@ -44,12 +47,12 @@ class GroqAIProvider(BaseAIProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: Any = _UNSET,
         model: Optional[str] = None,
         fallback_provider: Optional[BaseAIProvider] = None,
         is_fallback_mode: bool = True
     ):
-        self.api_key = api_key if api_key is not None else settings.GROQ_API_KEY
+        self.api_key = api_key if api_key is not _UNSET else settings.GROQ_API_KEY
         self.model = model or settings.GROQ_MODEL or "openai/gpt-oss-120b"
         self._fallback_provider = fallback_provider or MockAIProvider()
         self.is_fallback_mode = is_fallback_mode

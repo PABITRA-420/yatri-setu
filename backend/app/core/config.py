@@ -51,16 +51,17 @@ class Settings:
     DB_POOL_RECYCLE: int = int(os.getenv("DB_POOL_RECYCLE", "1800"))
 
     # Weather Provider Settings (demo | openweather | unavailable)
-    WEATHER_PROVIDER: str = os.getenv("WEATHER_PROVIDER", "demo")
+    WEATHER_PROVIDER: str = os.getenv("WEATHER_PROVIDER", "openweather")
     OPENWEATHER_API_KEY: Optional[str] = os.getenv("OPENWEATHER_API_KEY", None)
     WEATHER_API_KEY: Optional[str] = os.getenv("WEATHER_API_KEY", os.getenv("OPENWEATHER_API_KEY", None))
 
     # Traffic Provider Settings (demo | tomtom | google | unavailable)
-    TRAFFIC_PROVIDER: str = os.getenv("TRAFFIC_PROVIDER", "demo")
+    TRAFFIC_PROVIDER: str = os.getenv("TRAFFIC_PROVIDER", "tomtom")
     TRAFFIC_API_KEY: Optional[str] = os.getenv("TRAFFIC_API_KEY", None)
+    TOMTOM_API_KEY: Optional[str] = os.getenv("TOMTOM_API_KEY", os.getenv("TRAFFIC_API_KEY", None))
 
     # Road Routing Provider Settings (demo | osrm | fallback)
-    ROUTING_PROVIDER: str = os.getenv("ROUTING_PROVIDER", "demo")
+    ROUTING_PROVIDER: str = os.getenv("ROUTING_PROVIDER", "osrm")
 
     # Dynamic Pressure Refresh Settings
     PRESSURE_REFRESH_INTERVAL_SECONDS: int = int(os.getenv("PRESSURE_REFRESH_INTERVAL_SECONDS", "300"))

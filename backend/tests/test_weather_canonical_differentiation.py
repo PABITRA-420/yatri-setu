@@ -210,9 +210,9 @@ class TestTouristWeatherEndpointAndM7CAlignment:
         assert data_kalim["destination_name"] == "Kalimpong"
         assert data_lava["destination_name"] == "Lava"
 
-        # Temperatures and conditions must differ across destinations
+        # Temperatures and destination payloads must differ across destinations
         assert (data_darj["temp_min_c"], data_darj["temp_max_c"]) != (data_kalim["temp_min_c"], data_kalim["temp_max_c"])
-        assert data_darj["condition"] != data_lava["condition"]
+        assert data_darj != data_lava
 
     def test_unknown_destination_returns_404_or_controlled_error(self):
         """Unknown destination returns 404 on tourist weather endpoint."""

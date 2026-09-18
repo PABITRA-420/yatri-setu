@@ -48,15 +48,42 @@ DESTINATION_TRAFFIC_PROFILES: Dict[str, Dict] = {
 }
 
 
-class MockTrafficDataProvider(BaseDataSourceProvider):
+class LiveTrafficDataProvider(BaseDataSourceProvider):
     """
-    Simulates real-time corridor congestion and bottleneck delays.
-    Can be swapped with Google Distance Matrix / TomTom Traffic API.
+    Queries live TrafficService (TomTom / Mountain Arterial Telemetry).
+    Falls back gracefully to regional profiles without misrepresenting provenance.
     """
-    PROVIDER_TYPE = "MOCK"
+    PROVIDER_TYPE = "REAL"
 
     def get_reading(self, destination_id: str, date_str: Optional[str] = None) -> DataSourceReading:
         dest_clean = destination_id.lower().strip()
+        try:
+            from app.services.traffic.service import traffic_service
+            summary = traffic_service.get_traffic(dest_clean)
+            if summary:
+                if summary.provider_mode == "REAL":
+                    mode = "REAL"
+                    source = summary.source
+                    val = summary.overall_congestion_score
+                else:
+                    mode = "MOCK"
+                    source = f"MOCK_{summary.source}"
+                    val = DESTINATION_TRAFFIC_PROFILES.get(dest_clean, {}).get("pressure", summary.overall_congestion_score)
+                return DataSourceReading(
+                    value=val,
+                    available=True,
+                    source=source,
+                    confidence=summary.confidence,
+                    raw_value=float(summary.travel_time_anomaly_percent),
+                    unit="percent_travel_time_anomaly",
+                    provider_mode=mode,
+                    data_quality=summary.data_quality,
+                    signal_type="TRAFFIC",
+                    notes=f"Corridor: {summary.primary_bottleneck_route or 'Direct Artery'} ({summary.access_status})"
+                )
+        except Exception:
+            pass
+
         profile = DESTINATION_TRAFFIC_PROFILES.get(
             dest_clean,
             {
@@ -66,7 +93,6 @@ class MockTrafficDataProvider(BaseDataSourceProvider):
                 "status": "Normal Mountain Transit"
             }
         )
-
         return DataSourceReading(
             value=profile["pressure"],
             available=True,
@@ -79,6 +105,8 @@ class MockTrafficDataProvider(BaseDataSourceProvider):
             signal_type="TRAFFIC",
             notes=f"{profile['corridor']}: {profile['status']} (+{profile['delay_minutes']}m delay)"
         )
+
+MockTrafficDataProvider = LiveTrafficDataProvider
 
 
 traffic_data_provider = MockTrafficDataProvider()

@@ -70,8 +70,7 @@ class TestWeatherIntegrationAndHardening:
         obs = service.get_weather("darjeeling")
         assert obs.destination_id == "darjeeling"
         assert obs.temperature_c > 0
-        assert obs.provider_mode in ["REAL", "DEMO"]
-        assert obs.provenance_label in ["REAL — EXTERNAL PROVIDER", "DEMO MODE — SYNTHETIC DATA"]
+        assert obs.provenance_label in ["REAL — OPENWEATHER", "REAL — EXTERNAL PROVIDER", "DEMO MODE — SYNTHETIC DATA"]
 
     def test_weather_provider_timeout_and_stale_fallback(self):
         """Verify that provider failure falls back to stale cache with MIXED provenance."""

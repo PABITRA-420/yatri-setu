@@ -126,24 +126,35 @@ class WeatherProviderAdapter(BaseDataSourceProvider):
                 logger.warning(f"Failed to fetch OpenWeather real reading ({e}), gracefully falling back to mock.")
 
         # 2. Deterministic Mock Fallback (when no key or API unavailable)
-        forecast = get_destination_weather(normalized_id)
-        if not forecast:
-            return self.get_unavailable_reading("Weather profile not found")
-
-        vis_score = float(forecast.mountain_visibility_score)
-        rain_penalty = 25.0 if forecast.rain_expected else 0.0
-        precip_penalty = forecast.precipitation_chance_percent * 0.25
-        weather_pressure = max(10.0, min(100.0, vis_score * 0.9 - rain_penalty - precip_penalty + 15.0))
+        from app.services.weather_service import DESTINATION_WEATHER
+        raw_mock = DESTINATION_WEATHER.get(normalized_id)
+        if raw_mock:
+            vis_score = float(raw_mock["mountain_visibility_score"])
+            rain_penalty = 25.0 if raw_mock["rain_expected"] else 0.0
+            precip_penalty = raw_mock["precipitation_chance_percent"] * 0.25
+            weather_pressure = max(10.0, min(100.0, vis_score * 0.9 - rain_penalty - precip_penalty + 15.0))
+            precip_pct = float(raw_mock["precipitation_chance_percent"])
+            cond_desc = raw_mock["condition"]
+        else:
+            forecast = get_destination_weather(normalized_id)
+            if not forecast:
+                return self.get_unavailable_reading("Weather profile not found")
+            vis_score = float(forecast.mountain_visibility_score)
+            rain_penalty = 25.0 if forecast.rain_expected else 0.0
+            precip_penalty = forecast.precipitation_chance_percent * 0.25
+            weather_pressure = max(10.0, min(100.0, vis_score * 0.9 - rain_penalty - precip_penalty + 15.0))
+            precip_pct = float(forecast.precipitation_chance_percent)
+            cond_desc = forecast.condition
 
         return DataSourceReading(
             value=round(weather_pressure, 1),
             available=True,
             source="MOCK_METEOROLOGICAL_SIMULATOR",
             confidence=0.90,
-            raw_value=float(forecast.precipitation_chance_percent),
+            raw_value=precip_pct,
             unit="precip_chance_percent",
             provider_mode="MOCK",
             data_quality="HIGH",
             signal_type="WEATHER",
-            notes=f"Deterministic fallback: {forecast.condition} | Visibility: {forecast.mountain_visibility_score}/100"
+            notes=f"Deterministic fallback: {cond_desc} | Visibility: {int(vis_score)}/100"
         )

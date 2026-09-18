@@ -109,6 +109,9 @@ def get_detailed_health():
     routing_mode = routing_service.get_provider_mode()
     routing_avail = routing_service.is_available()
 
+    traffic_mode = traffic_service._provider.get_provider_mode()
+    traffic_avail = traffic_service._provider.is_available()
+
     ai_provider = settings.AI_PROVIDER.lower().strip()
     if ai_provider == "gemini":
         ai_configured = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
@@ -152,8 +155,28 @@ def get_detailed_health():
             },
             "traffic": {
                 "provider": settings.TRAFFIC_PROVIDER,
-                "available": traffic_service._provider.is_available()
+                "mode": traffic_mode,
+                "available": traffic_avail,
+                "provenance": "REAL — TOMTOM TRAFFIC" if traffic_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
             }
+        },
+        "routing": {
+            "provider": settings.ROUTING_PROVIDER,
+            "mode": routing_mode,
+            "available": routing_avail,
+            "provenance": "REAL — OSRM (OPENSTREETMAP)" if routing_mode == "osrm" else "DEMO MODE — SYNTHETIC DATA"
+        },
+        "weather": {
+            "provider": settings.WEATHER_PROVIDER,
+            "mode": weather_mode,
+            "available": weather_avail,
+            "provenance": "REAL — EXTERNAL PROVIDER" if weather_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
+        },
+        "traffic": {
+            "provider": settings.TRAFFIC_PROVIDER,
+            "mode": traffic_mode,
+            "available": traffic_avail,
+            "provenance": "REAL — TOMTOM TRAFFIC" if traffic_mode == "REAL" else "DEMO MODE — SYNTHETIC DATA"
         },
         "provenance_policy": {
             "zero_key_demo_supported": True,

@@ -206,14 +206,20 @@ class DemoWeatherProvider(BaseWeatherProvider):
         return forecasts
 
 
+_UNSET = object()
+
+
 class OpenWeatherProvider(BaseWeatherProvider):
     """
     Real OpenWeather API implementation with strict timeout and error handling.
     Only active when WEATHER_PROVIDER == 'openweather' and API key is set.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or settings.WEATHER_API_KEY or settings.OPENWEATHER_API_KEY
+    def __init__(self, api_key: Any = _UNSET):
+        if api_key is not _UNSET:
+            self.api_key = api_key
+        else:
+            self.api_key = settings.WEATHER_API_KEY or settings.OPENWEATHER_API_KEY
 
     def is_available(self) -> bool:
         return bool(self.api_key and self.api_key.strip())
