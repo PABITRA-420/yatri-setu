@@ -236,7 +236,10 @@ class OpenWeatherProvider(BaseWeatherProvider):
         )
 
         try:
-            with httpx.Client(timeout=4.0) as client:
+            # Do not let an unreachable upstream make every API request feel
+            # stalled.  The service caches the safe fallback after a failure
+            # and retries the provider later.
+            with httpx.Client(timeout=httpx.Timeout(4.0, connect=1.0)) as client:
                 resp = client.get(url)
                 if resp.status_code != 200:
                     raise RuntimeError(f"OpenWeather API returned status {resp.status_code}: {resp.text}")

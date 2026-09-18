@@ -20,6 +20,7 @@ from app.services.weather.schemas import WeatherObservation, WeatherImpactSignal
 logger = logging.getLogger(__name__)
 
 DEFAULT_WEATHER_TTL_SECONDS = 900  # 15 minutes
+FAILED_PROVIDER_RETRY_SECONDS = 60
 
 
 class WeatherService:
@@ -95,13 +96,23 @@ class WeatherService:
                 stale_obs.advisory += " [Notice: Displaying cached observation due to temporary telemetry delay]"
                 return stale_obs
 
-            # Otherwise, fall back to safe demo simulator
+            # Otherwise, fall back to the safe demo simulator and cache it
+            # briefly. Without this cache, every dependent API endpoint would
+            # wait for the same failed external request before it could use the
+            # deterministic fallback.
             demo = DemoWeatherProvider()
             fallback_obs = demo.fetch_current(dest_clean)
             fallback_obs.cache_status = "STALE"
             fallback_obs.data_quality = "DEGRADED"
             fallback_obs.provenance_label = "DEMO MODE — SYNTHETIC DATA"
             fallback_obs.confidence = 0.50
+            retry_at = now + timedelta(seconds=min(self.ttl_seconds, FAILED_PROVIDER_RETRY_SECONDS))
+            fallback_obs.expires_at = retry_at
+            self._cache[dest_clean] = {
+                "observation": fallback_obs,
+                "expires_at": retry_at,
+                "cached_at": now,
+            }
             return fallback_obs
 
     def get_forecast(self, destination_id: str, days: int = 7) -> List[WeatherObservation]:

@@ -17,7 +17,22 @@ import {
   fetchRouteEstimate
 } from '@/lib/api';
 import { AlternativeCard } from '@/components/AlternativeCard';
-import { YatriMap } from '@/components/YatriMap';
+import dynamic from 'next/dynamic';
+
+const YatriMap = dynamic(
+  () => import('@/components/YatriMap').then((mod) => mod.YatriMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[460px] bg-stone-900/60 border border-stone-800 rounded-2xl flex flex-col items-center justify-center animate-pulse text-stone-400 gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-emerald-500/30 border-t-emerald-500 animate-spin" />
+        <span className="text-xs font-mono tracking-wider text-stone-400">
+          INITIALIZING CORRIDOR MAP ENGINE...
+        </span>
+      </div>
+    )
+  }
+);
 import { getCrowdBadgeStyle, formatINR } from '@/lib/utils';
 import { 
   Sparkles, 

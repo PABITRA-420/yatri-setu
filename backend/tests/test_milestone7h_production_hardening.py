@@ -92,6 +92,21 @@ class TestWeatherIntegrationAndHardening:
         assert stale_obs.data_quality == "DEGRADED"
         assert stale_obs.provenance_label == "MIXED — STALE TELEMETRY FALLBACK"
 
+    def test_first_fallback_is_cached_after_provider_failure(self):
+        """An offline live provider must not delay each follow-up API request."""
+        service = WeatherService(ttl_seconds=60)
+        failing_provider = MagicMock()
+        failing_provider.fetch_current.side_effect = RuntimeError("OpenWeather connection timeout")
+        service.set_provider(failing_provider)
+
+        first = service.get_weather("kalimpong")
+        second = service.get_weather("kalimpong")
+
+        assert first.provider_mode == "DEMO"
+        assert second.provider_mode == "DEMO"
+        assert second.cache_status == "CACHED"
+        assert failing_provider.fetch_current.call_count == 1
+
     def test_unavailable_weather_provider_provenance(self):
         """Verify UnavailableWeatherProvider returns correct UNAVAILABLE provenance."""
         provider = UnavailableWeatherProvider()

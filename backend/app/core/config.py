@@ -1,5 +1,14 @@
 import os
+from pathlib import Path
 from typing import List, Optional
+
+from dotenv import load_dotenv
+
+
+# Load backend/.env for local development while preserving values supplied by
+# Render, Docker, or another deployment environment.
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+load_dotenv(_BACKEND_DIR / ".env", override=False)
 
 class Settings:
     PROJECT_NAME: str = "Yatri Setu API"
@@ -14,13 +23,18 @@ class Settings:
     @property
     def CORS_ORIGINS(self) -> List[str]:
         raw_origins = os.getenv("CORS_ORIGINS")
-        if raw_origins:
-            return [orig.strip() for orig in raw_origins.split(",") if orig.strip()]
-        return [
+        defaults = [
             "http://localhost:3000",
             "http://127.0.0.1:3000",
-            "http://localhost:8000"
+            "http://localhost:8000",
+            "https://yatri-setu.vercel.app",
+            "https://yatri-setu.onrender.com",
+            "https://yatri-setu-api.onrender.com"
         ]
+        if raw_origins:
+            parsed = [orig.strip() for orig in raw_origins.split(",") if orig.strip()]
+            return list(dict.fromkeys(parsed + defaults))
+        return defaults
     
     # Database settings (PostgreSQL in production, SQLite fallback in local/tests)
     @property
