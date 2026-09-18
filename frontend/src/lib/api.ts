@@ -67,7 +67,9 @@ import {
   HostDashboardData,
   DestinationLocalEconomy,
   PanchayatDashboardData,
-  RuralAdminSummary
+  RuralAdminSummary,
+  RouteCalculationResponse,
+  RouteGeometry
 } from '@/types';
 
 
@@ -2681,4 +2683,82 @@ export async function fetchRuralAdminDestinations(): Promise<DestinationLocalEco
   const res = await fetch(`${API_BASE_URL}/admin/rural/destinations`, { cache: 'no-store' });
   if (!res.ok) throw new Error('Failed to fetch rural destinations');
   return await res.json();
+}
+
+// Milestone 8A: MapLibre + OpenFreeMap + Road Routing API
+export async function fetchRouteEstimate(
+  originId: string,
+  destinationId: string,
+  transitMode?: string
+): Promise<RouteCalculationResponse> {
+  const normOrig = originId.toLowerCase().trim();
+  const normDest = destinationId.toLowerCase().trim();
+
+  try {
+    const url = new URL(`${API_BASE_URL}/routing/route`);
+    url.searchParams.set('origin', normOrig);
+    url.searchParams.set('destination', normDest);
+    if (transitMode) {
+      url.searchParams.set('transit_mode', transitMode);
+    }
+
+    const res = await fetch(url.toString(), { cache: 'no-store' });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`Routing API unavailable (${normOrig} -> ${normDest}):`, err);
+  }
+
+  // Graceful client fallback using known coordinates
+  const coords: Record<string, [number, number]> = {
+    darjeeling: [88.2663, 27.0410],
+    kalimpong: [88.4695, 27.0594],
+    lava: [88.6603, 27.0864],
+    lolegaon: [88.5583, 27.0142],
+    rishop: [88.6496, 27.1065],
+    mirik: [88.1755, 26.9011]
+  };
+
+  const names: Record<string, string> = {
+    darjeeling: 'Darjeeling',
+    kalimpong: 'Kalimpong',
+    lava: 'Lava',
+    lolegaon: 'Lolegaon',
+    rishop: 'Rishop',
+    mirik: 'Mirik'
+  };
+
+  const c1 = coords[normOrig] || [88.2663, 27.0410];
+  const c2 = coords[normDest] || [88.4695, 27.0594];
+
+  // Rough haversine approximation for offline client
+  const R = 6371.0;
+  const dLat = (c2[1] - c1[1]) * Math.PI / 180;
+  const dLon = (c2[0] - c1[0]) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(c1[1] * Math.PI / 180) * Math.cos(c2[1] * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const straightDist = Math.round(R * c * 10) / 10;
+
+  return {
+    origin_destination_id: normOrig,
+    origin_name: names[normOrig] || normOrig,
+    destination_destination_id: normDest,
+    destination_name: names[normDest] || normDest,
+    distance_km: straightDist,
+    duration_minutes: Math.max(15, Math.round(straightDist * 2.2)),
+    route_geometry: {
+      type: 'LineString',
+      coordinates: [c1, c2]
+    },
+    provider: 'fallback',
+    fetched_at: new Date().toISOString(),
+    provenance_label: 'FALLBACK — ROUTING UNAVAILABLE (HAVERSINE GEOGRAPHIC ESTIMATE)',
+    is_road_distance: false,
+    transit_mode: transitMode || 'Himalayan Mountain Transit (Estimated)',
+    road_condition: 'Mountain route estimate; road navigation server offline',
+    notes: 'Straight-line geographic estimate (Haversine)'
+  };
 }
