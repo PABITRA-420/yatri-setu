@@ -33,16 +33,16 @@ function DestinationsContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-stone-200/80 dark:border-white/10">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-black/[.08]/80 dark:border-white/10">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
             <Compass className="w-3.5 h-3.5" />
             <span>Curated Himalayan Sanctuary Catalog</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-stone-950 dark:text-white tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-[#171714] dark:text-white tracking-tight">
             Explore Himalayan Sanctuaries
           </h1>
-          <p className="text-xs sm:text-sm text-stone-500 max-w-xl mt-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#706E68] max-w-xl mt-2 leading-relaxed">
             Real-time multi-factor crowd intelligence and serene rural alternatives to help you choose low-impact, restorative journeys.
           </p>
         </div>
@@ -50,7 +50,7 @@ function DestinationsContent() {
         {/* Demo Alert Banner */}
         <Link
           href="/destinations/darjeeling/crowd"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-400 text-xs font-bold hover:bg-rose-100/70 transition-all self-start md:self-auto shadow-xs"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-[20px] bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-400 text-xs font-bold hover:bg-rose-100/70 transition-all self-start md:self-auto shadow-xs"
         >
           <Flame className="w-4 h-4 animate-pulse" />
           <span>Demo: View Darjeeling (88/100 Overcrowded)</span>
@@ -59,7 +59,7 @@ function DestinationsContent() {
       </div>
 
       {/* Filter and Search Controls */}
-      <div className="bg-white dark:bg-[#121824] p-5 rounded-3xl border border-stone-200/80 dark:border-white/10 shadow-xs space-y-4">
+      <div className="bg-[#FCFAF6] dark:bg-[#FCFAF6] p-5 rounded-[24px] border border-black/[.08]/80 dark:border-white/10 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           {/* Search Box */}
           <div className="relative flex-1 w-full">
@@ -69,7 +69,7 @@ function DestinationsContent() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filter by name, tags e.g. 'Darjeeling', 'Monasteries', 'Orchids'..."
-              className="w-full pl-11 pr-4 py-3 bg-stone-50 dark:bg-stone-900/90 rounded-2xl text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 border border-stone-200/80 dark:border-white/10 text-stone-950 dark:text-white placeholder:text-stone-400"
+              className="w-full pl-11 pr-4 py-3 bg-[#F5F2EA] dark:bg-stone-900/90 rounded-[20px] text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 border border-black/[.08]/80 dark:border-white/10 text-[#171714] dark:text-white placeholder:text-stone-400"
             />
           </div>
 
@@ -80,7 +80,7 @@ function DestinationsContent() {
                 setQuery('');
                 setSelectedCrowd('ALL');
               }}
-              className="text-xs font-bold text-stone-500 hover:text-stone-900 dark:hover:text-stone-200 px-3.5 py-2.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              className="text-xs font-bold text-[#706E68] hover:text-[#171714] dark:hover:text-stone-200 px-3.5 py-2.5 rounded-xl hover:bg-[#F5F2EA] dark:hover:bg-stone-800 transition-colors"
             >
               Reset Filters
             </button>
@@ -100,8 +100,8 @@ function DestinationsContent() {
               onClick={() => setSelectedCrowd(lvl)}
               className={`px-3.5 py-1.5 rounded-xl font-bold uppercase text-[11px] whitespace-nowrap transition-all ${
                 selectedCrowd === lvl
-                  ? 'bg-stone-950 dark:bg-white text-white dark:text-stone-950 shadow-xs'
-                  : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200/70 dark:hover:bg-stone-700'
+                  ? 'bg-stone-950 dark:bg-[#FCFAF6] text-white dark:text-[#171714] shadow-xs'
+                  : 'bg-[#F5F2EA] dark:bg-stone-800 text-[#706E68] dark:text-stone-300 hover:bg-black/[.04]/70 dark:hover:bg-stone-700'
               }`}
             >
               {lvl === 'ALL' ? 'All Densities' : lvl}
@@ -114,18 +114,18 @@ function DestinationsContent() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-96 bg-stone-200 dark:bg-stone-800 rounded-3xl" />
+            <div key={i} className="h-96 bg-black/[.04] dark:bg-stone-800 rounded-[24px]" />
           ))}
         </div>
       ) : destinations.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-[#121824] rounded-3xl border border-stone-200/80 dark:border-white/10 shadow-xs">
-          <p className="text-stone-500 text-sm">No destinations found matching your criteria.</p>
+        <div className="text-center py-20 bg-[#FCFAF6] dark:bg-[#FCFAF6] rounded-[24px] border border-black/[.08]/80 dark:border-white/10 shadow-xs">
+          <p className="text-[#706E68] text-sm">No destinations found matching your criteria.</p>
           <button
             onClick={() => {
               setQuery('');
               setSelectedCrowd('ALL');
             }}
-            className="mt-4 px-5 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition-all shadow-xs"
+            className="mt-4 px-5 py-2.5 rounded-[20px] bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition-all shadow-xs"
           >
             Clear Filters
           </button>
@@ -144,7 +144,7 @@ function DestinationsContent() {
 export default function DestinationsPage() {
   return (
     <Suspense fallback={
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center text-stone-500">
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center text-[#706E68]">
         Loading sanctuaries...
       </div>
     }>
