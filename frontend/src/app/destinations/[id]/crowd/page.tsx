@@ -196,7 +196,7 @@ export default function CrowdIntelligencePage() {
                 Identified Physical Choke Points:
               </span>
               <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                {crowd.bottlenecks.map((b, i) => (
+                {(Array.isArray(crowd.bottlenecks) ? crowd.bottlenecks : []).map((b, i) => (
                   <li key={i} className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
                     <span>{b}</span>
@@ -230,7 +230,7 @@ export default function CrowdIntelligencePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {crowd.why_crowded.map((reason, idx) => (
+          {(Array.isArray(crowd.why_crowded) ? crowd.why_crowded : []).map((reason, idx) => (
             <div
               key={idx}
               className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5 flex items-start gap-3.5"

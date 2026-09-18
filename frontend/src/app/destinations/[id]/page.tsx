@@ -3,12 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Destination, CrowdResponse, Homestay, DestinationLiveConditions } from '@/types';
 import { fetchDestinationDetails, fetchDestinationCrowd, fetchHomestays, fetchDestinationConditions } from '@/lib/api';
 import { CrowdGauge } from '@/components/CrowdGauge';
 import { HomestayCard } from '@/components/HomestayCard';
 import { EmptyState } from '@/components/EmptyState';
-import { YatriMap } from '@/components/YatriMap';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const YatriMap = dynamic(
+  () => import('@/components/YatriMap').then((mod) => mod.YatriMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] w-full rounded-2xl bg-stone-100 dark:bg-stone-900 flex items-center justify-center text-xs text-stone-400">
+        Loading regional map...
+      </div>
+    )
+  }
+);
 import { formatINR, getCrowdBadgeStyle } from '@/lib/utils';
 import { 
   MapPin, 
@@ -227,7 +240,7 @@ export default function DestinationDetailsPage() {
                 Key Sights & Heritage Highlights
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {destination.highlights.map((highlight, idx) => (
+                {(Array.isArray(destination.highlights) ? destination.highlights : []).map((highlight, idx) => (
                   <div key={idx} className="flex items-start gap-2.5 text-xs text-stone-700 dark:text-stone-300 bg-stone-50 dark:bg-stone-900/40 p-2.5 rounded-xl border border-stone-200/60 dark:border-white/5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                     <span>{highlight}</span>
@@ -399,7 +412,7 @@ export default function DestinationDetailsPage() {
 
                   {/* Route List */}
                   <div className="space-y-2 pt-1">
-                    {liveConditions.traffic.critical_routes.map((rt) => (
+                    {(Array.isArray(liveConditions?.traffic?.critical_routes) ? liveConditions.traffic.critical_routes : []).map((rt) => (
                       <div
                         key={rt.route_id}
                         className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-stone-800/60 border border-stone-200/40 dark:border-white/5 text-xs"
@@ -445,7 +458,7 @@ export default function DestinationDetailsPage() {
 
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider">Top Drivers:</span>
-                  {liveConditions.top_drivers.map((drv, i) => (
+                  {(Array.isArray(liveConditions?.top_drivers) ? liveConditions.top_drivers : []).map((drv, i) => (
                     <span
                       key={i}
                       className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700"
@@ -486,15 +499,20 @@ export default function DestinationDetailsPage() {
               </Link>
             </div>
 
-            <YatriMap
-              height="400px"
-              originId={destination.id}
-              onSelectDestination={(destId) => {
-                if (destId !== destination.id) {
-                  router.push(`/destinations/${destId}`);
-                }
-              }}
-            />
+            <ErrorBoundary
+              fallbackTitle="Regional Route Map Unavailable"
+              fallbackMessage="Map rendering was isolated to preserve destination and corridor navigation."
+            >
+              <YatriMap
+                height="400px"
+                originId={destination.id}
+                onSelectDestination={(destId) => {
+                  if (destId !== destination.id) {
+                    router.push(`/destinations/${destId}`);
+                  }
+                }}
+              />
+            </ErrorBoundary>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-stone-500 dark:text-stone-400 pt-1">
               <span>Click any destination pin to inspect details or explore alternative routes.</span>
@@ -510,7 +528,7 @@ export default function DestinationDetailsPage() {
             </h2>
 
             <div className="space-y-4">
-              {destination.attractions.map((attraction) => (
+              {(Array.isArray(destination.attractions) ? destination.attractions : []).map((attraction) => (
                 <div
                   key={attraction.id}
                   className="editorial-card bg-white dark:bg-[#121824] rounded-3xl p-5 border border-stone-200/80 dark:border-white/10 shadow-xs flex flex-col sm:flex-row gap-5"
@@ -586,7 +604,7 @@ export default function DestinationDetailsPage() {
               <EmptyState />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {homestays.slice(0, 4).map((hs) => (
+                {(Array.isArray(homestays) ? homestays : []).slice(0, 4).map((hs) => (
                   <HomestayCard key={hs.id} homestay={hs} />
                 ))}
               </div>

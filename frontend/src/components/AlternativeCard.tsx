@@ -29,13 +29,18 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
   isSelected = false,
   onSelectForMap
 }) => {
-  const crowdBadge = getCrowdBadgeStyle(alternative.crowd_level);
+  const crowdBadge = getCrowdBadgeStyle(alternative?.crowd_level || 'MEDIUM');
+  const matchingAttributes: string[] = Array.isArray(alternative?.matching_attributes) ? alternative.matching_attributes : [];
+  const reasonsToRecommend: string[] = Array.isArray(alternative?.reasons_to_recommend) 
+    ? alternative.reasons_to_recommend 
+    : (Array.isArray((alternative as any)?.reasons) ? (alternative as any).reasons : []);
 
   const handleSelectAlternative = () => {
+    if (!alternative?.id) return;
     recordAlternativeAcceptance(
-      originName.toLowerCase().replace(/\s+/g, '-'),
+      (originName || 'darjeeling').toLowerCase().replace(/\s+/g, '-'),
       alternative.id,
-      alternative.similarity_score
+      alternative.similarity_score || 80
     );
   };
 
@@ -140,12 +145,12 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
             </div>
 
             {/* Matching Attributes Chips */}
-            {alternative.matching_attributes && alternative.matching_attributes.length > 0 && (
+            {matchingAttributes.length > 0 && (
               <div className="mb-3 flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-bold uppercase text-stone-400 tracking-wider mr-1">
                   Shared Charms:
                 </span>
-                {alternative.matching_attributes.map((attr, idx) => (
+                {matchingAttributes.map((attr, idx) => (
                   <span
                     key={idx}
                     className="text-[10px] font-semibold bg-stone-100 dark:bg-stone-800/80 text-stone-700 dark:text-stone-300 px-2.5 py-1 rounded-md border border-stone-200/60 dark:border-white/5"
@@ -193,14 +198,14 @@ export const AlternativeCard: React.FC<AlternativeCardProps> = ({
             </div>
 
             {/* Why Yatri Setu Suggests */}
-            {alternative.reasons_to_recommend && alternative.reasons_to_recommend.length > 0 && (
+            {reasonsToRecommend.length > 0 && (
               <div className="mb-4">
                 <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-2">
                   <ShieldCheck className="w-4 h-4" />
                   <span>Why Yatri Setu Suggests This Destination:</span>
                 </div>
                 <ul className="space-y-1.5">
-                  {alternative.reasons_to_recommend.map((reason, idx) => (
+                  {reasonsToRecommend.map((reason: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-2 text-xs text-stone-600 dark:text-stone-300">
                       <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                       <span>{reason}</span>
