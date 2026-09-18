@@ -44,7 +44,7 @@ export default function CrowdIntelligencePage() {
   if (loading || !crowd) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-24 text-center animate-pulse">
-        <div className="h-10 w-64 bg-stone-200 dark:bg-stone-800 rounded-2xl mx-auto mb-4" />
+        <div className="h-10 w-64 bg-stone-200 dark:bg-stone-800 rounded-[20px] mx-auto mb-4" />
         <div className="h-6 w-96 bg-stone-200 dark:bg-stone-800 rounded-xl mx-auto" />
       </div>
     );
@@ -55,7 +55,7 @@ export default function CrowdIntelligencePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
       {/* Hero Header with Blurred Background Image */}
-      <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-stone-200 dark:border-white/10">
+      <div className="relative rounded-[24px] overflow-hidden shadow-[0_20px_55px_rgba(23,23,20,0.10)] border border-black/[.08] dark:border-white/10">
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img 
@@ -71,7 +71,7 @@ export default function CrowdIntelligencePage() {
         <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 p-8 sm:p-12">
           <div>
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md text-amber-400 shadow-inner border border-white/20">
+              <div className="p-3 rounded-[20px] bg-[#FCFAF6]/10 backdrop-blur-md text-amber-400 shadow-inner border border-white/20">
                 <Flame className="w-6 h-6" />
               </div>
               <div>
@@ -93,7 +93,7 @@ export default function CrowdIntelligencePage() {
           {/* Primary CTA to view alternatives */}
           <Link
             href={`/destinations/${id}/alternatives`}
-            className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all self-start md:self-auto active:scale-95"
+            className="flex items-center gap-2 px-6 py-4 rounded-[20px] bg-amber-500 hover:bg-amber-400 text-[#171714] font-extrabold text-xs shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-all self-start md:self-auto active:scale-95"
           >
             <Sparkles className="w-4 h-4" />
             <span>View Recommended Alternatives</span>
@@ -105,11 +105,11 @@ export default function CrowdIntelligencePage() {
       {/* Top Banner: Score Gauge & Live Real-time Status */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Score Gauge Card */}
-        <div className="lg:col-span-5 bg-white dark:bg-[#121824] rounded-3xl p-8 border border-stone-200/80 dark:border-white/10 shadow-xs flex flex-col items-center justify-center">
+        <div className="lg:col-span-5 bg-[#FCFAF6] dark:bg-[#121824] rounded-[24px] p-8 border border-black/[.08]/80 dark:border-white/10 shadow-xs flex flex-col items-center justify-center">
           <CrowdGauge score={crowd.crowd_score} level={crowd.crowd_level} size="lg" />
 
           {/* Alert Status Card */}
-          <div className={`mt-7 w-full p-5 rounded-2xl text-xs leading-relaxed ${
+          <div className={`mt-7 w-full p-5 rounded-[20px] text-xs leading-relaxed ${
             isCritical 
               ? 'bg-rose-50 text-rose-800 dark:bg-rose-950/30 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60' 
               : 'bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60'
@@ -125,66 +125,66 @@ export default function CrowdIntelligencePage() {
         </div>
 
         {/* Live Operational Metrics Card */}
-        <div className="lg:col-span-7 bg-white dark:bg-[#121824] rounded-3xl p-8 border border-stone-200/80 dark:border-white/10 shadow-xs flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-[#FCFAF6] dark:bg-[#121824] rounded-[24px] p-8 border border-black/[.08]/80 dark:border-white/10 shadow-xs flex flex-col justify-between">
           <div>
-            <h3 className="font-extrabold text-base text-stone-950 dark:text-white mb-5 flex items-center gap-2 tracking-tight">
+            <h3 className="font-extrabold text-base text-[#171714] dark:text-white mb-5 flex items-center gap-2 tracking-tight">
               <Navigation className="w-4 h-4 text-amber-600" />
               <span>Live Operational Pulse & Timings</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Metric 1 */}
-              <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5">
+              <div className="p-4 rounded-[20px] bg-[#F5F2EA] dark:bg-stone-900/60 border border-black/[.08]/60 dark:border-white/5">
                 <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
                   Peak Visiting Windows
                 </span>
-                <span className="font-extrabold text-sm text-stone-950 dark:text-white flex items-center gap-1.5 font-mono">
+                <span className="font-extrabold text-sm text-[#171714] dark:text-white flex items-center gap-1.5 font-mono">
                   <Clock className="w-4 h-4 text-rose-600" />
                   {crowd.peak_visiting_hours}
                 </span>
-                <span className="text-[11px] text-stone-500 mt-1 block">
+                <span className="text-[11px] text-[#706E68] mt-1 block">
                   Avoid observation deck queues
                 </span>
               </div>
 
               {/* Metric 2 */}
-              <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5">
+              <div className="p-4 rounded-[20px] bg-[#F5F2EA] dark:bg-stone-900/60 border border-black/[.08]/60 dark:border-white/5">
                 <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
                   Optimal Calmer Window Today
                 </span>
-                <span className="font-extrabold text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                <span className="font-extrabold text-sm text-[#183A32] dark:text-emerald-400 flex items-center gap-1.5 font-mono">
                   <CheckCircle className="w-4 h-4 text-emerald-600" />
                   {crowd.best_time_to_visit_today}
                 </span>
-                <span className="text-[11px] text-stone-500 mt-1 block">
+                <span className="text-[11px] text-[#706E68] mt-1 block">
                   Ideal for quiet nature walks
                 </span>
               </div>
 
               {/* Metric 3 */}
-              <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5">
+              <div className="p-4 rounded-[20px] bg-[#F5F2EA] dark:bg-stone-900/60 border border-black/[.08]/60 dark:border-white/5">
                 <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
                   Hotel Occupancy Density
                 </span>
-                <span className="font-extrabold text-sm text-stone-950 dark:text-white flex items-center gap-1.5 font-mono">
+                <span className="font-extrabold text-sm text-[#171714] dark:text-white flex items-center gap-1.5 font-mono">
                   <Building className="w-4 h-4 text-amber-600" />
                   {crowd.hotel_occupancy_rate}
                 </span>
-                <span className="text-[11px] text-stone-500 mt-1 block">
+                <span className="text-[11px] text-[#706E68] mt-1 block">
                   Town center room availability
                 </span>
               </div>
 
               {/* Metric 4 */}
-              <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5">
+              <div className="p-4 rounded-[20px] bg-[#F5F2EA] dark:bg-stone-900/60 border border-black/[.08]/60 dark:border-white/5">
                 <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block mb-1">
                   Choke Point Road Traffic
                 </span>
-                <span className="font-extrabold text-sm text-stone-950 dark:text-white flex items-center gap-1.5 font-mono">
+                <span className="font-extrabold text-sm text-[#171714] dark:text-white flex items-center gap-1.5 font-mono">
                   <Car className="w-4 h-4 text-amber-600" />
                   {crowd.live_traffic_status}
                 </span>
-                <span className="text-[11px] text-stone-500 mt-1 block">
+                <span className="text-[11px] text-[#706E68] mt-1 block">
                   Hill Cart Road & Ghoom Junction
                 </span>
               </div>
@@ -214,16 +214,16 @@ export default function CrowdIntelligencePage() {
       </div>
 
       {/* "Why is it Crowded?" Explainability Section */}
-      <div className="bg-white dark:bg-[#121824] rounded-3xl p-7 sm:p-8 border border-stone-200/80 dark:border-white/10 shadow-xs">
+      <div className="bg-[#FCFAF6] dark:bg-[#121824] rounded-[24px] p-7 sm:p-8 border border-black/[.08]/80 dark:border-white/10 shadow-xs">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 rounded-2xl bg-rose-500/10 text-rose-700 dark:text-rose-400">
+          <div className="p-2.5 rounded-[20px] bg-rose-500/10 text-rose-700 dark:text-rose-400">
             <HelpCircle className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-xl font-extrabold text-stone-950 dark:text-white tracking-tight">
+            <h2 className="text-xl font-extrabold text-[#171714] dark:text-white tracking-tight">
               Why is the Crowd Score {crowd.crowd_score}/100?
             </h2>
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-[#706E68]">
               Natural language explanation synthesized from deterministic factors
             </p>
           </div>
@@ -233,12 +233,12 @@ export default function CrowdIntelligencePage() {
           {crowd.why_crowded.map((reason, idx) => (
             <div
               key={idx}
-              className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-900/60 border border-stone-200/60 dark:border-white/5 flex items-start gap-3.5"
+              className="p-5 rounded-[20px] bg-[#F5F2EA] dark:bg-stone-900/60 border border-black/[.08]/60 dark:border-white/5 flex items-start gap-3.5"
             >
               <span className="w-6 h-6 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
                 {idx + 1}
               </span>
-              <p className="text-xs sm:text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#171714]/75 dark:text-stone-300 leading-relaxed">
                 {reason}
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function CrowdIntelligencePage() {
       <CrowdFactorBreakdown factors={crowd.factors} crowdScore={crowd.crowd_score} />
 
       {/* Alternative Redirection Callout */}
-      <div className="bg-stone-950 text-white rounded-[2.5rem] p-8 sm:p-12 shadow-2xl border border-stone-800 flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-stone-950 text-white rounded-[2.5rem] p-8 sm:p-12 shadow-[0_20px_55px_rgba(23,23,20,0.10)] border border-stone-800 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-3 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-400/20 text-amber-300 font-bold text-xs uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
@@ -266,7 +266,7 @@ export default function CrowdIntelligencePage() {
 
         <Link
           href={`/destinations/${id}/alternatives`}
-          className="px-6 py-3.5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs shadow-lg active:scale-97 transition-all flex items-center gap-2 whitespace-nowrap"
+          className="px-6 py-3.5 rounded-[20px] bg-amber-400 hover:bg-amber-300 text-[#171714] font-bold text-xs shadow-lg active:scale-97 transition-all flex items-center gap-2 whitespace-nowrap"
         >
           <span>Compare Kalimpong & Stays</span>
           <ArrowRight className="w-4 h-4" />
