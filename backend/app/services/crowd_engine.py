@@ -356,9 +356,9 @@ def calculate_crowd_score(destination_id: str, custom_factors: Dict[str, float] 
     
     if norm_id == "darjeeling":
         why_crowded = [
-            "Peak holiday season coinciding with clear sunrise views at Tiger Hill (95% observation deck saturation).",
-            "Hill Cart Road and Mall Road experiencing severe vehicular queueing up to Ghoom railway crossing.",
-            "Hotel & resort occupancy across Central Darjeeling is currently exceeding 91% capacity.",
+            "Peak holiday season coinciding with sunrise views at Tiger Hill (high observation deck footfall).",
+            "Hill Cart Road and Mall Road experiencing vehicular queueing toward Ghoom railway intersection.",
+            "Hotel & resort occupancy across Central Darjeeling is elevated (~90% seasonal baseline).",
             "Spillover day-trippers from Siliguri leading to prolonged pedestrian congestion at Chowrasta."
         ]
         bottlenecks = [
@@ -366,11 +366,11 @@ def calculate_crowd_score(destination_id: str, custom_factors: Dict[str, float] 
             "Chowrasta Mall pedestrian zone between 4:00 PM and 7:30 PM",
             "Tiger Hill sunrise access gate between 3:45 AM and 5:30 AM"
         ]
-        summary = "Darjeeling is currently experiencing extreme congestion across major landmarks, tea estates, and roads. Yatri Setu strongly advises diverting to calmer neighboring ridge towns like Kalimpong or Lava."
+        summary = "Darjeeling is currently experiencing high crowd pressure across major landmarks, tea estates, and roads. Yatri Setu advises considering calmer neighboring ridge towns like Kalimpong or Lava."
         peak_hours = "04:00 AM - 07:00 AM (Sunrise) & 04:30 PM - 08:00 PM (Mall Promenade)"
         best_time_today = "Early morning walks along secluded Tenzing Norgay Road (07:00 AM - 08:30 AM)"
-        traffic_status = "Heavy Delays (+45 min transit time)"
-        occupancy = "91% (Critical)"
+        traffic_status = "Elevated Mountain Transit Delay"
+        occupancy = "90% (Regional Seasonal Baseline)"
 
     elif norm_id == "kalimpong":
         why_crowded = [

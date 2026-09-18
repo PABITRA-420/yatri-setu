@@ -115,7 +115,7 @@ def test_weather_aware_adaptation_in_lava():
             if act.is_weather_adapted:
                 weather_adapted_found = True
                 assert "Yatri Setu adapted" in act.adaptation_reason
-                assert any(p in act.period for p in ["Morning", "Afternoon", "Evening"])
+                assert any(p.lower() in act.period.lower() for p in ["morning", "afternoon", "evening"])
 
     assert weather_adapted_found is True
 

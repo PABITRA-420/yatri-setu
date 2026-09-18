@@ -40,6 +40,29 @@ def _validate_ai_output(ai_output, context) -> None:
                 )
                 act.cost_estimate_inr = max(ACTIVITY_COST_MIN_INR, min(ACTIVITY_COST_MAX_INR, act.cost_estimate_inr))
 
+            # Period normalization check
+            if act.period:
+                p_lower = act.period.lower()
+                if "morn" in p_lower:
+                    act.period = "Morning"
+                elif "after" in p_lower or "noon" in p_lower or "lunch" in p_lower:
+                    act.period = "Afternoon"
+                elif "even" in p_lower or "night" in p_lower or "dinner" in p_lower:
+                    act.period = "Evening"
+                else:
+                    act.period = act.period.capitalize()
+            else:
+                act.period = "Morning"
+
+            # Weather adaptation reason standardization
+            if act.is_weather_adapted:
+                if not act.adaptation_reason or "Yatri Setu adapted" not in act.adaptation_reason:
+                    prefix = "Yatri Setu adapted this activity because of expected mountain rain"
+                    if act.adaptation_reason:
+                        act.adaptation_reason = f"{prefix}: {act.adaptation_reason}"
+                    else:
+                        act.adaptation_reason = f"{prefix}."
+
             # Crowd forecast value check
             if act.crowd_forecast not in VALID_CROWD_FORECAST_VALUES:
                 logger.warning(

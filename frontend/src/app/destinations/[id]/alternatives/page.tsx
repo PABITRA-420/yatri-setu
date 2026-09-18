@@ -172,7 +172,7 @@ function AlternativesContent() {
 
             <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
               Yatri Setu actively balances tourist distribution to safeguard Himalayan ecosystems. 
-              Instead of competing with 91% hotel saturation and gridlocked mountain roads, choose between 
+              Instead of competing with peak seasonal accommodation saturation and congested mountain access corridors, choose between 
               <strong className="text-white"> shifting to a serene destination</strong> or <strong className="text-white">adjusting your travel dates</strong>.
             </p>
           </div>

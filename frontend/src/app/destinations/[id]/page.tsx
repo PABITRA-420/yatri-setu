@@ -134,7 +134,7 @@ export default function DestinationDetailsPage() {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-rose-800/90 dark:text-rose-300/80 mt-1 leading-relaxed">
-                Hotel saturation exceeds 91% and Hill Cart Road is backed up by 45+ mins. 
+                Accommodation pressure: {crowd?.hotel_occupancy_rate || 'High (~90% seasonal baseline)'} • Mountain road status: {crowd?.live_traffic_status || 'Elevated transit delays'}. 
                 Yatri Setu recommends shifting your booking to <strong>Kalimpong (87% Similarity, 42% cost savings)</strong>.
               </p>
             </div>
