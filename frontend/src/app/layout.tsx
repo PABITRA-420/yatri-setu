@@ -6,47 +6,22 @@ import { TopMarquee } from '@/components/TopMarquee';
 import { Footer } from '@/components/Footer';
 import { SmoothScrollProvider } from '@/components/SmoothScrollProvider';
 
-const sansFont = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800']
-});
-
-const editorialFont = Cormorant_Garamond({
-  subsets: ['latin'],
-  variable: '--font-serif',
-  display: 'swap',
-  style: ['normal', 'italic'],
-  weight: ['400', '500', '600', '700']
-});
+const sansFont = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-sans', display: 'swap', weight: ['400','500','600','700','800'] });
+const editorialFont = Cormorant_Garamond({ subsets: ['latin'], variable: '--font-serif', display: 'swap', style: ['normal','italic'], weight: ['400','500','600','700'] });
 
 export const metadata: Metadata = {
-  title: 'Yatri Setu | Himalayan Flow Intelligence & Hyperlocal Tourism',
-  description:
-    'Active tourist flow management, explainable crowd scoring, and rural homestays with built-in traveler safety.',
-  keywords: [
-    'Yatri Setu',
-    'Overtourism Management',
-    'Rural Tourism',
-    'Himalayan Homestays',
-    'Crowd Prediction',
-    'Traveler Safety'
-  ]
+  title: 'Yatri Setu | Intelligent Travel',
+  description: 'Discover quieter destinations, local stays and intelligent travel planning with Yatri Setu.'
 };
 
-export default function RootLayout({
-  children
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`h-full antialiased ${sansFont.variable} ${editorialFont.variable}`}>
-      <body className="min-h-full flex flex-col bg-[#F6F4F0] text-stone-900 dark:bg-[#0C0F14] dark:text-stone-100 transition-colors font-sans selection:bg-amber-500/20 selection:text-amber-900 dark:selection:text-amber-200">
+    <html lang="en" className={`${sansFont.variable} ${editorialFont.variable}`}>
+      <body className="min-h-screen bg-[#F5F2EA] text-[#171714] font-sans">
         <SmoothScrollProvider>
           <Navbar />
           <TopMarquee />
-          <main className="flex-1">{children}</main>
+          <main className="min-h-screen">{children}</main>
           <Footer />
         </SmoothScrollProvider>
       </body>
