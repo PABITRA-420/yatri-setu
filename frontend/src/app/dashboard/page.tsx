@@ -37,7 +37,7 @@ export default function TouristDashboardPage() {
       {/* Small toast / alert notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 max-w-md animate-in fade-in slide-in-from-top-3 duration-300">
-          <div className="bg-emerald-900/95 text-emerald-100 border border-emerald-500/50 shadow-2xl rounded-2xl p-4 flex items-start gap-3 backdrop-blur-md">
+          <div className="bg-emerald-900/95 text-emerald-100 border border-emerald-500/50 shadow-[0_20px_55px_rgba(23,23,20,0.10)] rounded-[20px] p-4 flex items-start gap-3 backdrop-blur-md">
             <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
               <Leaf className="w-5 h-5 animate-pulse" />
             </div>
@@ -61,9 +61,9 @@ export default function TouristDashboardPage() {
       )}
 
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 rounded-3xl p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-xl">
+      <div className="bg-gradient-to-r from-amber-600 via-rose-600 to-amber-700 rounded-[24px] p-6 sm:p-8 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-[0_12px_40px_rgba(23,23,20,0.06)]">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 text-2xl font-black shadow-inner">
+          <div className="w-16 h-16 rounded-[20px] bg-[#FCFAF6]/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30 text-2xl font-black shadow-inner">
             AS
           </div>
           <div>
@@ -84,7 +84,7 @@ export default function TouristDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/trips/demo-kalimpong"
-            className="px-4 py-2.5 rounded-xl bg-white text-slate-900 text-xs font-bold hover:bg-slate-100 transition-colors shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2.5 rounded-xl bg-[#FCFAF6] text-slate-900 text-xs font-bold hover:bg-slate-100 transition-colors shadow-sm flex items-center gap-1.5"
           >
             <QrCode className="w-4 h-4 text-amber-600" />
             <span>Digital Travel Pass</span>
@@ -102,7 +102,7 @@ export default function TouristDashboardPage() {
       {/* Grid: Active Journey & Crowd Warning Ticker */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Journey Card */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
@@ -150,7 +150,7 @@ export default function TouristDashboardPage() {
             </div>
             <Link
               href="/trips/demo-kalimpong"
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-xs font-bold hover:bg-amber-600 dark:hover:bg-amber-500 dark:hover:text-white transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 text-white dark:bg-[#FCFAF6] dark:text-slate-900 text-xs font-bold hover:bg-amber-600 dark:hover:bg-amber-500 dark:hover:text-white transition-colors"
             >
               <span>Open Trip Companion</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -159,7 +159,7 @@ export default function TouristDashboardPage() {
         </div>
 
         {/* Green Credits Card (Modern Sustainable-Tourism In-Platform Reward Card) */}
-        <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900/90 text-white rounded-2xl p-6 border border-emerald-500/30 shadow-lg relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all duration-300">
+        <div className="bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900/90 text-white rounded-[20px] p-6 border border-emerald-500/30 shadow-lg relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/50 transition-all duration-300">
           {/* Subtle Ambient Background Glow */}
           <div className="absolute -top-12 -right-12 w-36 h-36 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
@@ -218,15 +218,15 @@ export default function TouristDashboardPage() {
                 Earning Breakdown
               </span>
               <div className="space-y-1 text-xs">
-                <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-[#FCFAF6]/5 border border-white/5">
                   <span className="text-slate-300 text-[11px]">Chose a low-pressure destination</span>
                   <span className="font-mono font-bold text-emerald-400 text-[11px]">+15</span>
                 </div>
-                <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-[#FCFAF6]/5 border border-white/5">
                   <span className="text-slate-300 text-[11px]">Selected an off-peak travel period</span>
                   <span className="font-mono font-bold text-emerald-400 text-[11px]">+10</span>
                 </div>
-                <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between py-1 px-2 rounded-lg bg-[#FCFAF6]/5 border border-white/5">
                   <span className="text-slate-300 text-[11px]">Chose a verified rural stay</span>
                   <span className="font-mono font-bold text-emerald-400 text-[11px]">+5</span>
                 </div>
@@ -264,7 +264,7 @@ export default function TouristDashboardPage() {
 
       {/* Safety Readiness Scorecard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-3 bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600">
@@ -355,7 +355,7 @@ export default function TouristDashboardPage() {
           ].map((dest) => (
             <div
               key={dest.name}
-              className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between"
+              className="bg-[#FCFAF6] dark:bg-slate-900 rounded-[20px] p-5 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
