@@ -3,25 +3,25 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  Search, 
-  Flame, 
-  Sparkles, 
-  ShieldCheck, 
-  MapPin, 
-  ArrowRight, 
-  Users, 
+import {
+  Search,
+  Flame,
+  Sparkles,
+  ShieldCheck,
+  MapPin,
+  ArrowRight,
+  Users,
   TrendingDown,
-  Leaf, 
-  Compass, 
-  CheckCircle2, 
-  Calendar, 
-  Mountain, 
-  Trees, 
-  Landmark, 
-  Footprints, 
-  Camera, 
-  Home as HomeIcon, 
+  Leaf,
+  Compass,
+  CheckCircle2,
+  Calendar,
+  Mountain,
+  Trees,
+  Landmark,
+  Footprints,
+  Camera,
+  Home as HomeIcon,
   ArrowUpRight,
   Activity,
   AlertTriangle,
@@ -31,18 +31,26 @@ import {
   Percent,
   Coins,
   ChevronRight,
-  Navigation
+  Navigation,
+  X
 } from 'lucide-react';
 import { DestinationCard } from '@/components/DestinationCard';
 import { DataSourcesPanel } from '@/components/DataSourcesPanel';
 import { Button } from '@/components/animate-ui/components/buttons/button';
 import { RadioTower } from '@/components/animate-ui/icons/radio-tower';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { DestinationSummary } from '@/types';
 import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [popupImageOpen, setPopupImageOpen] = useState(false);
   const [travelPace, setTravelPace] = useState<'Relaxed' | 'Balanced' | 'High Adventure'>('Balanced');
   const [activeTickerFilter, setActiveTickerFilter] = useState<'all' | 'calm' | 'critical'>('all');
   const [activeStep, setActiveStep] = useState(0);
@@ -232,9 +240,9 @@ export default function HomePage() {
 
   return (
     <div className="pb-28">
-      {/* 1. HERO SECTION: Immersive Himalayan Photography + Live Decongestion Console */}
-      <section className="relative w-full pt-0">
-        <div className="relative min-h-[92vh] w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 text-white overflow-hidden bg-stone-950">
+      {/* 1. HERO SECTION: Full Viewport Height/Width Immersive Himalayan Photography */}
+      <section className="relative w-full min-h-screen flex flex-col justify-between pt-0 overflow-hidden bg-stone-950">
+        <div className="relative min-h-screen w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 text-white overflow-hidden">
           {/* Full-bleed Background Immersive Photography */}
           <div className="absolute inset-0 z-0">
             <img
@@ -245,23 +253,27 @@ export default function HomePage() {
             {/* Cinematic Multi-stop Gradient Overlays for High Legibility */}
             <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/45 to-stone-950/25" />
             <div className="absolute inset-0 bg-gradient-to-r from-stone-950/90 via-stone-950/50 to-transparent" />
+            {/* Seamless Bottom Blend Mask to Section 2 */}
+            <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent via-stone-950/70 to-stone-950 pointer-events-none" />
           </div>
 
-          {/* Hero Content Box */}
-          <div className="relative z-10 max-w-4xl space-y-6 pt-8 sm:pt-12">
-            {/* Live Operational Status Chips */}
+          {/* Hero Top Badges: Moved Higher Up to Top */}
+          <div className="relative z-10 pt-2 sm:pt-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide font-mono shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide font-mono shadow-md">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>Live Himalayan Telemetry Active</span>
               </div>
 
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-amber-500/40 text-amber-300 text-xs font-semibold tracking-wide font-mono">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-500/40 text-amber-300 text-xs font-semibold tracking-wide font-mono shadow-md">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>SIH 2026 Core Solution</span>
               </div>
             </div>
+          </div>
 
+          {/* Hero Main Content Box */}
+          <div className="relative z-10 max-w-4xl space-y-6 my-auto py-8">
             {/* Headline with Brand Editorial Accent */}
             <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[1.04] text-white drop-shadow-md">
               Travel beyond <br />
@@ -270,9 +282,20 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-stone-200 max-w-2xl leading-relaxed font-normal drop-shadow-sm">
-              When fragile Himalayan hotspots face critical overcrowding, <strong className="text-white font-bold">Yatri Setu</strong> actively balances tourist flow—guiding you to serene village alternatives, certified panchayat homestays, and round-the-clock traveler safety coverage.
+            {/* Improved Tagline Text */}
+            <p className="text-xl sm:text-2xl text-amber-100/90 font-editorial italic font-medium tracking-wide leading-relaxed drop-shadow-sm">
+              "Explore the unseen, collect the moments."
             </p>
+
+            {/* Explore & Contact Us Buttons */}
+            <div className="flex flex-wrap items-center gap-3 md:flex-row pt-2">
+              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                <Link href="/destinations" className="text-white hover:text-amber-300">Explore</Link>
+              </Button>
+              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                <Link href="/contact" className="text-white hover:text-amber-300">Contact Us</Link>
+              </Button>
+            </div>
 
             {/* Live Real-Time Decongestion Alert Banner */}
             <div className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3.5 pr-4 rounded-2xl bg-stone-900/80 backdrop-blur-xl border border-rose-500/30 text-xs shadow-xl">
@@ -283,8 +306,8 @@ export default function HomePage() {
               <span className="text-stone-300">
                 Darjeeling Tiger Hill peak congestion <span className="font-mono font-bold text-rose-400">(88/100)</span>.
               </span>
-              <Link 
-                href="/destinations/darjeeling/alternatives" 
+              <Link
+                href="/destinations/darjeeling/alternatives"
                 className="inline-flex items-center gap-1 font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4"
               >
                 <span>Switch to Kalimpong (42/100, 87% match)</span>
@@ -292,115 +315,319 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* 2. WHY YATRI-SETU SECTION: Full Screen / Max Height & Width with hero2.jpg */}
+      <section className="relative w-full min-h-screen flex flex-col justify-start items-center pt-8 sm:pt-12 pb-16 px-4 sm:px-6 lg:px-8 text-white overflow-hidden bg-stone-950">
+        {/* Full-bleed Background Immersive Photography hero2.jpg */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/hero2.jpg"
+            alt="Scenic Himalayan range backdrop"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 ease-out filter brightness-[0.7] contrast-105"
+          />
+          {/* Seamless Top Fade connecting Section 1 and Section 2 without visible line */}
+          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-stone-950 via-stone-950/80 to-transparent pointer-events-none" />
+          {/* Cinematic Multi-stop Dark Gradient Overlays for high legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/70 to-transparent" />
+          <div className="absolute inset-0 bg-black/45" />
+          {/* Seamless Bottom Fade to Section 3 */}
+          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-stone-950 to-transparent pointer-events-none" />
+        </div>
+
+        {/* Content Container */}
+        <div className="relative z-10 max-w-6xl w-full mx-auto space-y-8">
+          {/* Top Big Text: Why Yatri-setu? */}
+          <div className="text-center space-y-3">
+            <h2 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white drop-shadow-lg">
+              Why <span className="font-editorial italic font-normal text-amber-300 text-5xl sm:text-7xl lg:text-8xl">Yatri-setu?</span>
+            </h2>
+            <p className="text-base sm:text-xl text-stone-200 max-w-3xl mx-auto leading-relaxed font-normal drop-shadow-sm">
+              Conventional booking portals exacerbate gridlocks in fragile mountain hotspots. Yatri Setu actively balances tourist footfall, guarantees authentic homestay payouts, and provides 24/7 traveler safety.
+            </p>
+          </div>
+
+          {/* Feature Accordion Container - Clean line style with desktop width and 1-4 numbering */}
+          <div className="w-full pt-2">
+            <Accordion multiple defaultValue={["engine"]}>
+              {/* Accordion Item 1: Explainable Crowd Engine */}
+              <AccordionItem value="engine">
+                <AccordionTrigger>
+                  <div className="flex items-center">
+                    <span className="font-mono text-amber-400 font-black mr-3 sm:mr-5 text-xl sm:text-2xl lg:text-3xl">01</span>
+                    <span>Explainable Crowd Engine &amp; Zero Hallucinations</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 pt-2 text-stone-200">
+                    <p className="text-base sm:text-lg leading-relaxed text-stone-300">
+                      Our deterministic 6-factor baseline recalculates real-time crowd telemetry across Darjeeling, Kalimpong, and the Eastern Himalayan circuit with zero artificial intelligence hallucinations.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">Multi-Factor Baseline</div>
+                        <div className="text-sm text-stone-300">Continuous telemetry of footfall, booking density, seasonality, holidays, weather, and transit bottlenecks.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">Dynamic Road Pressure</div>
+                        <div className="text-sm text-stone-300">Predictive congestion algorithms calculate entry wait times and alert drivers before highway gridlocks form.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">Algorithmic Integrity</div>
+                        <div className="text-sm text-stone-300">Every score is mathematically grounded with explainable provenance and open telemetry metrics.</div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Accordion Item 2: Suggested Alternatives */}
+              <AccordionItem value="alternatives">
+                <AccordionTrigger>
+                  <div className="flex items-center">
+                    <span className="font-mono text-emerald-400 font-black mr-3 sm:mr-5 text-xl sm:text-2xl lg:text-3xl">02</span>
+                    <span>Capacity-Aware Alternative Advisor (42% Cost Savings)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 pt-2 text-stone-200">
+                    <p className="text-base sm:text-lg leading-relaxed text-stone-300">
+                      When fragile hotspots like Darjeeling reach critical congestion (88/100), our suitability engine evaluates scenic geography, road access, and microclimates to recommend serene, uncrowded alternatives.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">Intelligent Match Scoring</div>
+                        <div className="text-sm text-stone-300">Recommends Kalimpong (87% match, 42/100 crowd score) and Rishop (15/100) with identical Kanchenjunga vistas.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">Significant Traveler Savings</div>
+                        <div className="text-sm text-stone-300">Save up to 42% on authentic heritage accommodations, village homestays, and local transportation.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">Zero Queue Entry</div>
+                        <div className="text-sm text-stone-300">Bypass 3-hour dawn vehicle queues on Tiger Hill while enjoying serene, unobstructed Himalayan horizons.</div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Accordion Item 3: Green Credits */}
+              <AccordionItem value="green-credits">
+                <AccordionTrigger>
+                  <div className="flex items-center">
+                    <span className="font-mono text-[#FF2A00] font-black mr-3 sm:mr-5 text-xl sm:text-2xl lg:text-3xl">03</span>
+                    <span>Green Credits™ &amp; 90% Direct Host Tariff Distribution</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 pt-2 text-stone-200">
+                    <p className="text-base sm:text-lg leading-relaxed text-stone-300">
+                      Yatri Setu removes extractive booking intermediary commissions. By distributing 90% of tariff directly to panchayat-registered families, we empower local communities while rewarding eco-conscious travelers.{' '}
+                      <Link
+                        href="/dashboard"
+                        className="underline underline-offset-4 text-emerald-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer inline-flex items-center gap-1"
+                      >
+                        Click here
+                      </Link>
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-teal-300 uppercase tracking-wider">In-Platform Green Tokens</div>
+                        <div className="text-sm text-stone-300">Earn Green Credits™ automatically for choosing off-peak dates, low-pressure valleys, and eco-friendly stays.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-teal-300 uppercase tracking-wider">Direct Host Payouts</div>
+                        <div className="text-sm text-stone-300">Transparent payment ledgers guarantee verified Himalayan hosts receive 90% of nightly charges directly.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-teal-300 uppercase tracking-wider">Redeemable Rewards</div>
+                        <div className="text-sm text-stone-300">Convert earned tokens into direct discounts on future bookings, certified guide treks, and local organic produce.</div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Accordion Item 4: Yatri Mitra Safety Net */}
+              <AccordionItem value="safety">
+                <AccordionTrigger>
+                  <div className="flex items-center">
+                    <span className="font-mono text-rose-400 font-black mr-3 sm:mr-5 text-xl sm:text-2xl lg:text-3xl">04</span>
+                    <span>Yatri Mitra Safety Net &amp; 1-Tap Emergency SOS (112)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 pt-2 text-stone-200">
+                    <p className="text-base sm:text-lg leading-relaxed text-stone-300">
+                      High-altitude mountain terrain demands dependable emergency response. Our one-tap safety broadcast connects travelers directly with regional community volunteer desks and national first responders.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-rose-400 uppercase tracking-wider">1-Tap GPS Broadcast</div>
+                        <div className="text-sm text-stone-300">Broadcasts real-time latitude/longitude coordinates and medical tags directly to nearest registered volunteers.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-rose-400 uppercase tracking-wider">Direct National Link (112/1363)</div>
+                        <div className="text-sm text-stone-300">Integrated direct-dial links with India's 112 Unified Emergency Service and 1363 24x7 Tourist Helpline.</div>
+                      </div>
+                      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                        <div className="text-xs font-mono font-bold text-rose-400 uppercase tracking-wider">Offline Cache Mode</div>
+                        <div className="text-sm text-stone-300">Critical contacts, nearest primary health centers, and certified village volunteers remain accessible offline.</div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Accordion Item 5: Others */}
+              <AccordionItem value="others">
+                <AccordionTrigger>
+                  <div className="flex items-center">
+                    <span className="font-mono text-cyan-400 font-black mr-3 sm:mr-5 text-xl sm:text-2xl lg:text-3xl">05</span>
+                    <span>Others</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 pt-2 text-stone-200 text-base sm:text-lg pl-10 sm:pl-16">
+                    <ul className="space-y-3 font-normal">
+                      <li className="flex items-start gap-3">
+                        <span className="font-mono text-cyan-400 font-bold shrink-0">i.</span>
+                        <span className="text-stone-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do eiusmod.</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="font-mono text-cyan-400 font-bold shrink-0">ii.</span>
+                        <span className="text-stone-300">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="font-mono text-cyan-400 font-bold shrink-0">iii.</span>
+                        <button
+                          type="button"
+                          onClick={() => setPopupImageOpen(true)}
+                          className="underline underline-offset-4 text-white hover:text-amber-300 font-medium transition-colors cursor-pointer text-left"
+                        >
+                          Click here
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. DECONGESTION SEARCH CONSOLE & REGIONAL DENSITY TELEMETRY */}
+      <section className="relative w-full py-12 bg-stone-950/40 border-t border-stone-800/50 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           {/* Interactive Floating Glass Search Console */}
-          <div className="relative z-10 mt-10">
-            <div className="bg-stone-900/80 dark:bg-stone-950/80 backdrop-blur-2xl p-4 sm:p-5 rounded-3xl max-w-4xl text-white shadow-2xl border border-white/15">
-              <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                {/* Segment 1: Destination Search */}
-                <div className="md:col-span-5 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                  <Search className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
-                  <div className="relative w-full">
-                    <input
-                      type="text"
-                      id="hero_search_input"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search Darjeeling, Kalimpong, Lava..."
-                      className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:text-stone-400 placeholder:font-normal"
-                    />
-                  </div>
+          <div className="bg-stone-900/90 dark:bg-stone-950/90 backdrop-blur-2xl p-4 sm:p-6 rounded-3xl text-white shadow-2xl border border-white/15">
+            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+              {/* Segment 1: Destination Search */}
+              <div className="md:col-span-5 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
+                <Search className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    id="hero_search_input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search Darjeeling, Kalimpong, Lava..."
+                    className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:text-stone-400 placeholder:font-normal"
+                  />
                 </div>
+              </div>
 
-                {/* Segment 2: Interactive Date Picker */}
-                <div className="md:col-span-4 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                  <Calendar className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
-                  <div className="relative w-full flex items-center justify-between">
-                    <input
-                      type="date"
-                      id="hero_date_input"
-                      value={travelDate}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setTravelDate(e.target.value)}
-                      className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white [color-scheme:dark] cursor-pointer"
-                    />
-                  </div>
+              {/* Segment 2: Interactive Date Picker */}
+              <div className="md:col-span-4 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
+                <Calendar className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
+                <div className="relative w-full flex items-center justify-between">
+                  <input
+                    type="date"
+                    id="hero_date_input"
+                    value={travelDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setTravelDate(e.target.value)}
+                    className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white [color-scheme:dark] cursor-pointer"
+                  />
                 </div>
+              </div>
 
-                {/* Segment 3: Explore Action Button */}
-                <div className="md:col-span-3 flex items-center h-full">
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-stone-950 font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 border border-amber-400/40 transition-all"
+              {/* Segment 3: Explore Action Button */}
+              <div className="md:col-span-3 flex items-center h-full">
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-stone-950 font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 border border-amber-400/40 transition-all"
+                >
+                  <Flame className="w-4 h-4 text-stone-950 fill-stone-950" />
+                  <span>Search Circuit</span>
+                </Button>
+              </div>
+            </form>
+
+            {/* Quick Search Chips & Filter Pills */}
+            <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-stone-400 font-medium">Trending:</span>
+                {[
+                  { label: 'Tiger Hill Alternative', query: 'kalimpong' },
+                  { label: 'Neora Valley Pine', query: 'lava' },
+                  { label: '360° Sunrise Ridge', query: 'rishop' }
+                ].map(chip => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(chip.query);
+                      router.push(`/destinations/${chip.query}`);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-stone-300 hover:text-white transition-colors text-[11px]"
                   >
-                    <Flame className="w-4 h-4 text-stone-950 fill-stone-950" />
-                    <span>Explore Sanctuaries</span>
-                  </Button>
-                </div>
-              </form>
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
 
-              {/* Quick Search Chips & Filter Pills */}
-              <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-stone-400 font-medium">Trending:</span>
-                  {[
-                    { label: 'Tiger Hill Alternative', query: 'kalimpong' },
-                    { label: 'Neora Valley Pine', query: 'lava' },
-                    { label: '360° Sunrise Ridge', query: 'rishop' }
-                  ].map(chip => (
-                    <button
-                      key={chip.label}
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery(chip.query);
-                        router.push(`/destinations/${chip.query}`);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-stone-300 hover:text-white transition-colors text-[11px]"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-1.5 text-stone-400 font-mono text-[11px]">
-                  <span>Pace:</span>
-                  {(['Relaxed', 'Balanced', 'High Adventure'] as const).map(p => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setTravelPace(p)}
-                      className={cn(
-                        'px-2 py-0.5 rounded-md transition-all',
-                        travelPace === p
-                          ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
-                          : 'hover:text-stone-200'
-                      )}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1.5 text-stone-400 font-mono text-[11px]">
+                <span>Pace:</span>
+                {(['Relaxed', 'Balanced', 'High Adventure'] as const).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setTravelPace(p)}
+                    className={cn(
+                      'px-2 py-0.5 rounded-md transition-all',
+                      travelPace === p
+                        ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                        : 'hover:text-stone-200'
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Impact Metric Proof Counter Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mt-6">
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-amber-400 font-mono">88 → 42</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Average corridor crowd reduction</p>
-              </div>
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-emerald-400 font-mono">90%</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Direct tariff to rural homestay hosts</p>
-              </div>
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-sky-400 font-mono">100%</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Panchayat verified listings</p>
-              </div>
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-rose-400 font-mono">24/7</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Yatri Mitra & 112 emergency coverage</p>
-              </div>
+          {/* Impact Metric Proof Counter Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-amber-400 font-mono">88 → 42</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Average corridor crowd reduction</p>
+            </div>
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-emerald-400 font-mono">90%</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Direct tariff to rural homestay hosts</p>
+            </div>
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-sky-400 font-mono">100%</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Panchayat verified listings</p>
+            </div>
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-rose-400 font-mono">24/7</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Yatri Mitra & 112 emergency coverage</p>
             </div>
           </div>
         </div>
@@ -540,111 +767,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. CORE DIFFERENTIATOR: Active Tourist Flow Management vs Generic Booking Portals */}
-      <section className="relative w-full py-16 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-stone-900 text-white rounded-[2.5rem] p-8 sm:p-14 shadow-2xl border border-stone-800 relative overflow-hidden">
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider mb-4 border border-amber-500/30">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Regenerative Tourism Infrastructure</span>
-              </div>
-              <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-                Active Tourist Flow Management <br />
-                <span className="font-editorial italic font-normal text-amber-300 text-4xl sm:text-6xl">
-                  vs. Conventional Booking Portals
-                </span>
-              </h2>
-              <p className="text-sm sm:text-base text-stone-300 mt-4 leading-relaxed font-normal">
-                Standard travel portals maximize commercial bookings into already choked corridors—worsening traffic jams, water crises, and surging prices. Yatri Setu actively redistributes footfall to sustain pristine Himalayan ecosystems.
-              </p>
-            </div>
 
-            {/* 4 Feature Pillars */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Feature 1 */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-stone-700/80 hover:border-amber-500/50 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-5 border border-amber-500/30">
-                    <Flame className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2">
-                    Explainable Crowd Engine
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    Deterministic 6-factor baseline (footfall, booking density, seasonality, holidays, weather, transit chokepoints) coupled with dynamic road pressure recalculation.
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 text-[11px] font-mono text-amber-400 font-semibold">
-                  Zero Hallucinations
-                </div>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-stone-700/80 hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-5 border border-emerald-500/30">
-                    <Compass className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2">
-                    Suggested Alternatives
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    When Darjeeling hits critical (88/100), our capacity-aware suitability engine evaluates road access and weather to suggest serene matches like Kalimpong (87% match).
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 text-[11px] font-mono text-emerald-400 font-semibold">
-                  42% Cost Savings
-                </div>
-              </div>
-
-              {/* Feature 3: Green Credits */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-emerald-500/40 bg-gradient-to-b from-emerald-500/10 to-transparent flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-mono font-bold text-emerald-300 border border-emerald-500/30">
-                  Reward Loop
-                </div>
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-5 border border-emerald-500/40">
-                    <Leaf className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2 flex items-center gap-1.5">
-                    <span>Green Credits™</span>
-                    <span>🌿</span>
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    Earn in-platform tokens for picking low-pressure sanctuaries, off-peak travel dates, and village homestays. Redeemable directly for booking discounts.
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 flex items-center justify-between text-xs">
-                  <span className="text-emerald-400 font-mono font-bold">30 pts discount ready</span>
-                  <Link href="/dashboard" className="text-white hover:text-emerald-400 inline-flex items-center gap-1 font-semibold">
-                    <span>Wallet</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* Feature 4: Traveler Safety & SOS */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-stone-700/80 hover:border-rose-500/50 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center mb-5 border border-rose-500/30">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2">
-                    Yatri Mitra Safety Net
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    One-tap emergency broadcast transmitting GPS coordinates to regional Yatri Mitra community volunteers, alongside direct-dial national emergency helplines (112, 1363).
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 text-[11px] font-mono text-rose-400 font-semibold">
-                  1-Tap GPS Dispatch
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* 5. SIDE-BY-SIDE VISUAL COMPARISON: Hotspot vs Alternative */}
       <section className="relative w-full py-16 z-10">
@@ -1031,6 +1154,63 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Smooth Pop-up Modal for 2nd Image with Close (X) Button */}
+      {popupImageOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-200"
+          onClick={() => setPopupImageOpen(false)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-stone-900 border border-white/20 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                <h3 className="font-extrabold text-base sm:text-lg text-white">
+                  Live Regional Crowd Density Ticker
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-mono font-bold hidden sm:inline-block">
+                  Diagnostic Telemetry
+                </span>
+              </div>
+
+              {/* Cross Close Button */}
+              <button
+                type="button"
+                onClick={() => setPopupImageOpen(false)}
+                aria-label="Close preview"
+                className="p-2 rounded-full bg-white/10 hover:bg-rose-500/20 text-stone-300 hover:text-rose-400 border border-white/15 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 2nd Image Display */}
+            <div className="rounded-2xl overflow-hidden border border-white/15 shadow-inner bg-black/60">
+              <img
+                src="/telemetry-ticker.png"
+                alt="Live Regional Crowd Density Ticker telemetry preview"
+                className="w-full h-auto object-contain max-h-[70vh] mx-auto"
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-stone-400 font-mono">
+              <span>Deterministic 6-Factor Telemetry Active</span>
+              <Button
+                onClick={() => setPopupImageOpen(false)}
+                variant="outline"
+                className="rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs h-9 px-4 font-bold cursor-pointer"
+              >
+                Close Preview
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
