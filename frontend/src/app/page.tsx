@@ -3,25 +3,25 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  Search, 
-  Flame, 
-  Sparkles, 
-  ShieldCheck, 
-  MapPin, 
-  ArrowRight, 
-  Users, 
+import {
+  Search,
+  Flame,
+  Sparkles,
+  ShieldCheck,
+  MapPin,
+  ArrowRight,
+  Users,
   TrendingDown,
-  Leaf, 
-  Compass, 
-  CheckCircle2, 
-  Calendar, 
-  Mountain, 
-  Trees, 
-  Landmark, 
-  Footprints, 
-  Camera, 
-  Home as HomeIcon, 
+  Leaf,
+  Compass,
+  CheckCircle2,
+  Calendar,
+  Mountain,
+  Trees,
+  Landmark,
+  Footprints,
+  Camera,
+  Home as HomeIcon,
   ArrowUpRight,
   Activity,
   AlertTriangle,
@@ -232,13 +232,13 @@ export default function HomePage() {
 
   return (
     <div className="pb-28">
-      {/* 1. HERO SECTION: Immersive Himalayan Photography + Live Decongestion Console */}
-      <section className="relative w-full pt-0">
-        <div className="relative min-h-[92vh] w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 text-white overflow-hidden bg-stone-950">
+      {/* 1. HERO SECTION: Full Viewport Height/Width Immersive Himalayan Photography */}
+      <section className="relative w-full min-h-screen flex flex-col justify-between pt-0 overflow-hidden bg-stone-950">
+        <div className="relative min-h-screen w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 text-white overflow-hidden">
           {/* Full-bleed Background Immersive Photography */}
           <div className="absolute inset-0 z-0">
             <img
-              src="/hero-himalaya.jpg"
+              src="/hero1.png"
               alt="Majestic Himalayan peaks overlooking sacred river valley at golden sunrise"
               className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000 ease-out filter brightness-[0.88]"
             />
@@ -247,21 +247,23 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-r from-stone-950/90 via-stone-950/50 to-transparent" />
           </div>
 
-          {/* Hero Content Box */}
-          <div className="relative z-10 max-w-4xl space-y-6 pt-8 sm:pt-12">
-            {/* Live Operational Status Chips */}
+          {/* Hero Top Badges: Moved Higher Up to Top */}
+          <div className="relative z-10 pt-2 sm:pt-4">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide font-mono shadow-sm">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-emerald-500/40 text-emerald-300 text-xs font-bold tracking-wide font-mono shadow-md">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>Live Himalayan Telemetry Active</span>
               </div>
 
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-amber-500/40 text-amber-300 text-xs font-semibold tracking-wide font-mono">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-amber-500/40 text-amber-300 text-xs font-semibold tracking-wide font-mono shadow-md">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>SIH 2026 Core Solution</span>
               </div>
             </div>
+          </div>
 
+          {/* Hero Main Content Box */}
+          <div className="relative z-10 max-w-4xl space-y-6 my-auto py-8">
             {/* Headline with Brand Editorial Accent */}
             <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[1.04] text-white drop-shadow-md">
               Travel beyond <br />
@@ -270,9 +272,20 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-stone-200 max-w-2xl leading-relaxed font-normal drop-shadow-sm">
-              When fragile Himalayan hotspots face critical overcrowding, <strong className="text-white font-bold">Yatri Setu</strong> actively balances tourist flow—guiding you to serene village alternatives, certified panchayat homestays, and round-the-clock traveler safety coverage.
+            {/* Improved Tagline Text */}
+            <p className="text-xl sm:text-2xl text-amber-100/90 font-editorial italic font-medium tracking-wide leading-relaxed drop-shadow-sm">
+              "Explore the unseen, collect the moments."
             </p>
+
+            {/* Explore & Contact Us Buttons */}
+            <div className="flex flex-wrap items-center gap-3 md:flex-row pt-2">
+              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                <Link href="/destinations" className="text-white hover:text-amber-300">Explore</Link>
+              </Button>
+              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                <Link href="/contact" className="text-white hover:text-amber-300">Contact Us</Link>
+              </Button>
+            </div>
 
             {/* Live Real-Time Decongestion Alert Banner */}
             <div className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3.5 pr-4 rounded-2xl bg-stone-900/80 backdrop-blur-xl border border-rose-500/30 text-xs shadow-xl">
@@ -283,8 +296,8 @@ export default function HomePage() {
               <span className="text-stone-300">
                 Darjeeling Tiger Hill peak congestion <span className="font-mono font-bold text-rose-400">(88/100)</span>.
               </span>
-              <Link 
-                href="/destinations/darjeeling/alternatives" 
+              <Link
+                href="/destinations/darjeeling/alternatives"
                 className="inline-flex items-center gap-1 font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4"
               >
                 <span>Switch to Kalimpong (42/100, 87% match)</span>
@@ -292,115 +305,118 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
 
+      {/* 2. DECONGESTION SEARCH CONSOLE & REGIONAL DENSITY TELEMETRY */}
+      <section className="relative w-full py-12 bg-stone-950/40 border-t border-stone-800/50 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           {/* Interactive Floating Glass Search Console */}
-          <div className="relative z-10 mt-10">
-            <div className="bg-stone-900/80 dark:bg-stone-950/80 backdrop-blur-2xl p-4 sm:p-5 rounded-3xl max-w-4xl text-white shadow-2xl border border-white/15">
-              <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                {/* Segment 1: Destination Search */}
-                <div className="md:col-span-5 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                  <Search className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
-                  <div className="relative w-full">
-                    <input
-                      type="text"
-                      id="hero_search_input"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search Darjeeling, Kalimpong, Lava..."
-                      className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:text-stone-400 placeholder:font-normal"
-                    />
-                  </div>
+          <div className="bg-stone-900/90 dark:bg-stone-950/90 backdrop-blur-2xl p-4 sm:p-6 rounded-3xl text-white shadow-2xl border border-white/15">
+            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+              {/* Segment 1: Destination Search */}
+              <div className="md:col-span-5 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
+                <Search className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    id="hero_search_input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search Darjeeling, Kalimpong, Lava..."
+                    className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:text-stone-400 placeholder:font-normal"
+                  />
                 </div>
+              </div>
 
-                {/* Segment 2: Interactive Date Picker */}
-                <div className="md:col-span-4 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                  <Calendar className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
-                  <div className="relative w-full flex items-center justify-between">
-                    <input
-                      type="date"
-                      id="hero_date_input"
-                      value={travelDate}
-                      min={new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setTravelDate(e.target.value)}
-                      className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white [color-scheme:dark] cursor-pointer"
-                    />
-                  </div>
+              {/* Segment 2: Interactive Date Picker */}
+              <div className="md:col-span-4 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
+                <Calendar className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
+                <div className="relative w-full flex items-center justify-between">
+                  <input
+                    type="date"
+                    id="hero_date_input"
+                    value={travelDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setTravelDate(e.target.value)}
+                    className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white [color-scheme:dark] cursor-pointer"
+                  />
                 </div>
+              </div>
 
-                {/* Segment 3: Explore Action Button */}
-                <div className="md:col-span-3 flex items-center h-full">
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-stone-950 font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 border border-amber-400/40 transition-all"
+              {/* Segment 3: Explore Action Button */}
+              <div className="md:col-span-3 flex items-center h-full">
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-stone-950 font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 border border-amber-400/40 transition-all"
+                >
+                  <Flame className="w-4 h-4 text-stone-950 fill-stone-950" />
+                  <span>Search Circuit</span>
+                </Button>
+              </div>
+            </form>
+
+            {/* Quick Search Chips & Filter Pills */}
+            <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-stone-400 font-medium">Trending:</span>
+                {[
+                  { label: 'Tiger Hill Alternative', query: 'kalimpong' },
+                  { label: 'Neora Valley Pine', query: 'lava' },
+                  { label: '360° Sunrise Ridge', query: 'rishop' }
+                ].map(chip => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(chip.query);
+                      router.push(`/destinations/${chip.query}`);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-stone-300 hover:text-white transition-colors text-[11px]"
                   >
-                    <Flame className="w-4 h-4 text-stone-950 fill-stone-950" />
-                    <span>Explore Sanctuaries</span>
-                  </Button>
-                </div>
-              </form>
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
 
-              {/* Quick Search Chips & Filter Pills */}
-              <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-stone-400 font-medium">Trending:</span>
-                  {[
-                    { label: 'Tiger Hill Alternative', query: 'kalimpong' },
-                    { label: 'Neora Valley Pine', query: 'lava' },
-                    { label: '360° Sunrise Ridge', query: 'rishop' }
-                  ].map(chip => (
-                    <button
-                      key={chip.label}
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery(chip.query);
-                        router.push(`/destinations/${chip.query}`);
-                      }}
-                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-stone-300 hover:text-white transition-colors text-[11px]"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-1.5 text-stone-400 font-mono text-[11px]">
-                  <span>Pace:</span>
-                  {(['Relaxed', 'Balanced', 'High Adventure'] as const).map(p => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setTravelPace(p)}
-                      className={cn(
-                        'px-2 py-0.5 rounded-md transition-all',
-                        travelPace === p
-                          ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
-                          : 'hover:text-stone-200'
-                      )}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center gap-1.5 text-stone-400 font-mono text-[11px]">
+                <span>Pace:</span>
+                {(['Relaxed', 'Balanced', 'High Adventure'] as const).map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setTravelPace(p)}
+                    className={cn(
+                      'px-2 py-0.5 rounded-md transition-all',
+                      travelPace === p
+                        ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
+                        : 'hover:text-stone-200'
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Impact Metric Proof Counter Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-4xl mt-6">
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-amber-400 font-mono">88 → 42</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Average corridor crowd reduction</p>
-              </div>
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-emerald-400 font-mono">90%</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Direct tariff to rural homestay hosts</p>
-              </div>
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-sky-400 font-mono">100%</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Panchayat verified listings</p>
-              </div>
-              <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-                <span className="text-2xl font-black text-rose-400 font-mono">24/7</span>
-                <p className="text-[11px] text-stone-300 font-medium mt-0.5">Yatri Mitra & 112 emergency coverage</p>
-              </div>
+          {/* Impact Metric Proof Counter Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-amber-400 font-mono">88 → 42</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Average corridor crowd reduction</p>
+            </div>
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-emerald-400 font-mono">90%</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Direct tariff to rural homestay hosts</p>
+            </div>
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-sky-400 font-mono">100%</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Panchayat verified listings</p>
+            </div>
+            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+              <span className="text-2xl font-black text-rose-400 font-mono">24/7</span>
+              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Yatri Mitra & 112 emergency coverage</p>
             </div>
           </div>
         </div>

@@ -24,7 +24,8 @@ import {
   Layers,
   FileCheck,
   CloudSun,
-  UserCheck
+  UserCheck,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/animate-ui/components/buttons/button';
@@ -208,6 +209,13 @@ export const Navbar: React.FC = () => {
         href: '/admin/command-center',
         icon: Activity,
         badge: 'Admin Telemetry'
+      },
+      {
+        title: 'Contact Helpdesk',
+        desc: 'Field station support, regional hotlines & coordination inquiries',
+        href: '/contact',
+        icon: Mail,
+        badge: '24/7 Desk'
       }
     ]
   };
