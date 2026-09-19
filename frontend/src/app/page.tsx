@@ -424,7 +424,13 @@ export default function HomePage() {
                 <AccordionContent>
                   <div className="space-y-4 pt-2 text-stone-200">
                     <p className="text-base sm:text-lg leading-relaxed text-stone-300">
-                      Yatri Setu removes extractive booking intermediary commissions. By distributing 90% of tariff directly to panchayat-registered families, we empower local communities while rewarding eco-conscious travelers.
+                      Yatri Setu removes extractive booking intermediary commissions. By distributing 90% of tariff directly to panchayat-registered families, we empower local communities while rewarding eco-conscious travelers.{' '}
+                      <Link
+                        href="/dashboard"
+                        className="underline underline-offset-4 text-emerald-400 hover:text-emerald-300 font-medium transition-colors cursor-pointer inline-flex items-center gap-1"
+                      >
+                        Click here
+                      </Link>
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                       <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
@@ -761,111 +767,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. CORE DIFFERENTIATOR: Active Tourist Flow Management vs Generic Booking Portals */}
-      <section className="relative w-full py-16 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-stone-900 text-white rounded-[2.5rem] p-8 sm:p-14 shadow-2xl border border-stone-800 relative overflow-hidden">
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 text-amber-300 font-mono text-xs font-bold uppercase tracking-wider mb-4 border border-amber-500/30">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Regenerative Tourism Infrastructure</span>
-              </div>
-              <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-                Active Tourist Flow Management <br />
-                <span className="font-editorial italic font-normal text-amber-300 text-4xl sm:text-6xl">
-                  vs. Conventional Booking Portals
-                </span>
-              </h2>
-              <p className="text-sm sm:text-base text-stone-300 mt-4 leading-relaxed font-normal">
-                Standard travel portals maximize commercial bookings into already choked corridors—worsening traffic jams, water crises, and surging prices. Yatri Setu actively redistributes footfall to sustain pristine Himalayan ecosystems.
-              </p>
-            </div>
 
-            {/* 4 Feature Pillars */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Feature 1 */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-stone-700/80 hover:border-amber-500/50 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center mb-5 border border-amber-500/30">
-                    <Flame className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2">
-                    Explainable Crowd Engine
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    Deterministic 6-factor baseline (footfall, booking density, seasonality, holidays, weather, transit chokepoints) coupled with dynamic road pressure recalculation.
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 text-[11px] font-mono text-amber-400 font-semibold">
-                  Zero Hallucinations
-                </div>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-stone-700/80 hover:border-emerald-500/50 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-5 border border-emerald-500/30">
-                    <Compass className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2">
-                    Suggested Alternatives
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    When Darjeeling hits critical (88/100), our capacity-aware suitability engine evaluates road access and weather to suggest serene matches like Kalimpong (87% match).
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 text-[11px] font-mono text-emerald-400 font-semibold">
-                  42% Cost Savings
-                </div>
-              </div>
-
-              {/* Feature 3: Green Credits */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-emerald-500/40 bg-gradient-to-b from-emerald-500/10 to-transparent flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-mono font-bold text-emerald-300 border border-emerald-500/30">
-                  Reward Loop
-                </div>
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-5 border border-emerald-500/40">
-                    <Leaf className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2 flex items-center gap-1.5">
-                    <span>Green Credits™</span>
-                    <span>🌿</span>
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    Earn in-platform tokens for picking low-pressure sanctuaries, off-peak travel dates, and village homestays. Redeemable directly for booking discounts.
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 flex items-center justify-between text-xs">
-                  <span className="text-emerald-400 font-mono font-bold">30 pts discount ready</span>
-                  <Link href="/dashboard" className="text-white hover:text-emerald-400 inline-flex items-center gap-1 font-semibold">
-                    <span>Wallet</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* Feature 4: Traveler Safety & SOS */}
-              <div className="bg-stone-800/80 rounded-3xl p-6 border border-stone-700/80 hover:border-rose-500/50 transition-all flex flex-col justify-between">
-                <div>
-                  <div className="w-12 h-12 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center mb-5 border border-rose-500/30">
-                    <ShieldCheck className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-extrabold text-base text-white mb-2">
-                    Yatri Mitra Safety Net
-                  </h3>
-                  <p className="text-xs text-stone-300 leading-relaxed">
-                    One-tap emergency broadcast transmitting GPS coordinates to regional Yatri Mitra community volunteers, alongside direct-dial national emergency helplines (112, 1363).
-                  </p>
-                </div>
-                <div className="mt-5 pt-3 border-t border-stone-700/60 text-[11px] font-mono text-rose-400 font-semibold">
-                  1-Tap GPS Dispatch
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* 5. SIDE-BY-SIDE VISUAL COMPARISON: Hotspot vs Alternative */}
       <section className="relative w-full py-16 z-10">
