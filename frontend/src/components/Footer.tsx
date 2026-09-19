@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Heart, Compass, Shield, Users, Leaf, ArrowUpRight } from 'lucide-react';
 
 export const Footer: React.FC = () => {
@@ -10,8 +11,14 @@ export const Footer: React.FC = () => {
           {/* Col 1: Brand & Purpose */}
           <div className="md:col-span-1 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-stone-900 dark:bg-white text-white dark:text-stone-950 flex items-center justify-center font-bold text-sm shadow-xs border border-stone-800 dark:border-stone-200">
-                YS
+              <div className="w-9 h-9 rounded-xl overflow-hidden shadow-xs border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 flex items-center justify-center p-1">
+                <Image
+                  src="/logo.png"
+                  alt="Yatri Setu Logo"
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-extrabold text-xl text-stone-950 dark:text-white tracking-tight">
                 Yatri<span className="font-editorial italic font-normal text-amber-700 dark:text-amber-400 ml-0.5">Setu</span>

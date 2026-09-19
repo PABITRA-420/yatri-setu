@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
-import { TopMarquee } from '@/components/TopMarquee';
 import { Footer } from '@/components/Footer';
 import { SmoothScrollProvider } from '@/components/SmoothScrollProvider';
+import { cn } from "@/lib/utils";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -41,11 +41,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`h-full antialiased ${sansFont.variable} ${editorialFont.variable}`}>
+    <html lang="en" className={cn("h-full", "antialiased", editorialFont.variable, sansFont.variable)}>
       <body className="min-h-full flex flex-col bg-[#F6F4F0] text-stone-900 dark:bg-[#0C0F14] dark:text-stone-100 transition-colors font-sans selection:bg-amber-500/20 selection:text-amber-900 dark:selection:text-amber-200">
         <SmoothScrollProvider>
           <Navbar />
-          <TopMarquee />
           <main className="flex-1">{children}</main>
           <Footer />
         </SmoothScrollProvider>
