@@ -3,6 +3,7 @@ from app.api.v1 import (
     destinations, itinerary, homestays, safety,
     hosts, experiences, panchayat, impact, pressure, admin,
     ml_admin, ml_forecast, demand, trips, conversion, routing,
+    historical,
 )
 
 api_router = APIRouter()
@@ -23,4 +24,5 @@ api_router.include_router(demand.router)
 api_router.include_router(trips.router)
 api_router.include_router(conversion.router)
 api_router.include_router(routing.router)
+api_router.include_router(historical.router)
 

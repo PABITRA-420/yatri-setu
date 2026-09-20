@@ -59,47 +59,87 @@ class StandardFeatureBuilder(BaseFeatureBuilder):
     def get_feature_names(self) -> List[str]:
         return list(self.FEATURE_NAMES) + [f"dest_{d}" for d in self.DESTINATION_INDEX]
 
-    def build_features(self, observations: List[HistoricalObservation]) -> List[Dict[str, Any]]:
-        rows: List[Dict[str, Any]] = []
+    def build_feature_row(
+        self,
+        obs: Any,
+        target_pressure: Optional[float] = None,
+        feature_timestamp: Optional[str] = None,
+        target_timestamp: Optional[str] = None,
+        target_horizon_days: int = 0
+    ) -> Dict[str, Any]:
+        """Extracts a structured feature dictionary from a single observation with explicit temporal provenance."""
+        date_str = getattr(obs, "date", None) or getattr(obs, "date_bucket", None)
+        dest_id = getattr(obs, "destination_id", "")
+        dest_clean = dest_id.lower().strip()
 
-        for obs in observations:
-            dt = datetime.strptime(obs.date, "%Y-%m-%d").date()
-            weekday = dt.weekday()
-            is_weekend = 1 if weekday in (4, 5, 6) else 0
-            month = dt.month
-            day_of_year = dt.timetuple().tm_yday
+        dt = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else datetime.utcnow().date()
+        weekday = dt.weekday()
+        is_weekend = 1 if weekday in (4, 5, 6) else 0
+        month = dt.month
+        day_of_year = dt.timetuple().tm_yday
 
-            # Leading indicator ratio
-            ratio = round(obs.search_demand / (obs.booking_demand + 1e-3), 2)
+        is_summer = 1 if month in (4, 5, 6) else 0
+        is_autumn = 1 if month in (9, 10, 11) else 0
 
-            is_summer = 1 if month in (4, 5, 6) else 0
-            is_autumn = 1 if month in (9, 10, 11) else 0
+        # Safe extraction of signals (handles both attribute names and None values)
+        footfall = getattr(obs, "historical_footfall", None)
+        if footfall is None:
+            footfall = getattr(obs, "footfall", None)
 
-            row: Dict[str, Any] = {
-                "date": obs.date,
-                "destination_id": obs.destination_id,
-                "historical_footfall": obs.historical_footfall,
-                "accommodation_occupancy": obs.accommodation_occupancy,
-                "booking_demand": obs.booking_demand,
-                "search_demand": obs.search_demand,
-                "event_pressure": obs.event_pressure,
-                "holiday_pressure": obs.holiday_pressure,
-                "weather_pressure": obs.weather_pressure,
-                "traffic_pressure": obs.traffic_pressure,
-                "day_of_week": weekday,
-                "is_weekend": is_weekend,
-                "month": month,
-                "day_of_year": day_of_year,
-                "search_to_booking_ratio": ratio,
-                "is_peak_summer": is_summer,
-                "is_peak_autumn": is_autumn,
-                "target_pressure": obs.observed_pressure,
-            }
+        accom = getattr(obs, "accommodation_occupancy", None)
+        booking = getattr(obs, "booking_demand", None)
+        search = getattr(obs, "search_demand", None)
+        event = getattr(obs, "event_pressure", None)
+        holiday = getattr(obs, "holiday_pressure", None)
+        weather = getattr(obs, "weather_pressure", None)
+        traffic = getattr(obs, "traffic_pressure", None)
 
-            # Destination one-hot encoding
-            for dest_name in self.DESTINATION_INDEX:
-                row[f"dest_{dest_name}"] = 1 if obs.destination_id.lower().strip() == dest_name else 0
+        # Leading indicator ratio (safe against None and division by zero)
+        if search is not None and booking is not None:
+            ratio = round(search / (booking + 1e-3), 2)
+        else:
+            ratio = None
 
-            rows.append(row)
+        # Resolve target pressure
+        if target_pressure is None:
+            target_pressure = getattr(obs, "observed_pressure", None)
+            if target_pressure is None:
+                target_pressure = getattr(obs, "current_crowd_pressure", None)
 
-        return rows
+        feat_time = feature_timestamp or date_str
+        targ_time = target_timestamp or date_str
+
+        row: Dict[str, Any] = {
+            "date": date_str,
+            "feature_timestamp": feat_time,
+            "target_timestamp": targ_time,
+            "target_horizon_days": target_horizon_days,
+            "destination_id": dest_clean,
+            "historical_footfall": footfall,
+            "accommodation_occupancy": accom,
+            "booking_demand": booking,
+            "search_demand": search,
+            "event_pressure": event,
+            "holiday_pressure": holiday,
+            "weather_pressure": weather,
+            "traffic_pressure": traffic,
+            "day_of_week": weekday,
+            "is_weekend": is_weekend,
+            "month": month,
+            "day_of_year": day_of_year,
+            "search_to_booking_ratio": ratio,
+            "is_peak_summer": is_summer,
+            "is_peak_autumn": is_autumn,
+            "target_pressure": target_pressure,
+        }
+
+        # Destination one-hot encoding
+        for dest_name in self.DESTINATION_INDEX:
+            row[f"dest_{dest_name}"] = 1 if dest_clean == dest_name else 0
+
+        return row
+
+    def build_features(self, observations: List[Any]) -> List[Dict[str, Any]]:
+        """Transform a sequence of observations into feature dictionaries."""
+        return [self.build_feature_row(obs) for obs in observations]
+
