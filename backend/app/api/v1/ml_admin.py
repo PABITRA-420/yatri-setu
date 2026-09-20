@@ -207,3 +207,57 @@ def get_production_readiness():
     """
     from app.services.ml.production_training_coordinator import production_training_coordinator
     return production_training_coordinator.get_readiness_report()
+
+
+@router.get("/accumulation-readiness", summary="Get formal accumulation readiness report")
+def get_accumulation_readiness():
+    """
+    Returns deterministic accumulation readiness metrics (Prompt 11 Section 5):
+    eligible rows, remaining rows, temporal span, remaining span, and per-destination depth.
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.get_accumulation_readiness()
+
+
+@router.get("/destination-depth", summary="Get canonical destination depth report")
+def get_destination_depth():
+    """
+    Returns first-class destination depth report auditing every canonical destination (Prompt 11 Section 6).
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.get_destination_depth_report()
+
+
+@router.get("/accumulation-gaps", summary="Detect accumulation gaps across canonical destinations")
+def detect_accumulation_gaps(
+    start_date: Optional[str] = Query(None, description="Start date YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="End date YYYY-MM-DD"),
+):
+    """
+    Audits accumulation window and classifies destination-date observations into
+    EXPECTED, CAPTURED_VALID, CAPTURED_INVALID, MISSING, INCOMPLETE, DUPLICATE (Prompt 11 Section 8).
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.detect_accumulation_gaps(start_date=start_date, end_date=end_date)
+
+
+@router.post("/rollback", summary="Safely rollback production model to baseline")
+def rollback_model(
+    reason: str = Query("Manual administrative rollback", description="Reason for rollback")
+):
+    """
+    Safely falls back to BaselineRuleModel without corrupting production availability (Prompt 11 Section 20).
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.rollback_to_baseline(reason=reason)
+
+
+@router.post("/accumulation-cycle", summary="Execute automated daily accumulation and conditional training cycle")
+def execute_accumulation_cycle(
+    force: bool = Query(False, description="Force retrain if eligible even without new data")
+):
+    """
+    Executes automated daily accumulation, gate evaluation, and conditional training (Prompt 11 Section 14, 25).
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.run_automated_accumulation_cycle(force_retrain=force)

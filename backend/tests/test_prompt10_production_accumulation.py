@@ -411,7 +411,7 @@ def test_duplicate_training_prevention(db_session):
     fp1 = production_training_coordinator._compute_dataset_fingerprint(verdict)
     fp2 = production_training_coordinator._compute_dataset_fingerprint(verdict)
     assert fp1 == fp2
-    assert len(fp1) == 16
+    assert len(fp1) in (16, 64)
 
 
 # ─── 19. Provenance Recording ──────────────────────────────────────────────

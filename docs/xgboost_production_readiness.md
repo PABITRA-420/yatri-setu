@@ -1,7 +1,7 @@
-# Yatri Setu — XGBoost Forecasting Production Readiness Report (Prompt 10)
+# Yatri Setu — XGBoost Forecasting Production Readiness Report (Prompt 11)
 
 > **Mandatory Policy Statement:**  
-> **XGBoost production training remains correctly blocked by the ProductionEligibilityGate. The system has continuously accumulated genuine observations across all 6 canonical destinations (achieving 66 ML-eligible observations across 38 days of temporal span). The gate thresholds are immutable, synthetic rows are NOT mixed into production, and baseline_rule_v2 remains authoritative until organic accumulation satisfies all criteria.**
+> **XGBoost production training remains correctly blocked by the ProductionEligibilityGate. The system has continuous genuine observation accumulation across all 6 canonical destinations (66 ML-eligible observations across 38 days of temporal span). The gate thresholds are immutable, synthetic rows are NOT mixed into production, and baseline_rule_v2 remains authoritative until organic accumulation satisfies all criteria.**
 
 ---
 
@@ -9,53 +9,36 @@
 
 - **Active Production Model**: `baseline_rule_v2` (`BaselineRuleModel`)
 - **Active Model Status**: `BASELINE_ACTIVE`
+- **Formal State Machine State**: `BASELINE_ACTIVE — INSUFFICIENT_DATA`
 - **Accumulation State**: `INSUFFICIENT_DATA`
-- **XGBoost Candidate Status**: Held in `INSUFFICIENT_DATA` status
-- **Synthetic Benchmark Status**: `SYNTHETIC_BENCHMARK` (`production_eligible = False`, strictly isolated)
 - **Production Eligibility Verdict**: `FAIL` (Blocked by `ProductionEligibilityGate`)
+- **Real Dataset Rows**: `94` physical, `66` ML-eligible, `28` isolated invalid audit records
+- **Zero Synthetic Contamination**: Verified 0 synthetic records in REAL database
+- **Zero Fabricated Historical Values**: Pure real observed ground truth
 
 ---
 
-## 2. Production Eligibility Gate Evaluation (Current Live Audit)
+## 2. Production Eligibility Gate Evaluation (Live Audit)
 
-Running `GET /api/admin/ml/production-readiness` against the current database returns:
+`GET /api/admin/ml/accumulation-readiness` returns:
 
 ```json
 {
-  "model_status": "BASELINE_ACTIVE",
-  "active_model_name": "baseline_rule_v2",
-  "model_version": "2.0.0",
-  "dataset_mode": "DETERMINISTIC_RULES",
-  "production_eligible": false,
-  "accumulation_state": "INSUFFICIENT_DATA",
-  "gate_status": "INSUFFICIENT_DATA",
-  "total_real_rows": 94,
-  "ml_eligible_real_rows": 66,
-  "invalid_rows": 28,
-  "unique_dates": 11,
+  "eligible": false,
+  "eligible_rows": 66,
+  "required_rows": 180,
+  "remaining_rows": 114,
   "temporal_span_days": 38,
-  "destinations_present": 6,
-  "minimum_destination_depth": 11,
-  "target_availability": 100.0,
-  "core_missingness": 29.1,
-  "target_variance": 234.18,
-  "requirements_breakdown": {
-    "dataset_mode": "PASS",
-    "total_rows": "FAIL",
-    "temporal_span": "PASS",
-    "destinations": "PASS",
-    "destination_depth": "FAIL",
-    "target_availability": "PASS",
-    "core_missingness": "PASS",
-    "target_variance": "PASS"
-  },
-  "failed_requirements": [
-    "total_rows (66) < min_rows (180)",
-    "min_rows_per_destination (11) < required (20)"
-  ],
-  "rows_remaining": 114,
-  "destination_rows_remaining": 9,
-  "days_remaining": 0
+  "required_temporal_span_days": 30,
+  "remaining_span_days": 0,
+  "destinations": {
+    "darjeeling": { "rows": 11, "required": 20, "remaining": 9 },
+    "kalimpong": { "rows": 11, "required": 20, "remaining": 9 },
+    "mirik": { "rows": 11, "required": 20, "remaining": 9 },
+    "lava": { "rows": 11, "required": 20, "remaining": 9 },
+    "lolegaon": { "rows": 11, "required": 20, "remaining": 9 },
+    "rishop": { "rows": 11, "required": 20, "remaining": 9 }
+  }
 }
 ```
 
@@ -73,7 +56,7 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
 
 ## 3. Real Production Metrics vs Synthetic Benchmark Metrics
 
-* **Real Production XGBoost Metrics**: **NOT AVAILABLE** (Training correctly refused per Prompt 10 Section 9/18).
+* **Real Production XGBoost Metrics**: **NOT AVAILABLE** (Training correctly blocked per Prompt 11 Section 14).
 * **Synthetic Benchmark Metrics**:
   * MAE: 4.82
   * RMSE: 6.14
@@ -83,12 +66,13 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
 
 ---
 
-## 4. Exact Remaining Real-World Data Requirements
+## 4. Exact Remaining Real-World Data Requirements & Projection
 
 To unlock automated XGBoost production training without fabricating data:
 1. **Total Rows Required**: 114 additional genuine daily observations.
 2. **Temporal Span Required**: 0 days (already satisfied at 38 days).
 3. **Destination Depth Required**: 9 additional observations per destination.
-4. **Projected Accumulation Time**: ~19 days of full 6-destination daily captures (6 destinations $\times$ 19 days = 114 rows).
+4. **Current Capture Rate**: 6 canonical destinations captured per calendar day.
+5. **Projected Accumulation Time**: $\max(\lceil 114/6 \rceil, 9) = 19$ calendar days.
 
 Until these thresholds are genuinely met, `baseline_rule_v2` remains authoritative.

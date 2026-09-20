@@ -91,16 +91,18 @@ Every historical observation enforces strict provenance tagging for each individ
 
 ---
 
-## 5. Production Accumulation Lifecycle & Deterministic Fingerprinting (Prompt 10)
+## 5. Production Accumulation Lifecycle & Deterministic Fingerprinting (Prompt 11)
 
-1. **Accumulation State Transitions**:
-   ```text
-   ACCUMULATING
-         ↓
-     GATE_CHECK
-         ↓
-   INSUFFICIENT_DATA (Current state: 66/180 rows, 11/20 rows per destination)
-   ```
+1. **Formal State Machine States**:
+   - `BASELINE_ACTIVE — INSUFFICIENT_DATA` (Current live state: 66/180 rows, 11/20 rows per destination)
+   - `BASELINE_ACTIVE — ELIGIBILITY_REACHED`
+   - `TRAINING_IN_PROGRESS`
+   - `CANDIDATE_READY`
+   - `PROMOTION_PENDING`
+   - `XGBOOST_ACTIVE`
+   - `PROMOTION_FAILED — BASELINE_RETAINED`
+   - `ROLLBACK — BASELINE_ACTIVE`
+
 2. **Current Verified Dataset Ledger**:
    - **Total Physical REAL Records**: 94 rows
    - **ML-Eligible REAL Observations**: 66 rows
@@ -111,9 +113,24 @@ Every historical observation enforces strict provenance tagging for each individ
    - **Target Availability**: 100.0% (66 / 66 eligible rows)
    - **Core Missingness**: 29.1%
    - **Target Variance**: 234.18
-3. **Deterministic Dataset Fingerprinting**:
-   Every training and readiness check derives a SHA-256 fingerprint from:
-   `count:date_min:date_max:dest_count:mean_pressure`.
+
+3. **Strengthened Deterministic Dataset Fingerprinting (SHA-256)**:
+   Every training and readiness evaluation derives an exhaustive 64-character SHA-256 fingerprint from:
+   - `eligible_row_count`
+   - `temporal_span_days`
+   - `destination_count`
+   - `target_variance`
+   - `target_availability`
+   - `core_missingness`
+   - `latest_observation_timestamp`
+   - `destination_counts` (per canonical destination breakdown)
+
    If the dataset fingerprint has not changed since the last candidate evaluation, redundant retraining is bypassed with status `NO_NEW_DATA` / `skip_duplicate_training: true`.
-4. **Authority**:
+
+4. **First-Class Destination Depth & Accumulation Gap Detection**:
+   - Least covered canonical destination explicitly identified (`least_covered_destination: darjeeling` / tied at 11).
+   - Deterministic classification: `EXPECTED`, `CAPTURED_VALID`, `CAPTURED_INVALID`, `MISSING`, `INCOMPLETE`, `DUPLICATE`.
+   - Remaining rows: 114. Remaining depth: 9 per destination. Minimum theoretical calendar days: 19.
+
+5. **Authority**:
    Because `ProductionEligibilityGate` evaluates `eligible: false`, `baseline_rule_v2` remains the sole authoritative production model. Zero synthetic or unverified rows are permitted.
