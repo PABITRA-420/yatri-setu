@@ -111,6 +111,18 @@ class ProductionEligibilityGate:
     def __init__(self, rules: Optional[ProductionEligibilityRules] = None):
         self.rules = rules or ProductionEligibilityRules()
 
+    def get_requirements(self) -> Dict[str, Any]:
+        return {
+            "min_rows": self.rules.min_total_rows,
+            "min_destinations": self.rules.min_destinations,
+            "min_rows_per_destination": self.rules.min_rows_per_destination,
+            "min_temporal_span_days": self.rules.min_temporal_span_days,
+            "target_availability_percent": 100.0,
+            "max_core_missingness_percent": round(self.rules.max_missing_signal_rate * 100, 1),
+            "min_target_variance": self.rules.min_target_variance,
+            "require_real_dataset_mode": self.rules.require_real_dataset_mode,
+        }
+
     def evaluate(
         self,
         features: List[Dict[str, Any]],

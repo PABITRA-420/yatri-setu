@@ -38,6 +38,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
 from app.services.historical.ingestion_service import historical_ingestion_service
+from app.services.historical.readiness_service import historical_readiness_service
 from app.services.ml.feature_builder import StandardFeatureBuilder, SCHEMA_VERSION
 from app.services.ml.eligibility_gate import (
     ProductionEligibilityGate,
@@ -168,6 +169,7 @@ class ProductionTrainingCoordinator:
                 "trained": False,
                 "model_status": BASELINE_ACTIVE,
                 "reason": "Real dataset does not satisfy ProductionEligibilityGate.",
+                "failed_requirements": verdict.failed_requirements,
                 "diagnostics": verdict.to_structured_diagnostics(),
                 "last_trained_metadata": self._last_training_metadata,
             }
@@ -367,6 +369,8 @@ class ProductionTrainingCoordinator:
 
         active_meta = getattr(preferred, "_metadata", {}) or {}
 
+        readiness = historical_readiness_service.get_readiness_summary(db=db)
+
         return {
             "model_status": (
                 REAL_PRODUCTION_ACTIVE if (is_xgb_active and getattr(preferred, "production_eligible", False))
@@ -390,6 +394,24 @@ class ProductionTrainingCoordinator:
             "baseline_metrics": active_meta.get("baseline_metrics", {}),
             "promotion_reason": active_meta.get("promotion_reason", "Using deterministic baseline Crowd Engine V2 rules."),
             "eligibility_diagnostics": verdict.to_structured_diagnostics(),
+            "real_rows": readiness["real_rows"],
+            "required_rows": readiness["required_rows"],
+            "row_progress_percent": readiness["row_progress_percent"],
+            "distinct_dates": readiness["distinct_dates"],
+            "required_temporal_span_days": readiness["required_temporal_span_days"],
+            "temporal_span_days": readiness["temporal_span_days"],
+            "temporal_progress_percent": readiness["temporal_progress_percent"],
+            "destinations_present": readiness["destinations_present"],
+            "required_destinations": readiness["required_destinations"],
+            "rows_per_destination": readiness["rows_per_destination"],
+            "destinations_underrepresented": readiness["destinations_underrepresented"],
+            "latest_observation_date": readiness["latest_observation_date"],
+            "oldest_observation_date": readiness["oldest_observation_date"],
+            "core_signal_missingness_percent": readiness["core_signal_missingness_percent"],
+            "core_signal_availability_percent": readiness["core_signal_availability_percent"],
+            "quality_breakdown": readiness["quality_breakdown"],
+            "projection": readiness["projection"],
+            "readiness_metrics": readiness,
             "checked_at": datetime.now(timezone.utc).isoformat(),
         }
 

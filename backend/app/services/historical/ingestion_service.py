@@ -34,10 +34,13 @@ from app.services.crowd_engine_v2 import crowd_engine_v2
 from app.services.holiday_engine import holiday_engine
 from app.services.events_engine import events_engine
 from app.services.data_sources.base import DataSourceReading, VALID_PROVIDER_MODES
+from app.services.historical.destination_registry import (
+    CANONICAL_DESTINATIONS,
+    normalize_destination_id,
+    is_canonical_destination,
+)
 
 logger = logging.getLogger(__name__)
-
-CANONICAL_DESTINATIONS = ["darjeeling", "kalimpong", "mirik", "lava", "lolegaon", "rishop"]
 
 
 class HistoricalIngestionService:
@@ -49,6 +52,11 @@ class HistoricalIngestionService:
 
     def __init__(self):
         self._ensure_table_exists()
+        self._last_capture_status: Optional[Dict[str, Any]] = None
+        self._last_capture_start: Optional[str] = None
+        self._last_capture_completion: Optional[str] = None
+        self._last_successful_capture: Optional[str] = None
+        self._last_failed_capture: Optional[str] = None
 
     def _ensure_table_exists(self):
         try:
@@ -57,8 +65,8 @@ class HistoricalIngestionService:
             logger.debug(f"Historical table check: {e}")
 
     def _generate_record_id(self, destination_id: str, date_bucket: str, dataset_mode: str) -> str:
-        """Deterministic ID / idempotency key."""
-        clean_dest = destination_id.lower().strip()
+        """Deterministic ID / idempotency key with canonical destination normalization."""
+        clean_dest = normalize_destination_id(destination_id)
         clean_mode = dataset_mode.upper().strip()
         return f"{clean_dest}_{date_bucket}_{clean_mode.lower()}"
 
@@ -77,7 +85,7 @@ class HistoricalIngestionService:
             close_db = True
 
         try:
-            dest_clean = record.destination_id.lower().strip()
+            dest_clean = normalize_destination_id(record.destination_id)
             date_bucket = record.date_bucket
             dataset_mode = record.dataset_mode.upper().strip()
 
@@ -208,16 +216,20 @@ class HistoricalIngestionService:
         If a signal is unmeasured or mock-only, in REAL mode its numeric value
         remains NULL (None) and its provenance is marked UNAVAILABLE / DEMO.
         """
-        dest_clean = destination_id.lower().strip()
+        dest_clean = normalize_destination_id(destination_id)
         now = datetime.now(timezone.utc)
 
-        if not date_bucket:
-            date_bucket = now.strftime("%Y-%m-%d")
-
-        try:
-            target_date = datetime.strptime(date_bucket, "%Y-%m-%d").date()
-        except ValueError:
+        if date_bucket:
+            try:
+                target_date = datetime.strptime(date_bucket, "%Y-%m-%d").date()
+                obs_dt = datetime(target_date.year, target_date.month, target_date.day, 12, 0, 0, tzinfo=timezone.utc)
+            except ValueError:
+                target_date = now.date()
+                obs_dt = now
+                date_bucket = target_date.strftime("%Y-%m-%d")
+        else:
             target_date = now.date()
+            obs_dt = now
             date_bucket = target_date.strftime("%Y-%m-%d")
 
         # 1. Query Crowd Engine V2 for canonical current pressure and 8 provider readings
@@ -363,7 +375,7 @@ class HistoricalIngestionService:
 
         create_record = HistoricalObservationCreate(
             destination_id=dest_clean,
-            observed_at=now,
+            observed_at=obs_dt,
             date_bucket=date_bucket,
             footfall=footfall_val,
             accommodation_occupancy=accom_val,
@@ -425,14 +437,20 @@ class HistoricalIngestionService:
             db = SessionLocal()
             close_db = True
 
+        start_time = datetime.now(timezone.utc)
+        self._last_capture_start = start_time.isoformat()
+
         try:
             results = []
             errors = []
             rows_created = 0
             rows_updated = 0
+            duplicates_prevented = 0
+            retry_count = 0
+            provider_failures = []
             total_signals_avail = 0
             total_signals_unavail = 0
-            date_str = date_bucket or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            date_str = date_bucket or start_time.strftime("%Y-%m-%d")
 
             for dest in CANONICAL_DESTINATIONS:
                 record_id = self._generate_record_id(dest, date_str, dataset_mode)
@@ -440,12 +458,19 @@ class HistoricalIngestionService:
                     HistoricalObservationModel.id == record_id
                 ).first()
                 is_create = existing is None
+                existing_signals = (
+                    existing.footfall, existing.accommodation_occupancy, existing.booking_demand,
+                    existing.search_demand, existing.traffic_pressure, existing.weather_pressure,
+                    existing.holiday_pressure, existing.event_pressure, existing.current_crowd_pressure
+                ) if existing else None
 
                 attempt = 0
                 success = False
                 last_err = None
                 while attempt < max_retries and not success:
                     attempt += 1
+                    if attempt > 1:
+                        retry_count += 1
                     try:
                         rec = self.capture_current_observation(
                             destination_id=dest,
@@ -458,7 +483,15 @@ class HistoricalIngestionService:
                         if is_create:
                             rows_created += 1
                         else:
-                            rows_updated += 1
+                            new_signals = (
+                                rec.footfall, rec.accommodation_occupancy, rec.booking_demand,
+                                rec.search_demand, rec.traffic_pressure, rec.weather_pressure,
+                                rec.holiday_pressure, rec.event_pressure, rec.current_crowd_pressure
+                            )
+                            if existing_signals == new_signals:
+                                duplicates_prevented += 1
+                            else:
+                                rows_updated += 1
 
                         # Calculate signal availability
                         all_signals = [
@@ -472,6 +505,11 @@ class HistoricalIngestionService:
 
                     except Exception as e:
                         last_err = str(e)
+                        provider_failures.append({
+                            "destination_id": dest,
+                            "attempt": attempt,
+                            "error": last_err
+                        })
                         logger.warning(f"Daily capture attempt {attempt}/{max_retries} failed for {dest}: {e}")
                         if attempt < max_retries:
                             time.sleep(0.5)
@@ -479,11 +517,24 @@ class HistoricalIngestionService:
                     logger.error(f"Failed all {max_retries} daily capture attempts for {dest}: {last_err}")
                     errors.append({"destination_id": dest, "error": last_err, "attempts": attempt})
 
-            now_utc = datetime.now(timezone.utc)
+            completion_time = datetime.now(timezone.utc)
+            self._last_capture_completion = completion_time.isoformat()
+            if results:
+                self._last_successful_capture = completion_time.isoformat()
+            if errors:
+                self._last_failed_capture = completion_time.isoformat()
+
             status_summary = {
                 "status": "SUCCESS" if not errors else ("PARTIAL" if results else "FAILED"),
-                "last_capture": now_utc.isoformat(),
-                "next_recommended_capture": (now_utc + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat(),
+                "last_capture": completion_time.isoformat(),
+                "last_capture_start": self._last_capture_start,
+                "last_capture_completion": self._last_capture_completion,
+                "last_successful_capture": self._last_successful_capture,
+                "last_failed_capture": self._last_failed_capture,
+                "next_recommended_capture": (completion_time + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat(),
+                "destinations_attempted": len(CANONICAL_DESTINATIONS),
+                "destinations_successful": [r.destination_id for r in results],
+                "destinations_failed": [e["destination_id"] for e in errors],
                 "successful_destinations": [r.destination_id for r in results],
                 "failed_destinations": [e["destination_id"] for e in errors],
                 "captured_destinations": [r.destination_id for r in results],
@@ -491,9 +542,14 @@ class HistoricalIngestionService:
                 "signals_unavailable": total_signals_unavail,
                 "captured_count": len(results),
                 "rows_captured": len(results),
-                "error_count": len(errors),
-                "rows_updated": rows_updated,
+                "rows_inserted": rows_created,
                 "rows_created": rows_created,
+                "rows_updated": rows_updated,
+                "duplicates_prevented": duplicates_prevented,
+                "provider_failures": provider_failures,
+                "retry_count": retry_count,
+                "error_count": len(errors),
+                "capture_freshness_seconds": 0.0,
                 "dataset_mode": dataset_mode.upper(),
                 "date_bucket": date_str,
             }
@@ -505,12 +561,22 @@ class HistoricalIngestionService:
 
     def get_capture_status(self, db: Optional[Session] = None) -> Dict[str, Any]:
         """
-        Returns scheduler capture status matching Phase 12 requirements:
-        last_capture, successful_destinations, failed_destinations,
-        signals_available, signals_unavailable, rows_captured, rows_updated, rows_created.
+        Returns scheduler capture status matching Prompt 7 requirements:
+        last_capture_start, last_capture_completion, last_successful_capture,
+        last_failed_capture, destinations_attempted, destinations_successful,
+        destinations_failed, rows_inserted, rows_updated, duplicates_prevented,
+        provider_failures, retry_count, capture_freshness_seconds.
         """
         if getattr(self, "_last_capture_status", None):
-            return dict(self._last_capture_status)
+            res = dict(self._last_capture_status)
+            last_comp = res.get("last_capture_completion") or res.get("last_capture")
+            if last_comp:
+                try:
+                    dt = datetime.fromisoformat(last_comp)
+                    res["capture_freshness_seconds"] = round((datetime.now(timezone.utc) - dt).total_seconds(), 2)
+                except Exception:
+                    res["capture_freshness_seconds"] = 0.0
+            return res
 
         # Baseline inspection from database
         close_db = False
@@ -532,22 +598,42 @@ class HistoricalIngestionService:
                 ).all()
                 success_dests = [r.destination_id for r in same_day_records]
                 rows_cap = len(same_day_records)
+                dt_ref = latest.observed_at.replace(tzinfo=timezone.utc) if latest.observed_at.tzinfo is None else latest.observed_at
+                freshness = round((now_utc - dt_ref).total_seconds(), 2)
             else:
                 last_cap = None
                 success_dests = []
                 rows_cap = 0
+                freshness = None
 
             from datetime import timedelta
             return {
+                "status": "IDLE" if not rows_cap else "SUCCESS",
                 "last_capture": last_cap,
+                "last_capture_start": last_cap,
+                "last_capture_completion": last_cap,
+                "last_successful_capture": last_cap,
+                "last_failed_capture": None,
                 "next_recommended_capture": (now_utc + timedelta(hours=12)).isoformat(),
+                "destinations_attempted": len(CANONICAL_DESTINATIONS),
+                "destinations_successful": success_dests,
+                "destinations_failed": [d for d in CANONICAL_DESTINATIONS if d not in success_dests],
                 "successful_destinations": success_dests,
                 "failed_destinations": [d for d in CANONICAL_DESTINATIONS if d not in success_dests],
+                "captured_destinations": success_dests,
                 "signals_available": rows_cap * 5,
                 "signals_unavailable": rows_cap * 4,
+                "captured_count": rows_cap,
                 "rows_captured": rows_cap,
-                "rows_updated": 0,
+                "rows_inserted": rows_cap,
                 "rows_created": rows_cap,
+                "rows_updated": 0,
+                "duplicates_prevented": 0,
+                "provider_failures": [],
+                "retry_count": 0,
+                "error_count": 0,
+                "capture_freshness_seconds": freshness,
+                "dataset_mode": "REAL",
             }
         finally:
             if close_db and db:

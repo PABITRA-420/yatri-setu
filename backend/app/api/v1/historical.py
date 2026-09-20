@@ -194,3 +194,20 @@ def get_historical_capture_status(db: Session = Depends(get_db)) -> Dict[str, An
     - rows_created
     """
     return historical_ingestion_service.get_capture_status(db=db)
+
+
+@router.get("/coverage", summary="Get six-destination coverage and representation report")
+def get_historical_coverage(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    Returns per-destination coverage metrics for all six canonical destinations:
+    - real_rows count
+    - distinct dates
+    - first & latest observation dates
+    - days since latest observation
+    - latest observation quality grade
+    - available and missing signal counts
+    - underrepresented destination flags (<20 rows)
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.get_destination_coverage(db=db)
+

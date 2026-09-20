@@ -45,9 +45,11 @@ from app.models.historical import (
     HistoricalObservationRecord,
     DatasetMetadata,
 )
-from app.services.historical.ingestion_service import (
-    historical_ingestion_service,
+from app.services.historical.ingestion_service import historical_ingestion_service
+from app.services.historical.destination_registry import (
     CANONICAL_DESTINATIONS,
+    normalize_destination_id,
+    is_canonical_destination,
 )
 from app.services.holiday_engine import holiday_engine
 from app.services.events_engine import events_engine
@@ -67,14 +69,14 @@ class HistoricalBackfillService:
         self._eligibility_gate = ProductionEligibilityGate()
 
     def validate_destinations(self, destinations: List[str]) -> Tuple[List[str], List[str]]:
-        """Validates a list of destinations against the canonical set."""
+        """Validates and normalizes a list of destinations against the canonical set."""
         valid = []
         invalid = []
         for d in destinations:
-            clean = d.lower().strip()
-            if clean in CANONICAL_DESTINATIONS:
+            try:
+                clean = normalize_destination_id(d)
                 valid.append(clean)
-            else:
+            except ValueError:
                 invalid.append(d)
         return valid, invalid
 
