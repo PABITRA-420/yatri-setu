@@ -8,7 +8,7 @@ Establishes:
 4. Leakage-prevention attributes separating feature timestamp, target timestamp, and target horizon.
 """
 from datetime import datetime, date
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.services.data_sources.base import VALID_PROVIDER_MODES
@@ -104,6 +104,6 @@ class DatasetMetadata(BaseModel):
     
     # ML readiness & leakage prevention
     ml_eligible: bool = Field(False, description="Whether dataset meets the minimum historical threshold for ML training")
-    target_horizon_days: int = Field(1, description="Forecasting horizon (H days ahead)")
+    target_horizon_days: Union[int, List[int]] = Field(1, description="Forecasting horizon (H days ahead) or list of horizons")
     leakage_prevention_verified: bool = Field(True, description="Strict verification that target timestamps are strictly > feature timestamps")
     notes: str = Field("", description="Human-readable transparency notes")

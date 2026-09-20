@@ -16,7 +16,7 @@ IMPORTANT RULES:
   - Strict leakage prevention: Target timestamps are separated from Feature timestamps.
 """
 from datetime import datetime, date, timedelta
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 from dataclasses import dataclass, field
 import logging
 
@@ -65,7 +65,7 @@ class MLDatasetBuilder:
         self._feature_builder = StandardFeatureBuilder()
         self._splitter = ChronologicalDatasetSplitter()
 
-    def build_synthetic_dataset(self, target_horizon: int = 0) -> DatasetBuildResult:
+    def build_synthetic_dataset(self, target_horizon: Union[int, List[int]] = 0) -> DatasetBuildResult:
         """
         Build an ML dataset from the deterministic synthetic historical dataset (Seed 42).
 
@@ -74,7 +74,8 @@ class MLDatasetBuilder:
         """
         observations = generate_historical_dataset()
 
-        if target_horizon <= 0:
+        is_zero = (target_horizon == 0) if isinstance(target_horizon, int) else (target_horizon == [0])
+        if is_zero:
             feature_rows = self._feature_builder.build_features(observations)
             targets = [row["target_pressure"] for row in feature_rows]
             split_result = self._splitter.split(observations)
@@ -150,7 +151,7 @@ class MLDatasetBuilder:
         destinations: Optional[List[str]] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        target_horizon: int = 1,
+        target_horizon: Union[int, List[int]] = 1,
         db: Optional[Session] = None
     ) -> DatasetBuildResult:
         """
@@ -277,7 +278,7 @@ class MLDatasetBuilder:
         destinations: Optional[List[str]] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
-        target_horizon: int = 1,
+        target_horizon: Union[int, List[int]] = 1,
         db: Optional[Session] = None
     ) -> DatasetBuildResult:
         """
@@ -375,7 +376,7 @@ class MLDatasetBuilder:
     def _pair_forecasting_observations(
         self,
         observations: List[Any],
-        target_horizon: int
+        target_horizon: Union[int, List[int]]
     ) -> Tuple[List[Any], List[Dict[str, Any]], List[float]]:
         """
         Aligns observations chronologically per destination, setting the target
@@ -399,58 +400,61 @@ class MLDatasetBuilder:
         feature_rows: List[Dict[str, Any]] = []
         targets: List[float] = []
 
+        horizons = [target_horizon] if isinstance(target_horizon, int) else target_horizon
+
         for dest, obs_list in by_dest.items():
             # Sort chronologically
             sorted_obs = sorted(obs_list, key=lambda x: get_date(x))
             date_map = {get_date(o): o for o in sorted_obs}
 
-            for obs in sorted_obs:
-                t_date_str = get_date(obs)
-                if not t_date_str:
-                    continue
-
-                if target_horizon == 0:
-                    # Same day regression
-                    row = self._feature_builder.build_feature_row(
-                        obs=obs,
-                        feature_timestamp=t_date_str,
-                        target_timestamp=t_date_str,
-                        target_horizon_days=0
-                    )
-                    paired_obs.append(obs)
-                    feature_rows.append(row)
-                    targets.append(row["target_pressure"])
-                else:
-                    # Forecasting H days ahead
-                    try:
-                        t_date = datetime.strptime(t_date_str, "%Y-%m-%d").date()
-                        future_date = t_date + timedelta(days=target_horizon)
-                        future_date_str = future_date.strftime("%Y-%m-%d")
-                    except ValueError:
+            for h in horizons:
+                for obs in sorted_obs:
+                    t_date_str = get_date(obs)
+                    if not t_date_str:
                         continue
 
-                    # Look up future ground truth observation
-                    future_obs = date_map.get(future_date_str)
-                    if future_obs is not None:
-                        future_target = getattr(future_obs, "current_crowd_pressure", None)
-                        if future_target is None:
-                            future_target = getattr(future_obs, "observed_pressure", None)
+                    if h == 0:
+                        # Same day regression
+                        row = self._feature_builder.build_feature_row(
+                            obs=obs,
+                            feature_timestamp=t_date_str,
+                            target_timestamp=t_date_str,
+                            target_horizon_days=0
+                        )
+                        paired_obs.append(obs)
+                        feature_rows.append(row)
+                        targets.append(row["target_pressure"])
+                    else:
+                        # Forecasting H days ahead
+                        try:
+                            t_date = datetime.strptime(t_date_str, "%Y-%m-%d").date()
+                            future_date = t_date + timedelta(days=h)
+                            future_date_str = future_date.strftime("%Y-%m-%d")
+                        except ValueError:
+                            continue
 
-                        if future_target is not None:
-                            # CRITICAL LEAKAGE CHECK: verify future_date > t_date
-                            assert future_date_str > t_date_str, "Temporal leakage violation!"
+                        # Look up future ground truth observation
+                        future_obs = date_map.get(future_date_str)
+                        if future_obs is not None:
+                            future_target = getattr(future_obs, "current_crowd_pressure", None)
+                            if future_target is None:
+                                future_target = getattr(future_obs, "observed_pressure", None)
 
-                            # Build feature row ONLY using information from observation at T
-                            row = self._feature_builder.build_feature_row(
-                                obs=obs,
-                                target_pressure=future_target,
-                                feature_timestamp=t_date_str,
-                                target_timestamp=future_date_str,
-                                target_horizon_days=target_horizon
-                            )
-                            paired_obs.append(obs)
-                            feature_rows.append(row)
-                            targets.append(future_target)
+                            if future_target is not None:
+                                # CRITICAL LEAKAGE CHECK: verify future_date > t_date
+                                assert future_date_str > t_date_str, "Temporal leakage violation!"
+
+                                # Build feature row ONLY using information from observation at T
+                                row = self._feature_builder.build_feature_row(
+                                    obs=obs,
+                                    target_pressure=future_target,
+                                    feature_timestamp=t_date_str,
+                                    target_timestamp=future_date_str,
+                                    target_horizon_days=h
+                                )
+                                paired_obs.append(obs)
+                                feature_rows.append(row)
+                                targets.append(future_target)
 
         return paired_obs, feature_rows, targets
 

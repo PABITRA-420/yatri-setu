@@ -58,12 +58,16 @@ class MLModelStatus(BaseModel):
     baseline_model: str
     fallback_active: bool
     synthetic_data_warning: Optional[str] = None
+    model_status: str = "UNKNOWN"
+    production_eligible: bool = False
+    feature_schema_version: str = "2.0.0"
+    horizons_supported: List[int] = [1, 3, 7, 14]
 
 
 class TrainRequest(BaseModel):
     dataset_mode: str = Field(
         default="SYNTHETIC",
-        description="Dataset mode: SYNTHETIC | REAL | MIXED. Only SYNTHETIC is currently supported.",
+        description="Dataset mode: SYNTHETIC | REAL | MIXED.",
     )
 
 
@@ -83,6 +87,8 @@ def get_ml_status():
     dataset_mode = "NOT_TRAINED"
     training_dataset = "None"
     synthetic_warning = None
+    model_status = getattr(xgboost_crowd_model, "model_status", "UNKNOWN" if is_trained else "NOT_TRAINED")
+    production_eligible = getattr(xgboost_crowd_model, "production_eligible", False)
 
     if is_trained and meta:
         metrics = ModelMetrics(
@@ -96,6 +102,8 @@ def get_ml_status():
         dataset_mode = meta.get("dataset_mode", "UNKNOWN")
         training_dataset = meta.get("dataset_version", "Unknown")
         synthetic_warning = meta.get("synthetic_data_warning")
+        model_status = meta.get("model_status", model_status)
+        production_eligible = meta.get("production_eligible", production_eligible)
 
     return MLModelStatus(
         model_available=is_trained,
@@ -110,6 +118,10 @@ def get_ml_status():
         baseline_model="baseline_rule_v2 v2.0.0",
         fallback_active=not is_trained,
         synthetic_data_warning=synthetic_warning,
+        model_status=model_status,
+        production_eligible=production_eligible,
+        feature_schema_version="2.0.0",
+        horizons_supported=[1, 3, 7, 14],
     )
 
 
@@ -155,8 +167,9 @@ def get_feature_importance():
 def trigger_training(req: TrainRequest):
     """
     Triggers a full ML training run. Admin-only operation.
-    Training is synchronous and may take 10–60 seconds depending on dataset size.
-    Dataset mode must be 'SYNTHETIC' (REAL/MIXED not yet supported).
+    Training is synchronous.
+    Supports dataset modes: SYNTHETIC, REAL, MIXED.
+    If REAL data is insufficient, returns status 'INSUFFICIENT_DATA' without fabricating rows.
     """
     logger.info(f"Admin triggered ML training: dataset_mode={req.dataset_mode}")
     report = ml_training_service.train(dataset_mode=req.dataset_mode)

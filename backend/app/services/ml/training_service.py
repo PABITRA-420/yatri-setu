@@ -24,6 +24,8 @@ from app.services.ml.evaluation import (
     compare_models,
 )
 
+from app.services.ml.eligibility_gate import ProductionEligibilityGate
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,28 +36,62 @@ class MLTrainingService:
 
     def __init__(self):
         self._last_training_report: Optional[Dict[str, Any]] = None
+        self._eligibility_gate = ProductionEligibilityGate()
 
     def train(self, dataset_mode: str = "SYNTHETIC") -> Dict[str, Any]:
         """
-        Build dataset, train model, evaluate, compare with baseline, and register.
+        Build dataset, evaluate production eligibility, train model, evaluate,
+        compare with baseline, and register.
 
         Args:
             dataset_mode: 'SYNTHETIC' | 'REAL' | 'MIXED'
-                          Currently only SYNTHETIC is supported.
 
         Returns:
             Full training report with metrics, comparison, and provenance.
         """
-        logger.info(f"MLTrainingService: starting training (dataset_mode={dataset_mode})")
+        mode_clean = dataset_mode.upper().strip()
+        logger.info(f"MLTrainingService: starting training (dataset_mode={mode_clean})")
 
-        # 1. Build dataset
-        if dataset_mode == "SYNTHETIC":
+        # 1. Build dataset according to requested mode
+        if mode_clean == "SYNTHETIC":
             dataset = ml_dataset_builder.build_synthetic_dataset()
+        elif mode_clean == "REAL":
+            dataset = ml_dataset_builder.build_historical_dataset(target_horizon=1)
+            # Evaluate production eligibility gate for real data
+            dates = [r.get("date") for r in dataset.features if r.get("date")]
+            date_range = {"start": min(dates), "end": max(dates)} if dates else None
+            verdict = self._eligibility_gate.evaluate(
+                features=dataset.features,
+                targets=dataset.targets,
+                destinations=dataset.destinations,
+                dataset_mode="REAL",
+                date_range=date_range,
+            )
+            if not verdict.is_eligible:
+                logger.warning(f"Production eligibility check failed: {verdict.failure_reasons}")
+                report = {
+                    "status": "INSUFFICIENT_DATA",
+                    "message": (
+                        "Insufficient genuine historical data to train a production-grade model. "
+                        f"Failed requirements: {'; '.join(verdict.failure_reasons)}"
+                    ),
+                    "dataset_mode": "REAL",
+                    "production_eligible": False,
+                    "ml_eligible": False,
+                    "eligibility_verdict": verdict.to_dict(),
+                    "total_records": dataset.total_records,
+                    "destinations": dataset.destinations,
+                    "notes": dataset.notes,
+                }
+                self._last_training_report = report
+                return report
+        elif mode_clean == "MIXED":
+            dataset = ml_dataset_builder.build_mixed_dataset(target_horizon=1)
         else:
             return {
                 "error": (
-                    f"Dataset mode '{dataset_mode}' is not yet supported. "
-                    "Only SYNTHETIC is available until real ingestors accumulate data."
+                    f"Dataset mode '{dataset_mode}' is not valid. "
+                    "Supported modes are 'REAL', 'SYNTHETIC', and 'MIXED'."
                 )
             }
 
@@ -122,11 +158,15 @@ class MLTrainingService:
                 "validation": {"start": split["val_start"], "end": split["val_end"]},
                 "test": {"start": split["test_start"], "end": split["test_end"]},
             },
+            "model_status": getattr(xgboost_crowd_model, "model_status", "UNKNOWN"),
+            "production_eligible": getattr(xgboost_crowd_model, "production_eligible", False),
+            "feature_schema_version": getattr(xgboost_crowd_model, "feature_schema_version", "2.0.0"),
             "ml_metrics": {
                 "val_mae": training_result.get("val_mae"),
                 "val_rmse": training_result.get("val_rmse"),
                 "test_mae": ml_mae,
                 "test_rmse": ml_rmse,
+                "test_r2": training_result.get("test_r2"),
                 "test_directional_accuracy": ml_dir_acc,
             },
             "baseline_metrics": {
@@ -138,6 +178,7 @@ class MLTrainingService:
             "feature_importances": xgboost_crowd_model.feature_importances,
             "error_by_destination": training_result.get("error_by_destination", []),
             "error_by_season": training_result.get("error_by_season", []),
+            "error_by_horizon": training_result.get("error_by_horizon", {}),
             "synthetic_data_warning": training_result.get("synthetic_data_warning"),
         }
 
