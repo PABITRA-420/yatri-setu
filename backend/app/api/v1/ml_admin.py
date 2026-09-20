@@ -182,3 +182,28 @@ def trigger_training(req: TrainRequest):
 def list_registered_models():
     """Lists all models currently registered in the ModelRegistry."""
     return {"models": model_registry.list_models()}
+
+
+@router.post("/retrain-if-eligible", summary="Trigger atomic production training if REAL dataset is eligible")
+def retrain_if_eligible(
+    force: bool = Query(False, description="If True, retrains even if no new data has accumulated")
+):
+    """
+    Evaluates REAL dataset against ProductionEligibilityGate.
+    - If ineligible -> returns INSUFFICIENT_DATA with failed requirements and preserves active baseline.
+    - If eligible and unchanged -> returns NO_NEW_DATA.
+    - If eligible and new -> trains candidate model atomically, validates, and promotes to active production.
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.retrain_if_eligible(force=force)
+
+
+@router.get("/production-readiness", summary="Get comprehensive ML production readiness report")
+def get_production_readiness():
+    """
+    Returns the complete production readiness status of the forecasting system,
+    including active model status, training provenance, schema version,
+    evaluation metrics, baseline metrics, and current eligibility diagnostics.
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.get_readiness_report()

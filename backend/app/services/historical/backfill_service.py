@@ -378,11 +378,12 @@ class HistoricalBackfillService:
         d_start_ts = datetime(target_date.year, target_date.month, target_date.day, 0, 0, 0)
         d_end_ts = datetime(target_date.year, target_date.month, target_date.day, 23, 59, 59)
 
+        # ─── 4. First-Party User Demand Events (Searches & Intent) ─────────
         search_events_count = db.query(DemandEventModel).filter(
             DemandEventModel.destination_id == dest_clean,
             DemandEventModel.timestamp >= d_start_ts,
             DemandEventModel.timestamp <= d_end_ts,
-            DemandEventModel.event_type == "search"
+            DemandEventModel.event_type.in_(["search", "destination_selection", "availability", "trip_start"])
         ).count()
 
         if search_events_count > 0:
@@ -394,7 +395,7 @@ class HistoricalBackfillService:
                 is_available=True,
                 raw_value=float(search_events_count),
                 raw_unit="search_queries",
-                notes=f"First-party telemetry: {search_events_count} verified search events on date"
+                notes=f"First-party telemetry: {search_events_count} verified demand/search events on date"
             )
         else:
             search_score = None
@@ -702,6 +703,13 @@ class HistoricalBackfillService:
                 date_range={"start": earliest or "", "end": latest or ""},
             )
 
+            # Observation Quality Scores
+            from app.services.historical.quality_scoring import observation_quality_scorer
+            quality_grades = {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "INVALID": 0}
+            for r in records:
+                score_obj = observation_quality_scorer.score_observation(r)
+                quality_grades[score_obj.quality_grade] = quality_grades.get(score_obj.quality_grade, 0) + 1
+
             return {
                 "coverage": {
                     "total_observations": total_obs,
@@ -714,6 +722,10 @@ class HistoricalBackfillService:
                     "temporal_span_days": temporal_span_days,
                     "rows_per_destination": rows_per_dest,
                     "rows_per_day": rows_per_day,
+                },
+                "observation_quality": {
+                    "distribution": quality_grades,
+                    "total_scored": total_obs,
                 },
                 "signal_completeness": signal_completeness,
                 "target_quality": {
@@ -749,6 +761,8 @@ class HistoricalBackfillService:
                     "is_eligible": gate_verdict.is_eligible,
                     "model_status": gate_verdict.status,
                     "failure_reasons": gate_verdict.failure_reasons,
+                    "failed_requirements": gate_verdict.failed_requirements,
+                    "diagnostics": gate_verdict.to_structured_diagnostics(),
                     "verdict_details": gate_verdict.to_dict(),
                 },
                 "audit_timestamp": datetime.now(timezone.utc).isoformat(),

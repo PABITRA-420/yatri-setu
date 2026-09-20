@@ -177,3 +177,20 @@ def run_daily_capture(
         max_retries=max_retries,
         db=db
     )
+
+
+@router.get("/capture-status", summary="Get data accumulation scheduler status")
+def get_historical_capture_status(db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    Returns scheduler accumulation status:
+    - last_capture timestamp
+    - next_recommended_capture timestamp
+    - successful_destinations
+    - failed_destinations
+    - signals_available
+    - signals_unavailable
+    - rows_captured
+    - rows_updated
+    - rows_created
+    """
+    return historical_ingestion_service.get_capture_status(db=db)

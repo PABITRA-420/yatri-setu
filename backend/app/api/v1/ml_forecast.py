@@ -67,6 +67,10 @@ class MLForecastResponse(BaseModel):
     production_eligible: bool = False
     feature_schema_version: Optional[str] = "2.0.0"
     feature_timestamp: Optional[str] = None
+    forecast_source_classification: Optional[str] = Field(
+        None,
+        description="REAL_XGBOOST_FORECAST | SYNTHETIC_BENCHMARK | BASELINE_FALLBACK | INSUFFICIENT_DATA"
+    )
 
 
 def _pressure_level(score: float) -> str:
@@ -216,6 +220,19 @@ def get_ml_pressure_forecast(
             is_weekend=is_weekend,
         ))
 
+    # Determine explicit classification distinguishing REAL vs SYNTHETIC vs BASELINE vs INSUFFICIENT
+    if fallback_active or "baseline" in model_used_name:
+        if fallback_reason and "insufficient" in fallback_reason.lower():
+            classification = "INSUFFICIENT_DATA"
+        else:
+            classification = "BASELINE_FALLBACK"
+    elif dataset_mode == "REAL" and production_eligible:
+        classification = "REAL_XGBOOST_FORECAST"
+    elif dataset_mode == "SYNTHETIC":
+        classification = "SYNTHETIC_BENCHMARK"
+    else:
+        classification = "BASELINE_FALLBACK"
+
     return MLForecastResponse(
         destination_id=dest,
         destination_name=dest_name,
@@ -235,4 +252,5 @@ def get_ml_pressure_forecast(
         production_eligible=production_eligible,
         feature_schema_version=feature_schema_version,
         feature_timestamp=feature_timestamp_str,
+        forecast_source_classification=classification,
     )

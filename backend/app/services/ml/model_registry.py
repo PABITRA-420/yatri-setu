@@ -237,6 +237,37 @@ class ModelRegistry:
             results.append(entry)
         return results
 
+    def get_production_readiness(self) -> Dict[str, Any]:
+        """
+        Returns complete model registry readiness state, transparently disclosing
+        whether active forecasting is powered by REAL XGBoost, SYNTHETIC_BENCHMARK,
+        or BASELINE fallback.
+        """
+        preferred = self.get_preferred_model()
+        is_xgb = preferred.name != "baseline_rule_v2"
+        meta = getattr(preferred, "_metadata", {}) or {}
+
+        return {
+            "model_status": getattr(preferred, "model_status", "BASELINE" if not is_xgb else "UNKNOWN"),
+            "model_version": getattr(preferred, "version", "2.0.0"),
+            "dataset_mode": getattr(preferred, "dataset_mode", "DETERMINISTIC_RULES" if not is_xgb else "UNKNOWN"),
+            "production_eligible": getattr(preferred, "production_eligible", False),
+            "feature_schema_version": getattr(preferred, "feature_schema_version", "2.0.0"),
+            "trained_at": meta.get("trained_at") or meta.get("training_date"),
+            "training_rows": meta.get("training_rows", 0),
+            "training_destinations": meta.get("training_destinations") or meta.get("destination_count", 0),
+            "training_temporal_span_days": meta.get("training_temporal_span_days", 0),
+            "training_provenance": meta.get("training_provenance", {}),
+            "evaluation_metrics": meta.get("evaluation_metrics") or {
+                "test_mae": meta.get("test_mae"),
+                "test_rmse": meta.get("test_rmse"),
+                "test_r2": meta.get("test_r2"),
+                "test_directional_accuracy": meta.get("test_directional_accuracy"),
+            },
+            "baseline_metrics": meta.get("baseline_metrics", {}),
+            "promotion_reason": meta.get("promotion_reason", "Using deterministic baseline Crowd Engine V2 rules."),
+        }
+
 
 # Singleton instance
 model_registry = ModelRegistry()
