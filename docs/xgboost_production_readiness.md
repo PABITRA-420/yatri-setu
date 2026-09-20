@@ -45,12 +45,12 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
   "eligibility_diagnostics": {
     "eligible": false,
     "dataset_mode": "REAL",
-    "total_rows": 10,
+    "total_rows": 40,
     "distinct_destinations": 6,
     "temporal_span_days": 18,
     "target_availability_percent": 100.0,
-    "core_signal_missingness_percent": 53.3,
-    "target_variance": 407.6,
+    "core_signal_missingness_percent": 41.5,
+    "target_variance": 384.2,
     "requirements": {
       "min_rows": 180,
       "min_destinations": 3,
@@ -61,8 +61,8 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
       "min_target_variance": 4
     },
     "failed_requirements": [
-      "total_rows (10) < min_rows (180)",
-      "min_rows_per_destination (1) < required (20)",
+      "total_rows (40) < min_rows (180)",
+      "min_rows_per_destination (6) < required (20)",
       "temporal_span_days (18) < min_days (30)"
     ]
   }

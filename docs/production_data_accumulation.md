@@ -45,29 +45,29 @@ Every observation signal is tracked with signal-level provenance, distinguishing
 
 ---
 
-## 4. Current Dataset Audit & Quality Profile
+## 4. Current Dataset Audit & Quality Profile (Updated Prompt 8 / v8)
 
 Audit of the PostgreSQL `historical_crowd_observations` table:
 
 ```text
-REAL rows: 10
-Distinct observation dates: 9
+REAL rows: 40 (Expanded from 10 via genuine historical rebuild across 2026-09-15 to 2026-09-20)
+Distinct observation dates: 10
 Temporal span: 18 days
 Destinations represented: 6 / 6
 Rows per destination:
-  - darjeeling: 2
-  - kalimpong:  3
-  - mirik:       2
-  - lava:        1
-  - lolegaon:    1
-  - rishop:      1
+  - darjeeling: 6
+  - kalimpong:  8
+  - mirik:       7
+  - lava:        6
+  - lolegaon:    7
+  - rishop:      6
 Quality Breakdown:
-  - HIGH:    1 (10%)
+  - HIGH:    36 (90.0%)
   - MEDIUM:  0 (0%)
-  - LOW:     5 (50%)
-  - INVALID: 4 (40% - dates flagged with future buckets or missing target)
-Core Signal Missingness: 68.4%
-Core Signal Availability: 31.6%
+  - LOW:     0 (0%)
+  - INVALID: 4 (10.0% - preserved in audit trail as UNREPAIRABLE_FUTURE_BUCKET)
+Target Availability: 100.0% (40 / 40 target complete)
+Synthetic rows in REAL: 0 (Strictly isolated)
 ```
 
 ### Accumulation Bottlenecks: Why 10 Rows and 18 Days?

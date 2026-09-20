@@ -803,8 +803,11 @@ class HistoricalIngestionService:
         prov_dict = {}
         if model.signal_provenance_json and isinstance(model.signal_provenance_json, dict):
             for k, v in model.signal_provenance_json.items():
-                if isinstance(v, dict):
-                    prov_dict[k] = SignalProvenanceRecord(**v)
+                if isinstance(v, dict) and not k.startswith("_"):
+                    try:
+                        prov_dict[k] = SignalProvenanceRecord(**v)
+                    except Exception:
+                        pass
 
         return HistoricalObservationRecord(
             id=model.id,

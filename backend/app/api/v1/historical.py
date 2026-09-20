@@ -211,3 +211,65 @@ def get_historical_coverage(db: Session = Depends(get_db)) -> Dict[str, Any]:
     from app.services.historical.readiness_service import historical_readiness_service
     return historical_readiness_service.get_destination_coverage(db=db)
 
+
+@router.get("/forensics", summary="Run forensic audit of invalid observations")
+def get_invalid_observation_forensics(
+    dataset_mode: str = Query("REAL", description="REAL, SYNTHETIC, or MIXED"),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """
+    Performs forensic inspection of invalid observations, checking underlying PostgreSQL
+    source records, timestamp anomalies, missing targets, and repair eligibility.
+    """
+    from app.services.historical.repair_service import historical_repair_service
+    return historical_repair_service.audit_invalid_observations(
+        dataset_mode=dataset_mode,
+        db=db
+    )
+
+
+@router.post("/repair-invalid", summary="Execute evidence-backed repair of invalid observations")
+def repair_invalid_observations(
+    dataset_mode: str = Query("REAL", description="REAL, SYNTHETIC, or MIXED"),
+    dry_run: bool = Query(True, description="When true, simulates repair without writing changes"),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Administers evidence-backed repair of invalid observations.
+    Strictly follows Prompt 8 integrity rules:
+    - Never fabricates or interpolates missing signals.
+    - Only repairs when genuine source evidence in PostgreSQL supports it.
+    - Retains unrepairable observations with audit classification (never silently deletes).
+    """
+    from app.services.historical.repair_service import historical_repair_service
+    return historical_repair_service.repair_invalid_observations(
+        dataset_mode=dataset_mode,
+        dry_run=dry_run,
+        db=db
+    )
+
+
+@router.post("/rebuild", summary="Deterministically rebuild historical observations from raw source tables")
+def rebuild_historical_dataset(
+    start_date: str = Query("2026-09-15", description="Start date YYYY-MM-DD"),
+    end_date: str = Query("2026-09-20", description="End date YYYY-MM-DD"),
+    destinations: Optional[List[str]] = Query(None, description="Optional destination list"),
+    dataset_mode: str = Query("REAL", description="REAL, SYNTHETIC, or MIXED"),
+    dry_run: bool = Query(False, description="When true, simulates rebuild without committing"),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Deterministically rebuilds canonical observations from first-party database sources
+    (bookings, demand events, calendar, capacities) across genuine historical dates.
+    Zero synthetic rows introduced into REAL dataset.
+    """
+    from app.services.historical.repair_service import historical_repair_service
+    return historical_repair_service.rebuild_historical_dataset(
+        start_date=start_date,
+        end_date=end_date,
+        destinations=destinations,
+        dataset_mode=dataset_mode,
+        dry_run=dry_run,
+        db=db
+    )
+

@@ -84,6 +84,35 @@ class HistoricalBackfillService:
         """Deterministic ID generation delegated to ingestion service."""
         return self._ingestion_service._generate_record_id(destination_id, date_bucket, dataset_mode)
 
+    def fetch_destination_capacity(
+        self,
+        db: Session,
+        destinations: Optional[List[str]] = None
+    ) -> Dict[str, Dict[str, Any]]:
+        """Pre-fetches destination capacity metrics for canonical destinations."""
+        active_dests = destinations or list(CANONICAL_DESTINATIONS)
+        capacities = {}
+        for d in active_dests:
+            dest_model = db.query(DestinationModel).filter(DestinationModel.id == d).first()
+            homestay_count = db.query(HomestayModel).filter(
+                HomestayModel.destination_id == d,
+                HomestayModel.is_published == True
+            ).count()
+            total_rooms = db.query(func.sum(HomestayModel.total_rooms)).filter(
+                HomestayModel.destination_id == d,
+                HomestayModel.is_published == True
+            ).scalar() or 0
+
+            capacities[d] = {
+                "carrying_capacity": dest_model.carrying_capacity if dest_model else 3000,
+                "published_homestays": homestay_count,
+                "total_rooms": int(total_rooms) if total_rooms else homestay_count * 2,
+            }
+        return capacities
+
+    # Alias for private invocation compatibility
+    _fetch_destination_capacity = fetch_destination_capacity
+
     def backfill_historical_data(
         self,
         start_date: str,
@@ -231,17 +260,25 @@ class HistoricalBackfillService:
 
     def _extract_historical_day_signals(
         self,
-        destination_id: str,
-        target_date: date,
-        dataset_mode: str,
-        capacities: Dict[str, Any],
-        db: Session,
+        destination_id: Optional[str] = None,
+        target_date: Optional[date] = None,
+        dataset_mode: str = "REAL",
+        capacities: Optional[Dict[str, Any]] = None,
+        db: Optional[Session] = None,
+        dest_clean: Optional[str] = None,
+        **kwargs
     ) -> Optional[HistoricalObservationCreate]:
         """
         Extract genuine signals for a single destination and date.
         Strictly avoids fabrication: unmeasured telemetry remains None.
         """
-        dest_clean = destination_id.lower().strip()
+        resolved_dest = dest_clean or destination_id or kwargs.get("destination", "")
+        dest_clean = str(resolved_dest).lower().strip()
+        if capacities is None:
+            capacities = {}
+        if db is None:
+            from app.core.database import SessionLocal
+            db = SessionLocal()
         date_str = target_date.strftime("%Y-%m-%d")
         now_utc = datetime.now(timezone.utc)
         obs_dt = datetime(target_date.year, target_date.month, target_date.day, 12, 0, 0, tzinfo=timezone.utc)
@@ -292,32 +329,69 @@ class HistoricalBackfillService:
             notes=event_notes
         )
 
-        # ─── 3. First-Party PostgreSQL Bookings & Homestay Occupancy ─────────
-        bookings = db.query(BookingModel).filter(
+        # Define timestamp bounds for target_date
+        d_start_ts = datetime(target_date.year, target_date.month, target_date.day, 0, 0, 0)
+        d_end_ts = datetime(target_date.year, target_date.month, target_date.day, 23, 59, 59)
+
+        # ─── 3A. Booking Demand (Forward creation velocity on target_date) ────
+        total_rooms = capacities.get("total_rooms", 10)
+        created_bookings = db.query(BookingModel).filter(
             BookingModel.destination_id == dest_clean,
             BookingModel.status == "CONFIRMED",
-            BookingModel.check_in_date <= target_date,
-            BookingModel.check_out_date >= target_date,
+            BookingModel.created_at >= d_start_ts,
+            BookingModel.created_at <= d_end_ts,
         ).all()
+        created_count = len(created_bookings)
 
-        confirmed_count = len(bookings)
-        rooms_booked = sum(b.rooms_booked for b in bookings) if bookings else 0
-        total_rooms = capacities.get("total_rooms", 10)
-
-        if confirmed_count > 0:
-            # Genuine booking telemetry recorded in ledger
-            booking_demand_score = round(min(100.0, max(10.0, (confirmed_count / max(1, total_rooms)) * 100.0)), 1)
-            occupancy_score = round(min(100.0, max(5.0, (rooms_booked / max(1, total_rooms)) * 100.0)), 1)
-
+        if created_count > 0:
+            booking_demand_score = round(min(100.0, max(10.0, (created_count / max(1, total_rooms)) * 100.0)), 1)
             signal_provenance["booking_demand"] = SignalProvenanceRecord(
                 source="POSTGRESQL_BOOKINGS_LEDGER",
                 provider_mode="HISTORICAL",
                 confidence=0.98,
                 is_available=True,
-                raw_value=float(confirmed_count),
-                raw_unit="confirmed_stays",
-                notes=f"Ledger verified: {confirmed_count} active bookings on date across {rooms_booked} rooms"
+                raw_value=float(created_count),
+                raw_unit="confirmed_created_bookings",
+                notes=f"Ledger verified: {created_count} confirmed booking reservations transacted on date"
             )
+        else:
+            any_dest_bookings = db.query(BookingModel).filter(
+                BookingModel.destination_id == dest_clean,
+                BookingModel.status == "CONFIRMED"
+            ).first()
+            if any_dest_bookings and capacities.get("published_homestays", 0) > 0:
+                booking_demand_score = 12.0
+                signal_provenance["booking_demand"] = SignalProvenanceRecord(
+                    source="POSTGRESQL_BOOKINGS_LEDGER",
+                    provider_mode="HISTORICAL",
+                    confidence=0.90,
+                    is_available=True,
+                    raw_value=0.0,
+                    raw_unit="confirmed_created_bookings",
+                    notes="Verified active destination with 0 recorded booking transactions on this date"
+                )
+            else:
+                booking_demand_score = None
+                signal_provenance["booking_demand"] = SignalProvenanceRecord(
+                    source="POSTGRESQL_BOOKINGS_LEDGER",
+                    provider_mode="UNAVAILABLE",
+                    confidence=0.0,
+                    is_available=False,
+                    notes="No booking records available for destination on date"
+                )
+
+        # ─── 3B. Homestay Accommodation Occupancy (Active guest stays on target_date) ───
+        stay_bookings = db.query(BookingModel).filter(
+            BookingModel.destination_id == dest_clean,
+            BookingModel.status == "CONFIRMED",
+            BookingModel.check_in_date <= target_date,
+            BookingModel.check_out_date >= target_date,
+        ).all()
+        stay_count = len(stay_bookings)
+        rooms_occupied = sum(b.rooms_booked for b in stay_bookings) if stay_bookings else 0
+
+        if stay_count > 0:
+            occupancy_score = round(min(100.0, max(5.0, (rooms_occupied / max(1, total_rooms)) * 100.0)), 1)
             signal_provenance["accommodation_occupancy"] = SignalProvenanceRecord(
                 source="POSTGRESQL_HOMESTAY_INVENTORY",
                 provider_mode="HISTORICAL",
@@ -325,28 +399,11 @@ class HistoricalBackfillService:
                 is_available=True,
                 raw_value=occupancy_score,
                 raw_unit="percent_occupancy",
-                notes=f"Verified occupancy: {rooms_booked}/{total_rooms} published rooms booked"
+                notes=f"Verified occupancy: {rooms_occupied}/{total_rooms} published rooms occupied across {stay_count} active stays"
             )
         else:
-            # Check if any bookings or inventory exist in the database for this destination
-            any_dest_bookings = db.query(BookingModel).filter(
-                BookingModel.destination_id == dest_clean,
-                BookingModel.status == "CONFIRMED"
-            ).first()
-
-            if any_dest_bookings and capacities.get("published_homestays", 0) > 0:
-                # System was active and zero were booked on this date
-                booking_demand_score = 12.0
+            if capacities.get("published_homestays", 0) > 0:
                 occupancy_score = 10.0
-                signal_provenance["booking_demand"] = SignalProvenanceRecord(
-                    source="POSTGRESQL_BOOKINGS_LEDGER",
-                    provider_mode="HISTORICAL",
-                    confidence=0.90,
-                    is_available=True,
-                    raw_value=0.0,
-                    raw_unit="confirmed_stays",
-                    notes="Verified active inventory with zero recorded bookings on this date"
-                )
                 signal_provenance["accommodation_occupancy"] = SignalProvenanceRecord(
                     source="POSTGRESQL_HOMESTAY_INVENTORY",
                     provider_mode="HISTORICAL",
@@ -357,16 +414,7 @@ class HistoricalBackfillService:
                     notes="Verified homestays with zero occupied rooms on this date"
                 )
             else:
-                # Truly unmeasured / outside platform coverage
-                booking_demand_score = None
                 occupancy_score = None
-                signal_provenance["booking_demand"] = SignalProvenanceRecord(
-                    source="POSTGRESQL_BOOKINGS_LEDGER",
-                    provider_mode="UNAVAILABLE",
-                    confidence=0.0,
-                    is_available=False,
-                    notes="No first-party booking records available for destination on date"
-                )
                 signal_provenance["accommodation_occupancy"] = SignalProvenanceRecord(
                     source="POSTGRESQL_HOMESTAY_INVENTORY",
                     provider_mode="UNAVAILABLE",
@@ -374,11 +422,6 @@ class HistoricalBackfillService:
                     is_available=False,
                     notes="No verified homestay inventory data available for destination on date"
                 )
-
-        # ─── 4. First-Party User Demand Events (Searches) ───────────────────
-        # Filter demand events on target_date
-        d_start_ts = datetime(target_date.year, target_date.month, target_date.day, 0, 0, 0)
-        d_end_ts = datetime(target_date.year, target_date.month, target_date.day, 23, 59, 59)
 
         # ─── 4. First-Party User Demand Events (Searches & Intent) ─────────
         search_events_count = db.query(DemandEventModel).filter(
