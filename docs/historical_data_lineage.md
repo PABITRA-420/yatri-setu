@@ -1,6 +1,6 @@
 # Historical Data Lineage & Provenance Specification
 
-**Milestone**: Prompt 8 / Branch `v8`  
+**Milestone**: Prompt 9 / Branch `v9`  
 **System**: Yatri Setu Historical Tourism Data Foundation  
 **Auditor**: End-to-End Signal Provenance, Aggregation & Isolation Audit  
 
@@ -86,3 +86,5 @@ Every historical observation enforces strict provenance tagging for each individ
    Features engineered for prediction horizon $T + H$ use only data available at $T$. Post-event telemetry is never used to construct pre-event features.
 4. **Idempotency**:
    Rebuilding or re-ingesting observations for an existing destination and date bucket updates existing records in-place without creating duplicate rows.
+5. **Separation of Physical Audit Records from ML-Eligible Rows**:
+   Future test records (28 rows) are retained in the database for audit integrity but graded `INVALID` and excluded from ML feature construction and gate evaluation.

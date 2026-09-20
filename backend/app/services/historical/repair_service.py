@@ -419,13 +419,41 @@ class HistoricalRepairService:
                 HistoricalObservationModel.id.like("%synthetic%")
             ).count()
 
+            # Prompt 9 Section 15: Clearly distinguish physical database audit records from ML-eligible REAL observations
+            eligible_rows = [r for r in rows if observation_quality_scorer.score_observation(r).quality_grade != "INVALID"]
+            ml_eligible_count = len(eligible_rows)
+            invalid_audit_count = total_rows - ml_eligible_count
+
+            eligible_dates = sorted(list({r.date_bucket for r in eligible_rows if r.date_bucket}))
+            if eligible_dates:
+                ed_min = datetime.strptime(eligible_dates[0], "%Y-%m-%d").date()
+                ed_max = datetime.strptime(eligible_dates[-1], "%Y-%m-%d").date()
+                eligible_temporal_span = (ed_max - ed_min).days + 1
+            else:
+                eligible_temporal_span = 0
+
+            eligible_dest_counts: Dict[str, int] = {d: 0 for d in CANONICAL_DESTINATIONS}
+            for r in eligible_rows:
+                if r.destination_id in eligible_dest_counts:
+                    eligible_dest_counts[r.destination_id] += 1
+
+            eligible_target_complete = sum(1 for r in eligible_rows if r.current_crowd_pressure is not None)
+
             return {
                 "dataset_mode": dataset_mode.upper(),
-                "real_rows": total_rows,
-                "distinct_dates": distinct_dates_count,
-                "temporal_span_days": temporal_span,
-                "rows_per_destination": dest_counts,
-                "target_complete_rows": target_complete_count,
+                "total_real_observations": total_rows,
+                "ml_eligible_real_observations": ml_eligible_count,
+                "invalid_audit_records": invalid_audit_count,
+                "real_rows": ml_eligible_count,  # Backward compatibility alias
+                "distinct_dates": len(eligible_dates),
+                "unique_observation_dates": len(eligible_dates),
+                "temporal_span_days": eligible_temporal_span,
+                "earliest_date": eligible_dates[0] if eligible_dates else None,
+                "latest_date": eligible_dates[-1] if eligible_dates else None,
+                "rows_per_destination": eligible_dest_counts,
+                "all_rows_per_destination": dest_counts,
+                "target_complete_rows": eligible_target_complete,
+                "all_target_complete_rows": target_complete_count,
                 "quality_grades": quality_counts,
                 "core_missingness_pct": core_missingness,
                 "provenance_completeness_pct": prov_completeness,

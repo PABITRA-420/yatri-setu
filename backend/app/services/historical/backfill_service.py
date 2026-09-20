@@ -428,7 +428,10 @@ class HistoricalBackfillService:
             DemandEventModel.destination_id == dest_clean,
             DemandEventModel.timestamp >= d_start_ts,
             DemandEventModel.timestamp <= d_end_ts,
-            DemandEventModel.event_type.in_(["search", "destination_selection", "availability", "trip_start"])
+            DemandEventModel.event_type.in_([
+            "search", "destination_selection", "availability", "trip_start",
+            "alternative_acceptance", "outbound_booking_click"
+        ])
         ).count()
 
         if search_events_count > 0:

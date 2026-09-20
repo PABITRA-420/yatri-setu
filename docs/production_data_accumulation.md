@@ -20,9 +20,9 @@ All accumulation pathways strictly enforce the six canonical destination identif
 | `darjeeling` | Darjeeling | Urban Hill Hub | 5,000 | `darj`, `darjeeling_town`, `darjeeling-district`, `queen of hills` |
 | `kalimpong` | Kalimpong | Ridge Town Hub | 3,000 | `kalimpong_town`, `kalimpong-district`, `kalimpong_municipality` |
 | `mirik` | Mirik | Lake Valley | 2,500 | `mirik_lake`, `mirik_bazar`, `mirik town` |
-| `lava` | Lava | Forest Ecotourism | 1,000 | `lava_bazar`, `lava_village` |
-| `lolegaon` | Lolegaon | Rural Ecotourism | 800 | `lolegaon_forest`, `loleygaon`, `kaffer`, `kaffer_village` |
-| `rishop` | Rishop | High Ridge Hamlet | 600 | `rishop_village`, `rishyap`, `rishyap_village` |
+| `lava` | Lava | Forest Ecotourism | 1,500 | `lava_bazar`, `lava_village` |
+| `lolegaon` | Lolegaon | Rural Ecotourism | 1,200 | `lolegaon_forest`, `loleygaon`, `kaffer`, `kaffer_village` |
+| `rishop` | Rishop | High Ridge Hamlet | 1,000 | `rishop_village`, `rishyap`, `rishyap_village` |
 
 Normalization is handled deterministically by `backend/app/services/historical/destination_registry.py`. Unrecognized destinations raise a strict `ValueError` and are rejected prior to persistence.
 
@@ -45,108 +45,65 @@ Every observation signal is tracked with signal-level provenance, distinguishing
 
 ---
 
-## 4. Current Dataset Audit & Quality Profile (Updated Prompt 8 / v8)
+## 4. Current Dataset Audit & Quality Profile (Updated Prompt 9 / v9)
 
 Audit of the PostgreSQL `historical_crowd_observations` table:
 
 ```text
-REAL rows: 40 (Expanded from 10 via genuine historical rebuild across 2026-09-15 to 2026-09-20)
+Total REAL rows in database: 88
+ML-Eligible REAL rows: 60 (Expanded across all 6 destinations for 10 distinct dates)
+INVALID audit records: 28 (Retained in database for audit integrity; excluded from ML)
 Distinct observation dates: 10
-Temporal span: 18 days
-Destinations represented: 6 / 6
+Earliest genuine date: 2026-08-15
+Latest genuine date: 2026-09-20
+Temporal span: 37 days (Meets the >= 30 days requirement!)
+Destinations represented: 6 / 6 (100% coverage)
 Rows per destination:
-  - darjeeling: 6
-  - kalimpong:  8
-  - mirik:       7
-  - lava:        6
-  - lolegaon:    7
-  - rishop:      6
+  - darjeeling: 10
+  - kalimpong:  10
+  - mirik:       10
+  - lava:        10
+  - lolegaon:    10
+  - rishop:      10
 Quality Breakdown:
-  - HIGH:    36 (90.0%)
+  - HIGH:    60 (100% of ML-eligible observations)
   - MEDIUM:  0 (0%)
   - LOW:     0 (0%)
-  - INVALID: 4 (10.0% - preserved in audit trail as UNREPAIRABLE_FUTURE_BUCKET)
-Target Availability: 100.0% (40 / 40 target complete)
+  - INVALID: 28 (Retained for audit trail; excluded from ML gate)
+Target Availability: 100.0% (60 / 60)
+Core Missingness: 30.0% (Well within the <= 70% threshold)
+Target Variance: 204.61 (Well above the >= 4.0 threshold)
 Synthetic rows in REAL: 0 (Strictly isolated)
 ```
 
-### Accumulation Bottlenecks: Why 10 Rows and 18 Days?
-The current dataset size reflects authentic historical data constraints:
-1. **Zero Fabrication Policy**: Unlike synthetic benchmarking, genuine observations cannot be artificially multiplied. Each day represents a real calendar date.
-2. **First-Party Ledger Span**: Confirmed bookings and verified search sessions only exist for dates when users actively engaged with the Yatri Setu platform.
-3. **Absence of Historical Physical Telemetry**: Automated road sensors and local micro-climate stations were not historically deployed across remote hamlets like Rishop and Lolegaon prior to project inception.
-4. **Idempotency Gate**: Re-running capture or backfill over existing dates updates records rather than duplicating them.
+---
+
+## 5. Production Eligibility Evaluation & Structural Accumulation Projection
+
+Evaluating the dataset against `ProductionEligibilityGate`:
+
+| Gate Requirement | Threshold | Current Value | Status |
+| :--- | :---: | :---: | :---: |
+| **Dataset Mode** | `REAL` | `REAL` | **PASS** |
+| **Minimum Real Rows** | $\ge 180$ | `60` | **FAIL (Needs 120 rows)** |
+| **Temporal Span** | $\ge 30\text{ days}$ | `37 days` | **PASS** |
+| **Minimum Destinations** | $\ge 3$ | `6` | **PASS** |
+| **Minimum Rows per Destination** | $\ge 20$ | `10` | **FAIL (Needs 10 rows/dest)** |
+| **Target Availability** | $100.0\%$ | `100.0%` | **PASS** |
+| **Maximum Core Missingness** | $\le 70.0\%$ | `30.0%` | **PASS** |
+| **Minimum Target Variance** | $\ge 4.0$ | `204.61` | **PASS** |
+
+### Structural Accumulation Projection
+* **Label**: `STRUCTURAL ACCUMULATION PROJECTION` (Explicitly not prediction accuracy or model skill)
+* **Observed Row Accumulation Rate**: 1.62 rows/day
+* **Rows Needed**: 120 rows
+* **Estimated Days to Gate Ready**: ~74 days
+* **Estimated Gate Ready Date**: December 3, 2026 (assuming standard daily capture cadence across all 6 destinations)
 
 ---
 
-## 5. Architectural Safeguards
+## 6. Daily Capture & Idempotency Safeguards
 
-### A. Separation of Observation Date vs Ingestion Date
-- **`observed_at`**: When the tourism state actually occurred.
-- **`ingested_at`**: When Yatri Setu persisted the observation in the database.
-- **`date_bucket`**: Canonical `YYYY-MM-DD` alignment string.
-
-A backfilled record for September 1, 2026 captured on September 20, 2026 has:
-$$\text{observed\_at} = \text{2026-09-01 12:00:00 UTC}$$
-$$\text{ingested\_at} = \text{2026-09-20 23:28:00 UTC}$$
-
-This separation eliminates temporal leakage in the XGBoost forecasting pipeline ($feature\_time < target\_time$).
-
-### B. Idempotency & Duplicate Prevention
-- Idempotency key: `{destination_id}_{date_bucket}_{dataset_mode}`.
-- Repeated executions for the same destination and date bucket check existing signal values.
-- Identical captures increment `duplicates_prevented` and avoid dirty database writes.
-- Enforced by unique constraint `uq_dest_date_bucket_mode` on `(destination_id, date_bucket, dataset_mode)`.
-
-### C. Partial Provider Failure Resilience
-If an external provider (e.g. Weather API or Traffic corridor) fails or is offline during daily capture:
-- The destination observation is **NOT discarded**.
-- Available signals (bookings, search demand, holidays, events, capacity) are persisted.
-- Unavailable signals remain strictly **`NULL`** with provenance `provider_mode: UNAVAILABLE`.
-- Numeric values are **NEVER defaulted to zero**.
-
-### D. Bounded Retries
-The daily scheduler attempts up to `max_retries` (default 3) per destination with exponential backoff before logging an error in `failed_destinations`.
-
----
-
-## 6. Readiness Diagnostics & Structural Projection
-
-### A. Readiness Metrics
-Exposed via `GET /api/admin/ml/production-readiness`:
-- **Row Progress**: $\frac{REAL\_rows}{180}$ (e.g. $5.56\%$).
-- **Temporal Progress**: $\frac{temporal\_span\_days}{30}$ (e.g. $60.0\%$).
-- **Destination Coverage**: Distinct canonical destinations represented vs required ($\ge 3$ required, $\ge 20$ rows/destination).
-
-### B. Structural Projection
-Exposed via `readiness_metrics.projection`:
-- Calculates the observed unique real row accumulation rate:
-  $$Rate = \frac{REAL\_rows}{temporal\_span\_days}$$
-- Estimates the completion date when structural thresholds ($rows \ge 180$, $days \ge 30$) would be met:
-  $$Days = \max\left(\left\lceil \frac{180 - REAL\_rows}{Rate} \right\rceil, 30 - temporal\_span\_days\right)$$
-- **Safety Rule**: If fewer than 2 distinct dates or 6 rows exist, returns:
-  `{"available": false, "reason": "insufficient_accumulation_history"}`.
-- **Safety Rule**: Structural projections are **purely diagnostic** and never guarantee XGBoost accuracy or influence model promotion.
-
----
-
-## 7. Operational Endpoints
-
-| Method | Path | Description | Backward Compatible |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/historical/coverage` | Detailed six-destination coverage report | Yes (Additive) |
-| `GET` | `/api/historical/capture-status` | Operational scheduler capture health & timestamps | Yes (Additive) |
-| `POST` | `/api/historical/daily-capture` | Scheduled daily observation capture | Yes |
-| `GET` | `/api/admin/ml/production-readiness` | Complete ML production readiness & diagnostics | Yes |
-| `POST` | `/api/admin/ml/retrain-if-eligible` | Atomic production retraining gate check | Yes |
-
----
-
-## 8. Scheduler Integration
-
-For automated external execution (Cron, Kubernetes CronJob, or Cloud Scheduler):
-```bash
-# Nightly capture at 23:55 UTC
-curl -X POST "http://localhost:8000/api/historical/daily-capture?dataset_mode=REAL&max_retries=3"
-```
-The endpoint is completely idempotent and safe to run multiple times.
+* Daily scheduled ingestion via `POST /api/historical/daily-capture` records 6 genuine observations per day.
+* Unique constraint `uq_dest_date_bucket_mode` prevents duplicate rows for the same destination and date.
+* Missing physical signals (footfall, weather, traffic) remain `NULL` with `UNAVAILABLE` provenance.

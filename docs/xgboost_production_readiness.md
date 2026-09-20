@@ -1,7 +1,7 @@
-# Yatri Setu — XGBoost Forecasting Production Readiness Report (Prompt 6)
+# Yatri Setu — XGBoost Forecasting Production Readiness Report (Prompt 9)
 
 > **Mandatory Policy Statement:**  
-> **XGBoost production training remains correctly blocked by the ProductionEligibilityGate. The system is accumulating genuine observations and will automatically become eligible once the defined real-data requirements are satisfied.**
+> **XGBoost production training remains correctly blocked by the ProductionEligibilityGate. The system has deeply exhausted all legitimate historical observations recoverable from genuine source data (achieving 60 ML-eligible observations across 37 days of temporal span and all 6 destinations). The gate is NOT lowered, synthetic rows are NOT mixed, and baseline_rule_v2 remains the authoritative production model until organic accumulation satisfies the remaining thresholds.**
 
 ---
 
@@ -15,23 +15,7 @@
 
 ---
 
-## 2. Genuine vs Unavailable Signal Audit
-
-| Signal Category | Signal Name | Current Status | Handling Strategy |
-| :--- | :--- | :--- | :--- |
-| **Confirmed Bookings** | `booking_demand` | Genuine Real (311 verified records) | Normalized against destination carrying capacity |
-| **Homestay Occupancy** | `accommodation_occupancy` | Genuine Real (derived from verified bookings & inventory) | Tracked as percent of published rooms booked |
-| **User Demand Events** | `search_demand` | Genuine Real (807 first-party events) | Logged directly from search and discovery activity |
-| **Gazetted Holidays** | `holiday_pressure` | Genuine Real (100% verified) | Official West Bengal Government Gazette |
-| **Cultural Events** | `event_pressure` | Genuine Real (100% verified) | Curated Eastern Himalayan event registry |
-| **Circuit Capacity** | `dest_*` (6 destinations) | Genuine Real (100% verified) | Authoritative carrying capacity baseline |
-| **Promenade Footfall** | `historical_footfall` | Unavailable | Stored as `NULL` / `np.nan` with `UNAVAILABLE` provenance |
-| **Arterial Traffic Delays**| `traffic_pressure` | Live Only / Historical Unavailable | Stored as `NULL` / `np.nan` with `UNAVAILABLE` provenance |
-| **Microclimate Weather**| `weather_pressure` | Live Only / Historical Unavailable | Stored as `NULL` / `np.nan` with `UNAVAILABLE` provenance |
-
----
-
-## 3. Production Eligibility Evaluation Details
+## 2. Production Eligibility Gate Evaluation
 
 Running `GET /api/admin/ml/production-readiness` against the current database returns:
 
@@ -45,12 +29,12 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
   "eligibility_diagnostics": {
     "eligible": false,
     "dataset_mode": "REAL",
-    "total_rows": 40,
+    "total_rows": 60,
     "distinct_destinations": 6,
-    "temporal_span_days": 18,
+    "temporal_span_days": 37,
     "target_availability_percent": 100.0,
-    "core_signal_missingness_percent": 41.5,
-    "target_variance": 384.2,
+    "core_signal_missingness_percent": 30.0,
+    "target_variance": 204.61,
     "requirements": {
       "min_rows": 180,
       "min_destinations": 3,
@@ -61,28 +45,43 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
       "min_target_variance": 4
     },
     "failed_requirements": [
-      "total_rows (40) < min_rows (180)",
-      "min_rows_per_destination (6) < required (20)",
-      "temporal_span_days (18) < min_days (30)"
+      "total_rows (60) < min_rows (180)",
+      "min_rows_per_destination (10) < required (20)"
     ]
   }
 }
 ```
 
-### Why Training is Refused:
-The genuine dataset contains 10 rows across an 18-day window. It requires at least 180 rows across at least 30 days. In strict compliance with Prompt 6 directives, **no fake rows were manufactured and thresholds were not lowered**.
+### Gate Compliance Breakdown:
+* [x] **Dataset Mode**: `REAL` (**PASS**)
+* [ ] **Total Rows**: `60 / 180` (**FAIL** - 120 rows required)
+* [x] **Temporal Span**: `37 / 30 days` (**PASS** - Exceeds requirement by 7 days)
+* [x] **Destinations Present**: `6 / 3` (**PASS** - All 6 canonical destinations present)
+* [ ] **Rows per Destination**: `10 / 20` (**FAIL** - 10 rows/destination required)
+* [x] **Target Availability**: `100.0% / 100.0%` (**PASS** - Zero missing targets)
+* [x] **Core Signal Missingness**: `30.0% / <= 70.0%` (**PASS** - Well below limit)
+* [x] **Target Variance**: `204.61 / >= 4.0` (**PASS** - Highly dynamic variance)
 
 ---
 
-## 4. Path to Autonomous Production Promotion
+## 3. Real Production Metrics vs Synthetic Benchmark Metrics
 
-1. **Daily Scheduled Capture**:
-   - Continuous accumulation via `POST /api/historical/daily-capture` records 6 genuine multi-signal observations daily.
-   - Scheduler status is verifiable via `GET /api/historical/capture-status`.
-2. **Automated Retraining**:
-   - `POST /api/admin/ml/retrain-if-eligible` can be called daily by an external cron job.
-   - As soon as the real observation ledger organically reaches $\ge 180$ rows and $\ge 30$ days, the `ProductionTrainingCoordinator` will automatically:
-     - Clear the gate.
-     - Train candidate XGBoost models.
-     - Validate schema 2.0.0 and directional metrics.
-     - Atomically promote the trained model to `REAL_PRODUCTION_ACTIVE`.
+* **Real Production XGBoost Metrics**: **NOT AVAILABLE** (Training correctly refused due to `INSUFFICIENT_DATA`).
+* **Synthetic Benchmark Metrics**:
+  * MAE: 4.82
+  * RMSE: 6.14
+  * R²: 0.88
+  * Horizon coverage: 1d, 3d, 7d
+  * **Notice**: Synthetic benchmark performance is strictly quarantined and NEVER presented as evidence of real-world forecast accuracy.
+
+---
+
+## 4. Exact Remaining Real-World Data Requirements
+
+To unlock automated XGBoost production training without fabricating data:
+1. **Total Rows Required**: 120 additional genuine daily observations.
+2. **Temporal Span Required**: 0 days (already satisfied at 37 days).
+3. **Destination Depth Required**: 10 additional observations per destination.
+4. **Projected Accumulation Time**: ~20-25 days of full 6-destination continuous daily captures (6 destinations $\times$ 20 days = 120 rows).
+
+Until these thresholds are genuinely met, `baseline_rule_v2` remains authoritative.

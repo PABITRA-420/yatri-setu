@@ -111,16 +111,24 @@ class ProductionTrainingCoordinator:
                 db=db
             )
 
+            # Prompt 9 Section 15: An invalid observation must NEVER increase ML eligibility.
+            # Filter strictly for ML-eligible observations (exclude INVALID audit records).
+            from app.services.historical.quality_scoring import observation_quality_scorer
+            eligible_records = [
+                r for r in records
+                if observation_quality_scorer.score_observation(r).quality_grade != "INVALID"
+            ]
+
             fb = StandardFeatureBuilder()
             features = []
             targets = []
             destinations = set()
 
-            dates = [r.date_bucket for r in records if getattr(r, "date_bucket", None)]
+            dates = [r.date_bucket for r in eligible_records if getattr(r, "date_bucket", None)]
             earliest = min(dates) if dates else ""
             latest = max(dates) if dates else ""
 
-            for r in records:
+            for r in eligible_records:
                 dest = getattr(r, "destination_id", "")
                 if dest:
                     destinations.add(dest)
@@ -138,7 +146,7 @@ class ProductionTrainingCoordinator:
                 date_range={"start": earliest, "end": latest},
             )
 
-            return verdict, records
+            return verdict, eligible_records
         finally:
             if close_db and db:
                 db.close()

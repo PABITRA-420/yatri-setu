@@ -76,32 +76,49 @@ class HistoricalReadinessService:
                 HistoricalObservationModel.dataset_mode == "REAL"
             ).all()
 
-            real_rows = len(rows)
-            dates = sorted(list({r.date_bucket for r in rows if r.date_bucket}))
-            distinct_dates_count = len(dates)
+            total_real_observations = len(rows)
 
-            # Date boundaries
-            oldest_date = dates[0] if dates else None
-            latest_date = dates[-1] if dates else None
+            # Prompt 9 Section 15: Clearly distinguish physical database audit records
+            # from ML-eligible REAL observations. An invalid observation must NEVER increase ML eligibility.
+            eligible_rows = []
+            invalid_rows = []
+            quality_counts = {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "INVALID": 0}
 
-            # Temporal span in days
-            if dates:
-                d_min = datetime.strptime(oldest_date, "%Y-%m-%d").date()
+            for r in rows:
+                q = observation_quality_scorer.score_observation(r)
+                grade = q.quality_grade if isinstance(q.quality_grade, str) else q.quality_grade.value
+                quality_counts[grade] = quality_counts.get(grade, 0) + 1
+                if grade != "INVALID":
+                    eligible_rows.append(r)
+                else:
+                    invalid_rows.append(r)
+
+            ml_eligible_real_observations = len(eligible_rows)
+            invalid_audit_records = len(invalid_rows)
+
+            # Dates and temporal span computed strictly from ML-eligible observations
+            eligible_dates = sorted(list({r.date_bucket for r in eligible_rows if r.date_bucket}))
+            distinct_dates_count = len(eligible_dates)
+
+            earliest_date = eligible_dates[0] if eligible_dates else None
+            latest_date = eligible_dates[-1] if eligible_dates else None
+
+            if eligible_dates:
+                d_min = datetime.strptime(earliest_date, "%Y-%m-%d").date()
                 d_max = datetime.strptime(latest_date, "%Y-%m-%d").date()
                 temporal_span_days = (d_max - d_min).days + 1
             else:
                 temporal_span_days = 0
 
-            # Destination breakdown
+            # Destination breakdown strictly on ML-eligible observations
             dest_counts: Dict[str, int] = {d: 0 for d in CANONICAL_DESTINATIONS}
             dest_dates: Dict[str, set] = {d: set() for d in CANONICAL_DESTINATIONS}
             dest_latest: Dict[str, Optional[str]] = {d: None for d in CANONICAL_DESTINATIONS}
 
-            quality_counts = {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "INVALID": 0}
             total_core_checked = 0
             total_core_available = 0
 
-            for r in rows:
+            for r in eligible_rows:
                 dest = r.destination_id
                 if dest in dest_counts:
                     dest_counts[dest] += 1
@@ -109,12 +126,7 @@ class HistoricalReadinessService:
                     if dest_latest[dest] is None or r.date_bucket > dest_latest[dest]:
                         dest_latest[dest] = r.date_bucket
 
-                # Quality evaluation
-                q = observation_quality_scorer.score_observation(r)
-                grade = q.quality_grade if isinstance(q.quality_grade, str) else q.quality_grade.value
-                quality_counts[grade] = quality_counts.get(grade, 0) + 1
-
-                # Core signal check
+                # Core signal check on eligible rows
                 for cs in CORE_SIGNALS:
                     total_core_checked += 1
                     if getattr(r, cs, None) is not None:
@@ -124,8 +136,9 @@ class HistoricalReadinessService:
             destinations_underrepresented = [
                 d for d, cnt in dest_counts.items() if cnt < GATE_REQUIRED_ROWS_PER_DEST
             ]
+            min_rows_per_destination = min(dest_counts.values()) if dest_counts else 0
 
-            # Core missingness
+            # Core missingness on eligible observations
             if total_core_checked > 0:
                 core_missingness_pct = round(
                     ((total_core_checked - total_core_available) / total_core_checked) * 100, 1
@@ -135,17 +148,17 @@ class HistoricalReadinessService:
                 core_missingness_pct = 100.0
                 core_availability_pct = 0.0
 
-            # Progress percentages
-            row_progress_pct = round(min(100.0, (real_rows / GATE_REQUIRED_ROWS) * 100), 2)
+            # Progress percentages based strictly on ML-eligible observations
+            row_progress_pct = round(min(100.0, (ml_eligible_real_observations / GATE_REQUIRED_ROWS) * 100), 2)
             temporal_progress_pct = round(
                 min(100.0, (temporal_span_days / GATE_REQUIRED_DAYS) * 100), 2
             )
 
-            # Evaluate through gate for exact verdict
+            # Evaluate through gate strictly on ML-eligible observations
             fb = StandardFeatureBuilder()
             features = []
             targets = []
-            for r in rows:
+            for r in eligible_rows:
                 features.append(fb.build_feature_row(r))
                 if r.current_crowd_pressure is not None:
                     targets.append(float(r.current_crowd_pressure))
@@ -155,38 +168,67 @@ class HistoricalReadinessService:
                 targets=targets,
                 destinations=[d for d, c in dest_counts.items() if c > 0],
                 dataset_mode="REAL",
-                date_range={"start": oldest_date or "", "end": latest_date or ""},
+                date_range={"start": earliest_date or "", "end": latest_date or ""},
             )
 
-            # Structural projection (Section 15)
+            # Remaining requirements calculations (Prompt 9 Section 22)
+            remaining_rows_required = max(0, GATE_REQUIRED_ROWS - ml_eligible_real_observations)
+            remaining_days_required = max(0, GATE_REQUIRED_DAYS - temporal_span_days)
+            remaining_destination_depth = max(0, GATE_REQUIRED_ROWS_PER_DEST - min_rows_per_destination)
+
+            # Structural projection strictly on eligible observations
             projection = self._calculate_structural_projection(
-                real_rows=real_rows,
+                real_rows=ml_eligible_real_observations,
                 temporal_span_days=temporal_span_days,
                 distinct_dates_count=distinct_dates_count,
                 latest_date_str=latest_date,
             )
 
+            target_variance = round(float(gate_verdict.target_variance), 3) if hasattr(gate_verdict, "target_variance") else 0.0
+            target_availability_pct = round(float(gate_verdict.target_availability_percent), 1) if hasattr(gate_verdict, "target_availability_percent") else 100.0
+
             return {
-                "real_rows": real_rows,
+                # Distinct row accounting
+                "total_real_observations": total_real_observations,
+                "ml_eligible_real_observations": ml_eligible_real_observations,
+                "invalid_audit_records": invalid_audit_records,
+                "real_rows": ml_eligible_real_observations,  # Backward compatibility alias
                 "required_rows": GATE_REQUIRED_ROWS,
                 "row_progress_percent": row_progress_pct,
+                # Temporal metrics
                 "distinct_dates": distinct_dates_count,
+                "unique_observation_dates": distinct_dates_count,
                 "required_temporal_span_days": GATE_REQUIRED_DAYS,
                 "temporal_span_days": temporal_span_days,
+                "temporal_span": temporal_span_days,
                 "temporal_progress_percent": temporal_progress_pct,
+                "earliest_date": earliest_date,
+                "latest_date": latest_date,
+                "oldest_observation_date": earliest_date,
+                "latest_observation_date": latest_date,
+                # Destination representation
                 "destinations_present": destinations_present,
                 "required_destinations": GATE_REQUIRED_DESTINATIONS,
                 "total_canonical_destinations": len(CANONICAL_DESTINATIONS),
                 "rows_per_destination": dest_counts,
+                "min_rows_per_destination": min_rows_per_destination,
                 "destinations_underrepresented": destinations_underrepresented,
-                "latest_observation_date": latest_date,
-                "oldest_observation_date": oldest_date,
                 "destination_freshness": dest_latest,
+                # Signal and target quality
                 "core_signal_missingness_percent": core_missingness_pct,
+                "core_missingness": core_missingness_pct,
                 "core_signal_availability_percent": core_availability_pct,
+                "target_availability": target_availability_pct,
+                "target_availability_percent": target_availability_pct,
+                "target_variance": target_variance,
                 "quality_breakdown": quality_counts,
+                # Gate verdict and remaining requirements
                 "eligible": gate_verdict.eligible,
                 "failed_requirements": gate_verdict.failed_requirements,
+                "remaining_rows_required": remaining_rows_required,
+                "remaining_days_required": remaining_days_required,
+                "remaining_destination_depth_required": remaining_destination_depth,
+                # Diagnostic projection
                 "projection": projection,
                 "audited_at": now_utc.isoformat(),
             }
@@ -239,6 +281,8 @@ class HistoricalReadinessService:
 
         return {
             "available": True,
+            "projection_type": "STRUCTURAL_ACCUMULATION_PROJECTION",
+            "label": "STRUCTURAL ACCUMULATION PROJECTION",
             "method": "observed_unique_real_row_rate",
             "estimated_gate_ready_date": est_ready_date,
             "estimated_days_to_gate_ready": days_to_ready,
