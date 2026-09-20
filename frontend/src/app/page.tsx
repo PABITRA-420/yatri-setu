@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -31,13 +31,14 @@ import {
   Percent,
   Coins,
   ChevronRight,
-  Navigation,
-  X
+  Navigation
 } from 'lucide-react';
 import { DestinationCard } from '@/components/DestinationCard';
 import { DataSourcesPanel } from '@/components/DataSourcesPanel';
 import { Button } from '@/components/animate-ui/components/buttons/button';
 import { RadioTower } from '@/components/animate-ui/icons/radio-tower';
+import { X } from '@/components/animate-ui/icons/x';
+import { AnimateIcon } from '@/components/animate-ui/icons/icon';
 import {
   Accordion,
   AccordionContent,
@@ -50,7 +51,7 @@ import { cn } from '@/lib/utils';
 export default function HomePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [popupImageOpen, setPopupImageOpen] = useState(false);
+  const [popupTickerModalOpen, setPopupTickerModalOpen] = useState(false);
   const [travelPace, setTravelPace] = useState<'Relaxed' | 'Balanced' | 'High Adventure'>('Balanced');
   const [activeTickerFilter, setActiveTickerFilter] = useState<'all' | 'calm' | 'critical'>('all');
   const [activeStep, setActiveStep] = useState(0);
@@ -59,6 +60,25 @@ export default function HomePage() {
     d.setDate(d.getDate() + 14);
     return d.toISOString().split('T')[0];
   });
+
+  // Handle keyboard escape and body scroll locking for the modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPopupTickerModalOpen(false);
+      }
+    };
+    if (popupTickerModalOpen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [popupTickerModalOpen]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -502,13 +522,22 @@ export default function HomePage() {
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="font-mono text-cyan-400 font-bold shrink-0">iii.</span>
-                        <button
-                          type="button"
-                          onClick={() => setPopupImageOpen(true)}
-                          className="underline underline-offset-4 text-white hover:text-amber-300 font-medium transition-colors cursor-pointer text-left"
-                        >
-                          Click here
-                        </button>
+                        <div className="relative inline-flex items-center group/tip">
+                          <button
+                            type="button"
+                            onClick={() => setPopupTickerModalOpen(true)}
+                            className="underline underline-offset-4 text-white hover:text-cyan-300 font-medium transition-colors cursor-pointer text-left"
+                            aria-label="Click here to view live regional crowd ticker"
+                          >
+                            Click here
+                          </button>
+                          {/* Tooltip on hover */}
+                          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2.5 opacity-0 group-hover/tip:opacity-100 group-hover/tip:translate-y-0 translate-y-1 transition-all duration-200 ease-out z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 text-cyan-300 text-xs font-mono font-semibold whitespace-nowrap shadow-2xl border border-cyan-500/40 backdrop-blur-xl">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                            <span>Live Regional Crowd Ticker</span>
+                            <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-stone-900" />
+                          </div>
+                        </div>
                       </li>
                     </ul>
                   </div>
@@ -633,135 +662,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. REGIONAL CROWD DENSITY TICKER: Interactive 6-Factor Live Dashboard */}
-      <section className="relative w-full py-16 -mt-10 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white/90 dark:bg-[#121824]/90 backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-stone-200 dark:border-stone-800">
-            {/* Header + Filters */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-stone-200 dark:border-stone-800">
-              <div className="flex items-center gap-3">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                </span>
-                <div>
-                  <h2 className="font-extrabold text-lg sm:text-xl text-stone-950 dark:text-white tracking-tight">
-                    Live Regional Crowd Density Ticker
-                  </h2>
-                  <p className="text-xs text-stone-500 dark:text-stone-400">
-                    Eastern Himalayan Circuit (North Bengal &amp; Sikkim Foothills)
-                  </p>
-                </div>
-              </div>
-
-              {/* Filter Tabs */}
-              <div className="flex items-center gap-1.5 p-1 bg-stone-100 dark:bg-stone-900 rounded-xl text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => setActiveTickerFilter('all')}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg transition-all',
-                    activeTickerFilter === 'all'
-                      ? 'bg-white dark:bg-stone-800 text-stone-950 dark:text-white shadow-xs font-bold'
-                      : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-                  )}
-                >
-                  All 6 Nodes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTickerFilter('calm')}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1',
-                    activeTickerFilter === 'calm'
-                      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30'
-                      : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-                  )}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span>Serene (&lt;30)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTickerFilter('critical')}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1',
-                    activeTickerFilter === 'critical'
-                      ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 font-bold border border-rose-500/30'
-                      : 'text-stone-500 hover:text-stone-800 dark:hover:text-stone-200'
-                  )}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                  <span>Choked (&gt;50)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Grid of Nodes */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-              {filteredTicker.map((d) => (
-                <Link
-                  key={d.id}
-                  href={`/destinations/${d.id}/crowd`}
-                  className={cn(
-                    'group p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between text-center',
-                    d.color
-                  )}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
-                        {d.level}
-                      </span>
-                      <span className={cn('w-2 h-2 rounded-full', d.dot)} />
-                    </div>
-                    <span className="text-sm font-extrabold text-stone-950 dark:text-white block group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                      {d.name}
-                    </span>
-                  </div>
-
-                  <div className="my-3">
-                    <div className="text-3xl font-black font-mono tracking-tight">
-                      {d.score}
-                      <span className="text-xs font-normal text-stone-500 dark:text-stone-400">/100</span>
-                    </div>
-                    <div className="w-full bg-stone-200 dark:bg-stone-800 h-1.5 rounded-full mt-2 overflow-hidden">
-                      <div
-                        className={cn(
-                          'h-full rounded-full',
-                          d.score > 70 ? 'bg-rose-500' : d.score > 35 ? 'bg-amber-500' : 'bg-emerald-500'
-                        )}
-                        style={{ width: `${d.score}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] text-stone-500 dark:text-stone-400 font-medium">
-                    {d.trend}
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-stone-200/80 dark:border-stone-800/80 flex flex-wrap items-center justify-between text-xs text-stone-500 dark:text-stone-400">
-              <span className="flex items-center gap-1.5 font-mono text-[11px]">
-                <Activity className="w-3.5 h-3.5 text-amber-500" />
-                <span>Deterministic 6-Factor Baseline + Live Telemetry Active</span>
-              </span>
-              <Link
-                href="/admin/command-center"
-                className="font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1"
-              >
-                <span>View Full Telemetry Command Center</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 3. LIVE DATA SOURCES PANEL: Provenance Transparency */}
-      <section className="relative w-full py-4 z-10">
+      <section className="relative w-full py-10 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <DataSourcesPanel />
         </div>
@@ -1155,58 +1057,190 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Smooth Pop-up Modal for 2nd Image with Close (X) Button */}
-      {popupImageOpen && (
+      {/* 2. REGIONAL CROWD DENSITY TICKER: Interactive 6-Factor Live Dashboard Modal */}
+      {popupTickerModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-xl animate-in fade-in duration-200"
-          onClick={() => setPopupImageOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-300 overflow-hidden"
+          onClick={() => setPopupTickerModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="regional-ticker-modal-title"
         >
+          {/* Full-Page Background hero1.jpg with gentle blur */}
           <div
-            className="relative max-w-4xl w-full bg-stone-900 border border-white/20 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 overflow-hidden"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat filter blur-[3px] scale-105 pointer-events-none"
+            style={{ backgroundImage: "url('/image2.png')" }}
+          />
+          {/* Subtle tinted scrim overlay */}
+          <div className="absolute inset-0 bg-stone-950/70 backdrop-blur-[2px] pointer-events-none" />
+
+          <div
+            className="relative max-w-5xl w-full bg-[#0c1017]/95 border border-white/15 rounded-3xl p-5 sm:p-8 pt-6 sm:pt-8 shadow-[0_25px_80px_rgba(0,0,0,0.9)] space-y-6 animate-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                <h3 className="font-extrabold text-base sm:text-lg text-white">
+            {/* Top-Right Bold Animated Cross Close Button */}
+            <button
+              type="button"
+              onClick={() => setPopupTickerModalOpen(false)}
+              aria-label="Close modal"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 p-2 sm:p-2.5 rounded-xl bg-white/10 hover:bg-rose-500/20 text-stone-200 hover:text-rose-400 border border-white/15 hover:border-rose-500/40 transition-all cursor-pointer flex items-center justify-center group shadow-md z-30"
+            >
+              <AnimateIcon animateOnHover>
+                <X size={20} strokeWidth={2.8} className="text-stone-200 group-hover:text-rose-400 transition-colors" />
+              </AnimateIcon>
+            </button>
+
+            {/* Header + Filters */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-5 border-b border-white/10">
+              <div className="space-y-2">
+                <h2
+                  id="regional-ticker-modal-title"
+                  className="font-extrabold text-xl sm:text-2xl text-white tracking-tight"
+                >
                   Live Regional Crowd Density Ticker
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-mono font-bold hidden sm:inline-block">
-                  Diagnostic Telemetry
-                </span>
+                </h2>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="relative flex h-3 w-3 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                  </span>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 text-xs font-mono font-bold">
+                    <RadioTower animate={true} loop={true} size={14} className="text-amber-400 shrink-0" />
+                    <span>Deterministic Live Telemetry</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-stone-400">
+                    Eastern Himalayan Circuit (North Bengal &amp; Sikkim Foothills) • Real-time Corridor Load
+                  </p>
+                </div>
               </div>
 
-              {/* Cross Close Button */}
-              <button
-                type="button"
-                onClick={() => setPopupImageOpen(false)}
-                aria-label="Close preview"
-                className="p-2 rounded-full bg-white/10 hover:bg-rose-500/20 text-stone-300 hover:text-rose-400 border border-white/15 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              {/* Filter Tabs with generous right margin to leave proper gap from the cross icon */}
+              <div className="flex items-center gap-1 p-1 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold shrink-0 mr-12 sm:mr-14">
+                <button
+                  type="button"
+                  onClick={() => setActiveTickerFilter('all')}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg transition-all',
+                    activeTickerFilter === 'all'
+                      ? 'bg-white text-stone-950 font-extrabold shadow-sm'
+                      : 'text-stone-400 hover:text-white'
+                  )}
+                >
+                  All 6 Nodes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTickerFilter('calm')}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5',
+                    activeTickerFilter === 'calm'
+                      ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40'
+                      : 'text-stone-400 hover:text-white'
+                  )}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>Serene (&lt;30)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTickerFilter('critical')}
+                  className={cn(
+                    'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5',
+                    activeTickerFilter === 'critical'
+                      ? 'bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40'
+                      : 'text-stone-400 hover:text-white'
+                  )}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                  <span>Choked (&gt;50)</span>
+                </button>
+              </div>
             </div>
 
-            {/* 2nd Image Display */}
-            <div className="rounded-2xl overflow-hidden border border-white/15 shadow-inner bg-black/60">
-              <img
-                src="/telemetry-ticker.png"
-                alt="Live Regional Crowd Density Ticker telemetry preview"
-                className="w-full h-auto object-contain max-h-[70vh] mx-auto"
-              />
+            {/* Grid of Nodes */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              {filteredTicker.map((d) => (
+                <Link
+                  key={d.id}
+                  href={`/destinations/${d.id}/crowd`}
+                  onClick={() => setPopupTickerModalOpen(false)}
+                  className={cn(
+                    'group p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between text-center bg-stone-900/60 hover:bg-stone-800/80',
+                    d.color
+                  )}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                        {d.level}
+                      </span>
+                      <span className={cn('w-2 h-2 rounded-full', d.dot)} />
+                    </div>
+                    <span className="text-sm font-extrabold text-white block group-hover:text-amber-400 transition-colors">
+                      {d.name}
+                    </span>
+                  </div>
+
+                  <div className="my-3">
+                    <div className="text-3xl font-black font-mono tracking-tight text-white">
+                      {d.score}
+                      <span className="text-xs font-normal text-stone-400">/100</span>
+                    </div>
+                    <div className="w-full bg-white/10 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className={cn(
+                          'h-full rounded-full transition-all duration-500',
+                          d.score > 70 ? 'bg-rose-500' : d.score > 35 ? 'bg-amber-500' : 'bg-emerald-500'
+                        )}
+                        style={{ width: `${d.score}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-stone-300 font-medium">
+                    {d.trend}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* 6-Factor Live Dashboard Sub-Metrics */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">Real-time Telemetry Stream</span>
+                <span className="text-sm font-bold text-emerald-400 font-mono flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block"></span>
+                  Active (1.2s Sync)
+                </span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">Factor Calibration</span>
+                <span className="text-sm font-bold text-cyan-300 font-mono">6/6 Deterministic</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">NH-10 Transit Load</span>
+                <span className="text-sm font-bold text-amber-300 font-mono">Stable / Moderate</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[10px] font-mono text-stone-400 uppercase tracking-wider block">Homestay Capacity</span>
+                <span className="text-sm font-bold text-purple-300 font-mono">Panchayat Verified</span>
+              </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-stone-400 font-mono">
-              <span>Deterministic 6-Factor Telemetry Active</span>
-              <Button
-                onClick={() => setPopupImageOpen(false)}
-                variant="outline"
-                className="rounded-xl border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs h-9 px-4 font-bold cursor-pointer"
+            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-400">
+              <span className="flex items-center gap-1.5 font-mono text-[11px]">
+                <Activity className="w-3.5 h-3.5 text-amber-400" />
+                <span>Deterministic 6-Factor Baseline + Live Telemetry Active</span>
+              </span>
+              <Link
+                href="/admin/command-center"
+                onClick={() => setPopupTickerModalOpen(false)}
+                className="font-bold text-amber-400 hover:text-amber-300 hover:underline flex items-center gap-1 transition-colors"
               >
-                Close Preview
-              </Button>
+                <span>View Full Telemetry Command Center</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
         </div>
