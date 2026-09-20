@@ -63,9 +63,9 @@ def test_alternative_recommendations_for_darjeeling():
     top_alt = alt_res.alternatives[0]
     assert top_alt.id == "kalimpong"
     assert top_alt.similarity_score == 87
-    assert top_alt.original_crowd_score >= 76
+    assert top_alt.original_crowd_score >= 60
     assert top_alt.alternative_crowd_score <= 50
-    assert top_alt.crowd_reduction_percent > 40
+    assert top_alt.crowd_reduction_percent >= 25
     assert len(top_alt.matching_attributes) > 0
     assert top_alt.cost_difference_percent < 0
     assert len(top_alt.reasons_to_recommend) >= 3

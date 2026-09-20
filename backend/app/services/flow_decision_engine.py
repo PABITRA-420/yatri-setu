@@ -1,6 +1,6 @@
 from typing import List, Optional
 from app.models.crowd import DestinationDecisionResponse, CrowdLevel
-from app.services.crowd_engine import calculate_crowd_score
+from app.services.crowd_engine_v2 import crowd_engine_v2
 from app.services.alternative_engine import get_alternative_destinations
 from app.services.date_advisor import get_date_alternatives, calculate_preferred_date_crowd, parse_date
 from app.data.seed_data import DESTINATIONS_DATA
@@ -41,7 +41,7 @@ def compute_destination_decision(
 
     # 1. Calculate preferred date crowd score
     crowd_score = calculate_preferred_date_crowd(norm_id, s_dt, e_dt)
-    base_crowd = calculate_crowd_score(norm_id)
+    base_crowd = crowd_engine_v2.get_canonical_crowd_response(norm_id)
     crowd_status = base_crowd.crowd_level
 
     # 2. Get alternative destinations

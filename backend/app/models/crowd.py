@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Any
 from pydantic import BaseModel, Field
 
 class CrowdLevel(str, Enum):
@@ -33,7 +33,21 @@ class CrowdResponse(BaseModel):
     last_updated: str
     provenance_label: Optional[str] = "REAL — DATABASE & TELEMETRY"
     provider_mode: Optional[str] = "REAL"
-    data_quality: Optional[str] = "HIGH" 
+    data_quality: Optional[str] = "HIGH"
+    # Canonical V2 Structured Fields (backward-compatible additions)
+    pressure_score: Optional[float] = None
+    pressure_level: Optional[str] = None
+    confidence: Optional[float] = None
+    confidence_score: Optional[float] = None
+    confidence_percent: Optional[int] = None
+    signals_available: Optional[int] = None
+    total_signals: Optional[int] = None
+    signals: Optional[List[Any]] = None
+    carrying_capacity_percent: Optional[float] = None
+    advisory: Optional[str] = None
+    recommended_action: Optional[str] = None
+    timestamp: Optional[str] = None
+    data_status: Optional[str] = None
 
 class AlternativeWeather(BaseModel):
     """Structured weather observation for alternative destination cards."""
@@ -59,6 +73,10 @@ class AlternativeRecommendation(BaseModel):
     crowd_score: int
     crowd_level: CrowdLevel
     similarity_score: int = Field(..., ge=0, le=100, description="Percentage match")
+    similarity_provenance: Optional[str] = Field(
+        "DEMO_CALIBRATION_BENCHMARK",
+        description="Similarity classification: DEMO_CALIBRATION_BENCHMARK (curated regional benchmark) vs COMPUTED_ATTRIBUTES"
+    )
     original_crowd_score: int = Field(88, description="Origin destination crowd score")
     alternative_crowd_score: int = Field(42, description="Alternative destination crowd score")
     crowd_reduction_percent: int = Field(..., description="Percentage crowd reduction vs original")

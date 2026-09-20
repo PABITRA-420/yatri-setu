@@ -29,6 +29,16 @@ import {
 import { DestinationCard } from '@/components/DestinationCard';
 import { DataSourcesPanel } from '@/components/DataSourcesPanel';
 import { DestinationSummary } from '@/types';
+import { fetchDestinations } from '@/lib/api';
+
+const DEFAULT_TICKER = [
+  { id: 'darjeeling', name: 'Darjeeling', score: 88, level: 'CRITICAL', color: 'border-rose-300/80 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400', dot: 'bg-rose-500' },
+  { id: 'kalimpong', name: 'Kalimpong', score: 42, level: 'MODERATE', color: 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
+  { id: 'lava', name: 'Lava', score: 24, level: 'CALM', color: 'border-emerald-300/80 dark:border-emerald-900/60 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'lolegaon', name: 'Lolegaon', score: 18, level: 'SERENE', color: 'border-emerald-300/80 dark:border-emerald-900/60 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'rishop', name: 'Rishop', score: 15, level: 'SERENE', color: 'border-emerald-300/80 dark:border-emerald-900/60 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'mirik', name: 'Mirik', score: 38, level: 'MODERATE', color: 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' }
+];
 
 export default function HomePage() {
   const router = useRouter();
@@ -101,6 +111,36 @@ export default function HomePage() {
       tags: ['Pine Forest', 'Birding', 'Misty Trails']
     }
   ];
+
+  const [destinations, setDestinations] = useState<DestinationSummary[]>(sampleDestinations);
+  const [tickerItems, setTickerItems] = useState(DEFAULT_TICKER);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchDestinations()
+      .then((items) => {
+        if (isMounted && items && items.length > 0) {
+          setDestinations(items.slice(0, 4));
+          setTickerItems((prev) =>
+            prev.map((t) => {
+              const live = items.find((x) => x.id === t.id);
+              if (!live) return t;
+              return {
+                ...t,
+                score: live.crowd_score,
+                level: live.crowd_level.toUpperCase()
+              };
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Using offline fallback destinations on homepage:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const categories = [
     {
@@ -273,14 +313,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-5">
-            {[
-              { id: 'darjeeling', name: 'Darjeeling', score: 88, level: 'CRITICAL', color: 'border-rose-300/80 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400', dot: 'bg-rose-500' },
-              { id: 'kalimpong', name: 'Kalimpong', score: 42, level: 'MODERATE', color: 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
-              { id: 'lava', name: 'Lava', score: 24, level: 'CALM', color: 'border-emerald-300/80 dark:border-emerald-900/60 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-              { id: 'lolegaon', name: 'Lolegaon', score: 18, level: 'SERENE', color: 'border-emerald-300/80 dark:border-emerald-900/60 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-              { id: 'rishop', name: 'Rishop', score: 15, level: 'SERENE', color: 'border-emerald-300/80 dark:border-emerald-900/60 bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-              { id: 'mirik', name: 'Mirik', score: 38, level: 'MODERATE', color: 'border-amber-300/80 dark:border-amber-900/60 bg-amber-50/60 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' }
-            ].map((d) => (
+            {tickerItems.map((d) => (
               <Link
                 key={d.id}
                 href={`/destinations/${d.id}/crowd`}
@@ -513,7 +546,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {sampleDestinations.map((d) => (
+          {destinations.map((d) => (
             <DestinationCard key={d.id} destination={d} />
           ))}
         </div>

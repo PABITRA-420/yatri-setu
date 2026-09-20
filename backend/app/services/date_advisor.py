@@ -4,7 +4,7 @@ from app.data.seed_data import DESTINATIONS_DATA
 from app.models.crowd import (
     CrowdLevel, DateAlternativeRecommendation, DateAlternativesResponse
 )
-from app.services.crowd_engine import calculate_crowd_score, classify_crowd_level
+from app.services.crowd_engine_v2 import crowd_engine_v2, classify_crowd_level
 
 def parse_date(date_str: str) -> datetime:
     """Parses YYYY-MM-DD string into datetime."""
@@ -36,7 +36,7 @@ def is_peak_holiday_window(dt: datetime) -> bool:
 
 def calculate_preferred_date_crowd(destination_id: str, start_dt: datetime, end_dt: datetime) -> int:
     """Calculates deterministic crowd score for the traveler's preferred window."""
-    base_crowd = calculate_crowd_score(destination_id)
+    base_crowd = crowd_engine_v2.get_canonical_crowd_response(destination_id)
     score = base_crowd.crowd_score
 
     # If falling on peak holiday dates, increase score

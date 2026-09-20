@@ -88,19 +88,19 @@ class ConversionFunnelService:
         """Builds normalized step-by-step circuit conversion funnel."""
         raw_events = demand_aggregation_service._events
 
-        searches = max(1, len([e for e in raw_events if e.get("event_type") == DemandEventType.SEARCH.value]))
-        alt_views = len([e for e in raw_events if e.get("event_type") == DemandEventType.ALTERNATIVE_VIEWED.value]) or int(searches * 0.45)
-        alt_accepts = len([e for e in raw_events if e.get("event_type") == DemandEventType.ALTERNATIVE_ACCEPTANCE.value]) or int(alt_views * 0.22)
+        searches = len([e for e in raw_events if e.get("event_type") == DemandEventType.SEARCH.value])
+        alt_views = len([e for e in raw_events if e.get("event_type") == DemandEventType.ALTERNATIVE_VIEWED.value])
+        alt_accepts = len([e for e in raw_events if e.get("event_type") == DemandEventType.ALTERNATIVE_ACCEPTANCE.value])
         avail_checks = len([
             e for e in raw_events
             if e.get("event_type") in (DemandEventType.AVAILABILITY.value, DemandEventType.AVAILABILITY_CHECKED.value)
-        ]) or int(alt_accepts * 0.8)
-        booking_inits = len([e for e in raw_events if e.get("event_type") == DemandEventType.BOOKING_INITIATED.value]) or int(avail_checks * 0.5)
+        ])
+        booking_inits = len([e for e in raw_events if e.get("event_type") == DemandEventType.BOOKING_INITIATED.value])
         booking_confirms = len([
             e for e in raw_events
             if e.get("event_type") in (DemandEventType.BOOKING.value, DemandEventType.BOOKING_CONFIRMED.value)
             and (e.get("metadata") or {}).get("status") != "FAILED"
-        ]) or max(1, int(booking_inits * 0.75))
+        ])
 
         stages = [
             ("SEARCH", searches),
@@ -112,16 +112,16 @@ class ConversionFunnelService:
         ]
 
         funnel: List[FunnelStageCount] = []
-        top_count = searches
+        top_count = max(1, searches)
 
         for idx, (name, count) in enumerate(stages):
             if idx == 0:
-                conv_prev = 100.0
-                conv_top = 100.0
+                conv_prev = 100.0 if searches > 0 else 0.0
+                conv_top = 100.0 if searches > 0 else 0.0
             else:
                 prev_count = stages[idx - 1][1]
-                conv_prev = round((count / max(1, prev_count)) * 100.0, 1)
-                conv_top = round((count / max(1, top_count)) * 100.0, 1)
+                conv_prev = round((count / max(1, prev_count)) * 100.0, 1) if prev_count > 0 else 0.0
+                conv_top = round((count / top_count) * 100.0, 1) if searches > 0 else 0.0
 
             funnel.append(FunnelStageCount(
                 stage=name,

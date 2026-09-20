@@ -14,7 +14,7 @@ from app.services.network.service import destination_network_service
 from app.services.capacity.service import capacity_service
 from app.services.capacity.absorption import can_absorb_redirection
 from app.services.capacity.schemas import CapacityHealthStatus
-from app.services.crowd_engine import calculate_crowd_score
+from app.services.crowd_engine_v2 import crowd_engine_v2
 from app.services.flow.schemas import (
     CandidateAllocation,
     FlowScenarioRequest,
@@ -36,7 +36,7 @@ class FlowAllocationPlanner:
         src_dest = next((d for d in DESTINATIONS_DATA if d["id"] == src_id), None)
         src_name = src_dest["name"] if src_dest else src_id.capitalize()
 
-        src_crowd = calculate_crowd_score(src_id)
+        src_crowd = crowd_engine_v2.get_canonical_crowd_response(src_id)
         src_pressure = src_crowd.crowd_score
 
         # Model acceptance assumption
@@ -59,7 +59,7 @@ class FlowAllocationPlanner:
             c_dest = next((d for d in DESTINATIONS_DATA if d["id"] == c_id), None)
             c_name = c_dest["name"] if c_dest else c_id.capitalize()
             c_cap = capacity_service.get_destination_capacity(c_id)
-            c_crowd = calculate_crowd_score(c_id)
+            c_crowd = crowd_engine_v2.get_canonical_crowd_response(c_id)
 
             # Max visitors this candidate could theoretically accept before reaching 80 pressure or running out of rooms
             # Available rooms * 2 guests = max capacity headcount
