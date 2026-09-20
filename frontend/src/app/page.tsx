@@ -35,6 +35,8 @@ import {
 } from 'lucide-react';
 import { DestinationCard } from '@/components/DestinationCard';
 import { DataSourcesPanel } from '@/components/DataSourcesPanel';
+import { LiveFlowIntelligence } from '@/components/LiveFlowIntelligence';
+import { SignatureFlowStory } from '@/components/SignatureFlowStory';
 import { Button } from '@/components/animate-ui/components/buttons/button';
 import { RadioTower } from '@/components/animate-ui/icons/radio-tower';
 import { X } from '@/components/animate-ui/icons/x';
@@ -50,16 +52,9 @@ import { cn } from '@/lib/utils';
 
 export default function HomePage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
   const [popupTickerModalOpen, setPopupTickerModalOpen] = useState(false);
-  const [travelPace, setTravelPace] = useState<'Relaxed' | 'Balanced' | 'High Adventure'>('Balanced');
   const [activeTickerFilter, setActiveTickerFilter] = useState<'all' | 'calm' | 'critical'>('all');
   const [activeStep, setActiveStep] = useState(0);
-  const [travelDate, setTravelDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 14);
-    return d.toISOString().split('T')[0];
-  });
 
   // Handle keyboard escape and body scroll locking for the modal
   useEffect(() => {
@@ -79,20 +74,6 @@ export default function HomePage() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [popupTickerModalOpen]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const query = searchQuery.trim().toLowerCase();
-    if (query === 'darjeeling') {
-      router.push('/destinations/darjeeling/crowd');
-    } else if (query === 'kalimpong') {
-      router.push('/destinations/kalimpong');
-    } else if (query) {
-      router.push(`/destinations?query=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push('/destinations');
-    }
-  };
 
   const sampleDestinations: DestinationSummary[] = [
     {
@@ -293,9 +274,12 @@ export default function HomePage() {
           </div>
 
           {/* Hero Main Content Box */}
-          <div className="relative z-10 max-w-4xl space-y-6 my-auto py-8">
+          <div className="relative z-10 max-w-5xl lg:max-w-6xl space-y-6 my-auto py-8">
             {/* Headline with Brand Editorial Accent */}
             <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[1.04] text-white drop-shadow-md">
+              <span className="block whitespace-nowrap text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem] 2xl:text-8xl font-extrabold tracking-tight bg-gradient-to-r from-[#FF9933] via-white to-[#138808] bg-clip-text text-transparent pb-1">
+                EXPLORE RURAL INDIA
+              </span>
               Travel beyond <br />
               <span className="font-editorial italic font-normal text-amber-300 text-6xl sm:text-7xl lg:text-8xl xl:text-9xl">
                 the congested ridges.
@@ -548,263 +532,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. DECONGESTION SEARCH CONSOLE & REGIONAL DENSITY TELEMETRY */}
-      <section className="relative w-full py-12 bg-stone-950/40 border-t border-stone-800/50 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-          {/* Interactive Floating Glass Search Console */}
-          <div className="bg-stone-900/90 dark:bg-stone-950/90 backdrop-blur-2xl p-4 sm:p-6 rounded-3xl text-white shadow-2xl border border-white/15">
-            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-              {/* Segment 1: Destination Search */}
-              <div className="md:col-span-5 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                <Search className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
-                <div className="relative w-full">
-                  <input
-                    type="text"
-                    id="hero_search_input"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search Darjeeling, Kalimpong, Lava..."
-                    className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white placeholder:text-stone-400 placeholder:font-normal"
-                  />
-                </div>
-              </div>
 
-              {/* Segment 2: Interactive Date Picker */}
-              <div className="md:col-span-4 relative flex items-center gap-3 px-4 py-3 bg-white/10 dark:bg-stone-900/90 rounded-2xl border border-white/10 shadow-inner group focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-500/20 transition-all">
-                <Calendar className="w-4 h-4 text-amber-400 shrink-0 self-center pointer-events-none" />
-                <div className="relative w-full flex items-center justify-between">
-                  <input
-                    type="date"
-                    id="hero_date_input"
-                    value={travelDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setTravelDate(e.target.value)}
-                    className="block w-full bg-transparent text-sm font-semibold focus:outline-none text-white [color-scheme:dark] cursor-pointer"
-                  />
-                </div>
-              </div>
 
-              {/* Segment 3: Explore Action Button */}
-              <div className="md:col-span-3 flex items-center h-full">
-                <Button
-                  type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-stone-950 font-extrabold text-sm tracking-wide rounded-2xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 border border-amber-400/40 transition-all"
-                >
-                  <Flame className="w-4 h-4 text-stone-950 fill-stone-950" />
-                  <span>Search Circuit</span>
-                </Button>
-              </div>
-            </form>
-
-            {/* Quick Search Chips & Filter Pills */}
-            <div className="mt-3.5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-stone-400 font-medium">Trending:</span>
-                {[
-                  { label: 'Tiger Hill Alternative', query: 'kalimpong' },
-                  { label: 'Neora Valley Pine', query: 'lava' },
-                  { label: '360° Sunrise Ridge', query: 'rishop' }
-                ].map(chip => (
-                  <button
-                    key={chip.label}
-                    type="button"
-                    onClick={() => {
-                      setSearchQuery(chip.query);
-                      router.push(`/destinations/${chip.query}`);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-stone-300 hover:text-white transition-colors text-[11px]"
-                  >
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-1.5 text-stone-400 font-mono text-[11px]">
-                <span>Pace:</span>
-                {(['Relaxed', 'Balanced', 'High Adventure'] as const).map(p => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setTravelPace(p)}
-                    className={cn(
-                      'px-2 py-0.5 rounded-md transition-all',
-                      travelPace === p
-                        ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40'
-                        : 'hover:text-stone-200'
-                    )}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Impact Metric Proof Counter Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-              <span className="text-2xl font-black text-amber-400 font-mono">88 → 42</span>
-              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Average corridor crowd reduction</p>
-            </div>
-            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-              <span className="text-2xl font-black text-emerald-400 font-mono">90%</span>
-              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Direct tariff to rural homestay hosts</p>
-            </div>
-            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-              <span className="text-2xl font-black text-sky-400 font-mono">100%</span>
-              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Panchayat verified listings</p>
-            </div>
-            <div className="bg-stone-900/60 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-              <span className="text-2xl font-black text-rose-400 font-mono">24/7</span>
-              <p className="text-[11px] text-stone-300 font-medium mt-0.5">Yatri Mitra & 112 emergency coverage</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. LIVE DATA SOURCES PANEL: Provenance Transparency */}
-      <section className="relative w-full py-10 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <DataSourcesPanel />
-        </div>
-      </section>
+      {/* 3. LIVE FLOW INTELLIGENCE: Core Innovation */}
+      <LiveFlowIntelligence onOpenCalculator={() => setPopupTickerModalOpen(true)} />
 
 
 
-      {/* 5. SIDE-BY-SIDE VISUAL COMPARISON: Hotspot vs Alternative */}
-      <section className="relative w-full py-16 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-400 font-mono">
-                Live Decongestion In Action
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-stone-950 dark:text-white tracking-tight mt-1">
-                Why Diverting Makes Pure Travel Sense
-              </h2>
-            </div>
-            <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md">
-              Compare Darjeeling with its certified alternative Kalimpong to see how footfall balancing saves budget and stress.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Choked Hotspot Card */}
-            <div className="p-8 rounded-3xl bg-rose-500/5 border-2 border-rose-500/30 dark:border-rose-500/20 shadow-sm relative overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <span className="px-3 py-1 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-400 text-xs font-bold font-mono uppercase">
-                  Traditional Choked Hotspot
-                </span>
-                <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Critical Density</span>
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-extrabold text-stone-950 dark:text-white">
-                Darjeeling Hill Station
-              </h3>
-              <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
-                Facing severe gridlock along Ghoom-Tiger Hill and water scarcity.
-              </p>
-
-              <div className="grid grid-cols-3 gap-3 my-6">
-                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-center">
-                  <span className="text-2xl font-black font-mono text-rose-600">88/100</span>
-                  <span className="text-[10px] text-stone-500 block uppercase font-bold mt-0.5">Crowd Pressure</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-center">
-                  <span className="text-2xl font-black font-mono text-stone-900 dark:text-white">₹4,800</span>
-                  <span className="text-[10px] text-stone-500 block uppercase font-bold mt-0.5">Avg Tariff / Day</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-center">
-                  <span className="text-2xl font-black font-mono text-rose-600">2.5 hrs</span>
-                  <span className="text-[10px] text-stone-500 block uppercase font-bold mt-0.5">Mall Rd Queue</span>
-                </div>
-              </div>
-
-              <ul className="space-y-2 text-xs text-stone-600 dark:text-stone-300 mb-6">
-                <li className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-medium">
-                  <span>✕</span> Overpriced surge tariffs during peak sunrise hours
-                </li>
-                <li className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-medium">
-                  <span>✕</span> Vehicle congestion causing severe carbon emission peaks
-                </li>
-                <li className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-medium">
-                  <span>✕</span> Less than 25% tourist spend reaches local indigenous communities
-                </li>
-              </ul>
-
-              <Button
-                asChild
-                variant="outline"
-                className="w-full border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 rounded-xl font-bold text-xs"
-              >
-                <Link href="/destinations/darjeeling/crowd">
-                  Inspect Darjeeling Diagnostic Data
-                </Link>
-              </Button>
-            </div>
-
-            {/* Smart Suggested Alternative Card */}
-            <div className="p-8 rounded-3xl bg-emerald-500/5 border-2 border-emerald-500/40 dark:border-emerald-500/30 shadow-lg relative overflow-hidden">
-              <div className="flex items-center justify-between mb-4">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-bold font-mono uppercase border border-emerald-500/30">
-                  Recommended Sanctuary Match
-                </span>
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 font-mono">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>87% Similarity Match</span>
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-extrabold text-stone-950 dark:text-white">
-                Kalimpong Orchid Ridge
-              </h3>
-              <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
-                Same panoramic Kanchenjunga views, serene colonial cottages, and zero queue delays.
-              </p>
-
-              <div className="grid grid-cols-3 gap-3 my-6">
-                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-center">
-                  <span className="text-2xl font-black font-mono text-emerald-600">42/100</span>
-                  <span className="text-[10px] text-stone-500 block uppercase font-bold mt-0.5">Crowd Pressure</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-center">
-                  <span className="text-2xl font-black font-mono text-emerald-600">₹2,800</span>
-                  <span className="text-[10px] text-stone-500 block uppercase font-bold mt-0.5">42% Savings</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-stone-900/80 border border-stone-200 dark:border-stone-800 text-center">
-                  <span className="text-2xl font-black font-mono text-emerald-600">0 mins</span>
-                  <span className="text-[10px] text-stone-500 block uppercase font-bold mt-0.5">Entry Wait</span>
-                </div>
-              </div>
-
-              <ul className="space-y-2 text-xs text-stone-600 dark:text-stone-300 mb-6">
-                <li className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                  <span>✓</span> Direct 90% homestay host revenue distribution via Panchayat
-                </li>
-                <li className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                  <span>✓</span> Quiet mountain trails and undisturbed pine canopy trails
-                </li>
-                <li className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-                  <span>✓</span> Earn +30 Green Credits™ toward next Himalayan trip
-                </li>
-              </ul>
-
-              <Button
-                asChild
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/20"
-              >
-                <Link href="/destinations/darjeeling/alternatives">
-                  <span>Select Kalimpong Alternative</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 4. SIGNATURE YATRI SETU FLOW STORY: Scroll-driven Visual Journey */}
+      <SignatureFlowStory />
 
       {/* 6. IMMERSIVE HIMALAYAN THEMES (Category Tiles) */}
       <section className="relative w-full py-16 z-10">
@@ -1054,6 +790,13 @@ export default function HomePage() {
               </Button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Live Data Sources Panel — System Provenance & Live Providers */}
+      <section className="relative w-full pb-16 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <DataSourcesPanel />
         </div>
       </section>
 
