@@ -347,6 +347,10 @@ class HistoricalObservationModel(Base):
     composite_confidence = Column(Float, default=0.0)
     ingested_at = Column(DateTime, default=datetime.utcnow)
 
+    @property
+    def signal_provenance(self):
+        return self.signal_provenance_json
+
     # Relationships & Constraints
     destination = relationship("DestinationModel", back_populates="historical_observations")
 

@@ -13,8 +13,14 @@ from app.services.historical.ingestion_service import (
     HistoricalIngestionService,
     historical_ingestion_service,
 )
+from app.services.historical.backfill_service import (
+    HistoricalBackfillService,
+    historical_backfill_service,
+)
 
 __all__ = [
     "HistoricalIngestionService",
     "historical_ingestion_service",
+    "HistoricalBackfillService",
+    "historical_backfill_service",
 ]

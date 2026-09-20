@@ -406,6 +406,55 @@ class HistoricalIngestionService:
                 logger.error(f"Failed to capture observation for {dest}: {e}")
         return results
 
+    def run_daily_scheduled_capture(
+        self,
+        date_bucket: Optional[str] = None,
+        dataset_mode: str = "REAL",
+        max_retries: int = 3,
+        db: Optional[Session] = None
+    ) -> Dict[str, Any]:
+        """
+        Scheduled daily observation capture with retry handling, duplicate protection,
+        idempotent ingestion, and explicit provenance logging.
+        Ensures continuous, non-fabricated dataset growth over time.
+        """
+        import time
+        results = []
+        errors = []
+        for dest in CANONICAL_DESTINATIONS:
+            attempt = 0
+            success = False
+            last_err = None
+            while attempt < max_retries and not success:
+                attempt += 1
+                try:
+                    rec = self.capture_current_observation(
+                        destination_id=dest,
+                        date_bucket=date_bucket,
+                        dataset_mode=dataset_mode,
+                        db=db
+                    )
+                    results.append(rec)
+                    success = True
+                except Exception as e:
+                    last_err = str(e)
+                    logger.warning(f"Daily capture attempt {attempt}/{max_retries} failed for {dest}: {e}")
+                    if attempt < max_retries:
+                        time.sleep(0.5)
+            if not success:
+                logger.error(f"Failed all {max_retries} daily capture attempts for {dest}: {last_err}")
+                errors.append({"destination_id": dest, "error": last_err, "attempts": attempt})
+
+        return {
+            "status": "SUCCESS" if not errors else ("PARTIAL" if results else "FAILED"),
+            "captured_count": len(results),
+            "error_count": len(errors),
+            "captured_destinations": [r.destination_id for r in results],
+            "errors": errors,
+            "dataset_mode": dataset_mode.upper(),
+            "date_bucket": date_bucket or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        }
+
     def get_observations(
         self,
         destination_id: Optional[str] = None,

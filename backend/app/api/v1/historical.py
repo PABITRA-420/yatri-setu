@@ -18,6 +18,7 @@ from app.models.historical import (
     DatasetMetadata,
 )
 from app.services.historical.ingestion_service import historical_ingestion_service
+from app.services.historical.backfill_service import historical_backfill_service
 
 router = APIRouter(prefix="/historical", tags=["Historical Tourism Data Foundation"])
 
@@ -115,3 +116,64 @@ def ingest_current_observation(
             "count": len(records),
             "destinations": [r.destination_id for r in records]
         }
+
+
+@router.post("/backfill", summary="Run historical data backfill")
+def run_historical_backfill(
+    start_date: str = Query(..., description="Start date YYYY-MM-DD"),
+    end_date: str = Query(..., description="End date YYYY-MM-DD"),
+    destinations: Optional[List[str]] = Query(None, description="Optional list of destination IDs to backfill"),
+    dataset_mode: str = Query("REAL", description="Classification: REAL, SYNTHETIC, or MIXED"),
+    dry_run: bool = Query(True, description="When true, simulates backfill without committing database changes"),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Idempotent historical backfill mechanism extracting genuine first-party telemetry
+    (PostgreSQL confirmed bookings, verified demand events, gazetted holidays, regional events).
+    Strictly preserves provenance and enforces canonical destination mapping.
+    """
+    return historical_backfill_service.backfill_historical_data(
+        start_date=start_date,
+        end_date=end_date,
+        destinations=destinations,
+        dataset_mode=dataset_mode,
+        dry_run=dry_run,
+        db=db
+    )
+
+
+@router.get("/quality-report", summary="Generate historical dataset quality & leakage report")
+def get_historical_quality_report(
+    dataset_mode: str = Query("REAL", description="Classification: REAL, SYNTHETIC, or MIXED"),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Generates an automated quality report covering:
+    - Coverage (total rows, unique destinations, temporal span, rows per day/dest)
+    - Signal completeness (populated vs missingness %, signal-level provenance breakdown)
+    - Target quality (distribution, variance, min, max, mean)
+    - Leakage checks (future target leakage count, duplicate pairs, invalid timestamps)
+    """
+    return historical_backfill_service.generate_quality_report(
+        dataset_mode=dataset_mode,
+        db=db
+    )
+
+
+@router.post("/daily-capture", summary="Execute scheduled daily observation capture")
+def run_daily_capture(
+    date_bucket: Optional[str] = Query(None, description="Observation date bucket YYYY-MM-DD (defaults to UTC today)"),
+    dataset_mode: str = Query("REAL", description="Classification: REAL, SYNTHETIC, or MIXED"),
+    max_retries: int = Query(3, ge=1, le=5, description="Maximum retry attempts per destination"),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Executes idempotent daily observation capture across all canonical destinations
+    with retry handling, failure logging, and strict provenance enforcement.
+    """
+    return historical_ingestion_service.run_daily_scheduled_capture(
+        date_bucket=date_bucket,
+        dataset_mode=dataset_mode,
+        max_retries=max_retries,
+        db=db
+    )
