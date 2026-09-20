@@ -56,6 +56,7 @@ class ProductionEligibilityVerdict:
     target_variance: float = 0.0
     requirements: Dict[str, Any] = field(default_factory=dict)
     failed_requirements: List[str] = field(default_factory=list)
+    requirements_breakdown: Dict[str, str] = field(default_factory=dict)
 
     @property
     def eligible(self) -> bool:
@@ -75,6 +76,7 @@ class ProductionEligibilityVerdict:
             "target_variance": self.target_variance,
             "requirements": self.requirements,
             "failed_requirements": self.failed_requirements,
+            "requirements_breakdown": self.requirements_breakdown,
             "failure_reasons": self.failure_reasons,
             "checks": [
                 {
@@ -102,6 +104,7 @@ class ProductionEligibilityVerdict:
             "target_variance": self.target_variance,
             "requirements": self.requirements,
             "failed_requirements": self.failed_requirements,
+            "requirements_breakdown": self.requirements_breakdown,
         }
 
 
@@ -201,6 +204,16 @@ class ProductionEligibilityGate:
             fail_msg = f"Dataset mode is '{clean_mode}'. Only genuine REAL observations can be certified PRODUCTION_READY."
             failure_reasons.append(fail_msg)
             failed_requirements.append(f"dataset_mode ({clean_mode}) != REAL")
+            breakdown = {
+                "dataset_mode": "FAIL",
+                "total_rows": "FAIL",
+                "temporal_span": "FAIL",
+                "destinations": "FAIL",
+                "destination_depth": "FAIL",
+                "target_availability": "FAIL",
+                "core_missingness": "FAIL",
+                "target_variance": "FAIL",
+            }
             return ProductionEligibilityVerdict(
                 is_eligible=False,
                 status=status,
@@ -216,6 +229,7 @@ class ProductionEligibilityGate:
                 target_variance=target_var,
                 requirements=requirements_dict,
                 failed_requirements=failed_requirements,
+                requirements_breakdown=breakdown,
             )
 
         # Check 2: Minimum total rows
@@ -346,6 +360,17 @@ class ProductionEligibilityGate:
         all_passed = all(c.passed for c in checks)
         status = "PRODUCTION_READY" if all_passed else "INSUFFICIENT_DATA"
 
+        breakdown = {
+            "dataset_mode": "PASS" if is_real else "FAIL",
+            "total_rows": "PASS" if passed_rows else "FAIL",
+            "temporal_span": "PASS" if passed_span else "FAIL",
+            "destinations": "PASS" if passed_dests else "FAIL",
+            "destination_depth": "PASS" if passed_per_dest else "FAIL",
+            "target_availability": "PASS" if passed_target_avail else "FAIL",
+            "core_missingness": "PASS" if passed_missing else "FAIL",
+            "target_variance": "PASS" if passed_var else "FAIL",
+        }
+
         return ProductionEligibilityVerdict(
             is_eligible=all_passed,
             status=status,
@@ -365,6 +390,7 @@ class ProductionEligibilityGate:
             target_variance=target_var,
             requirements=requirements_dict,
             failed_requirements=failed_requirements,
+            requirements_breakdown=breakdown,
         )
 
 

@@ -190,13 +190,17 @@ class HistoricalReadinessService:
             return {
                 # Distinct row accounting
                 "total_real_observations": total_real_observations,
+                "total_real_rows": total_real_observations,
                 "ml_eligible_real_observations": ml_eligible_real_observations,
+                "ml_eligible_real_rows": ml_eligible_real_observations,
                 "invalid_audit_records": invalid_audit_records,
+                "invalid_rows": invalid_audit_records,
                 "real_rows": ml_eligible_real_observations,  # Backward compatibility alias
                 "required_rows": GATE_REQUIRED_ROWS,
                 "row_progress_percent": row_progress_pct,
                 # Temporal metrics
                 "distinct_dates": distinct_dates_count,
+                "unique_dates": distinct_dates_count,
                 "unique_observation_dates": distinct_dates_count,
                 "required_temporal_span_days": GATE_REQUIRED_DAYS,
                 "temporal_span_days": temporal_span_days,
@@ -208,10 +212,13 @@ class HistoricalReadinessService:
                 "latest_observation_date": latest_date,
                 # Destination representation
                 "destinations_present": destinations_present,
+                "destination_count": destinations_present,
                 "required_destinations": GATE_REQUIRED_DESTINATIONS,
                 "total_canonical_destinations": len(CANONICAL_DESTINATIONS),
                 "rows_per_destination": dest_counts,
+                "rows_by_destination": dest_counts,
                 "min_rows_per_destination": min_rows_per_destination,
+                "minimum_destination_depth": min_rows_per_destination,
                 "destinations_underrepresented": destinations_underrepresented,
                 "destination_freshness": dest_latest,
                 # Signal and target quality
@@ -224,10 +231,15 @@ class HistoricalReadinessService:
                 "quality_breakdown": quality_counts,
                 # Gate verdict and remaining requirements
                 "eligible": gate_verdict.eligible,
+                "gate_status": "ELIGIBLE" if gate_verdict.eligible else "INSUFFICIENT_DATA",
                 "failed_requirements": gate_verdict.failed_requirements,
+                "requirements_breakdown": getattr(gate_verdict, "requirements_breakdown", {}),
                 "remaining_rows_required": remaining_rows_required,
+                "rows_remaining": remaining_rows_required,
                 "remaining_days_required": remaining_days_required,
+                "days_remaining": remaining_days_required,
                 "remaining_destination_depth_required": remaining_destination_depth,
+                "destination_rows_remaining": remaining_destination_depth,
                 # Diagnostic projection
                 "projection": projection,
                 "audited_at": now_utc.isoformat(),
@@ -294,6 +306,7 @@ class HistoricalReadinessService:
                 "all six canonical destinations continue to accumulate observations",
             ],
             "disclaimer": (
+                "This is a data accumulation projection, not a prediction of model accuracy. "
                 "Structural data projection only. Does not guarantee ML model accuracy "
                 "or forecast skill upon reaching eligibility."
             ),

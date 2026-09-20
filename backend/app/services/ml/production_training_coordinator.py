@@ -65,14 +65,22 @@ from app.services.ml.evaluation import (
 
 logger = logging.getLogger(__name__)
 
-# Lifecycle States
+# Accumulation & Training Lifecycle States (Prompt 10 Section 6)
+ACCUMULATING = "ACCUMULATING"
+GATE_CHECK = "GATE_CHECK"
+INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
+ELIGIBLE = "ELIGIBLE"
+TRAINING = "TRAINING"
+VALIDATING = "VALIDATING"
+PROMOTION_CHECK = "PROMOTION_CHECK"
+PROMOTION_REJECTED = "PROMOTION_REJECTED"
+VALIDATION_FAILED = "VALIDATION_FAILED"
 BASELINE_ACTIVE = "BASELINE_ACTIVE"
 SYNTHETIC_BENCHMARK = "SYNTHETIC_BENCHMARK"
 REAL_TRAINING_READY = "REAL_TRAINING_READY"
 REAL_TRAINED = "REAL_TRAINED"
 REAL_PRODUCTION_ACTIVE = "REAL_PRODUCTION_ACTIVE"
 TRAINING_FAILED = "TRAINING_FAILED"
-INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
 
 
 class ProductionTrainingCoordinator:
@@ -93,6 +101,47 @@ class ProductionTrainingCoordinator:
         self.candidate_model_path = model_path.replace(".joblib", "_candidate.joblib")
         self.backup_model_path = model_path.replace(".joblib", "_backup.joblib")
         self._last_training_metadata: Dict[str, Any] = {}
+
+    def _compute_dataset_fingerprint(self, verdict: ProductionEligibilityVerdict) -> str:
+        """Generates a deterministic hash of the dataset snapshot to prevent redundant retraining (Prompt 10 Section 26)."""
+        import hashlib
+        payload = (
+            f"rows={verdict.total_rows}:span={verdict.temporal_span_days}:"
+            f"dests={verdict.distinct_destinations}:var={verdict.target_variance:.2f}:"
+            f"avail={verdict.target_availability_percent:.1f}:miss={verdict.core_signal_missingness_percent:.1f}"
+        )
+        return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+    def get_accumulation_state(self, db: Optional[Session] = None) -> str:
+        """
+        Returns deterministic accumulation lifecycle state according to Prompt 10 Section 6:
+        - INSUFFICIENT_DATA: Gate not yet satisfied by real data
+        - ELIGIBLE: Gate satisfied, ready for training
+        - REAL_PRODUCTION_ACTIVE: Promoted real model currently authoritative
+        - BASELINE_ACTIVE: Baseline rule authoritative
+        """
+        verdict, _ = self.check_eligibility(db=db)
+        if not verdict.is_eligible:
+            return INSUFFICIENT_DATA
+        preferred = self.registry.get_preferred_model()
+        if preferred.name != "baseline_rule_v2" and getattr(preferred, "production_eligible", False):
+            return REAL_PRODUCTION_ACTIVE
+        return ELIGIBLE
+
+    def rollback_to_baseline(self, reason: str = "Rollback requested") -> Dict[str, Any]:
+        """
+        Safely falls back to BaselineRuleModel without corrupting production availability (Prompt 10 Section 23).
+        """
+        baseline = BaselineRuleModel()
+        self.registry.register_model(baseline)
+        logger.warning(f"ProductionTrainingCoordinator: rollback executed. Reason: {reason}")
+        return {
+            "status": "ROLLED_BACK",
+            "active_model_name": baseline.name,
+            "model_status": BASELINE_ACTIVE,
+            "reason": reason,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     def check_eligibility(self, db: Optional[Session] = None) -> Tuple[ProductionEligibilityVerdict, List[Any]]:
         """
@@ -182,22 +231,30 @@ class ProductionTrainingCoordinator:
                 "last_trained_metadata": self._last_training_metadata,
             }
 
-        # 2. Check for new qualifying data
+        # 2. Check for new qualifying data using dataset fingerprint (Prompt 10 Section 26)
+        dataset_fingerprint = self._compute_dataset_fingerprint(verdict)
+        last_fingerprint = self._last_training_metadata.get("dataset_fingerprint")
+
         last_rows = self._last_training_metadata.get("training_rows", 0)
         last_span = self._last_training_metadata.get("training_temporal_span_days", 0)
+        is_duplicate = (last_fingerprint and last_fingerprint == dataset_fingerprint) or (
+            last_rows == verdict.total_rows and last_span == verdict.temporal_span_days and last_rows > 0
+        )
 
-        if not force and last_rows == verdict.total_rows and last_span == verdict.temporal_span_days and last_rows > 0:
+        if not force and is_duplicate:
             logger.info(
-                f"ProductionTrainingCoordinator: no new qualifying data accumulated "
-                f"(rows={verdict.total_rows}, span={verdict.temporal_span_days}). Skipping duplicate run."
+                f"ProductionTrainingCoordinator: identical dataset snapshot/fingerprint ({dataset_fingerprint}). "
+                f"Skipping duplicate training run."
             )
             return {
                 "status": "NO_NEW_DATA",
                 "trained": False,
+                "skip_duplicate_training": True,
+                "dataset_fingerprint": dataset_fingerprint,
                 "model_status": REAL_PRODUCTION_ACTIVE,
                 "message": (
                     f"No new qualifying observations accumulated since last training run "
-                    f"({verdict.total_rows} rows, {verdict.temporal_span_days} days)."
+                    f"({verdict.total_rows} rows, {verdict.temporal_span_days} days, fingerprint={dataset_fingerprint})."
                 ),
                 "diagnostics": verdict.to_structured_diagnostics(),
                 "last_trained_metadata": self._last_training_metadata,
@@ -234,12 +291,12 @@ class ProductionTrainingCoordinator:
         records: List[Any],
         verdict: ProductionEligibilityVerdict
     ) -> Dict[str, Any]:
-        """Performs candidate training, validation, and atomic artifact promotion."""
+        """Performs candidate training, validation, baseline comparison, and atomic artifact promotion."""
         import numpy as np
         fb = StandardFeatureBuilder()
         feature_names = fb.get_feature_names()
 
-        # Sort records chronologically
+        # Sort records chronologically (Prompt 10 Section 16)
         sorted_records = sorted(
             records,
             key=lambda r: (getattr(r, "date_bucket", ""), getattr(r, "destination_id", ""))
@@ -280,14 +337,38 @@ class ProductionTrainingCoordinator:
         # Save candidate to candidate path
         candidate_model.save(self.candidate_model_path)
 
-        # Validate candidate artifact can be reloaded and matches feature schema
+        # Validate candidate artifact can be reloaded and matches feature schema (Prompt 10 Section 20)
         validator_model = XGBoostCrowdModel(model_path=self.candidate_model_path)
         if not validator_model.is_trained:
-            raise RuntimeError("Candidate model failed artifact re-load integrity validation.")
-        if validator_model.feature_names != feature_names:
-            raise RuntimeError("Candidate model feature names do not match schema 2.0.0.")
+            if os.path.exists(self.candidate_model_path):
+                try:
+                    os.remove(self.candidate_model_path)
+                except Exception:
+                    pass
+            return {
+                "status": VALIDATION_FAILED,
+                "trained": False,
+                "promoted": False,
+                "model_status": BASELINE_ACTIVE,
+                "error": "Candidate model failed artifact re-load integrity validation.",
+                "diagnostics": verdict.to_structured_diagnostics(),
+            }
+        if validator_model.feature_names != feature_names or len(validator_model.feature_names) != 22:
+            if os.path.exists(self.candidate_model_path):
+                try:
+                    os.remove(self.candidate_model_path)
+                except Exception:
+                    pass
+            return {
+                "status": VALIDATION_FAILED,
+                "trained": False,
+                "promoted": False,
+                "model_status": BASELINE_ACTIVE,
+                "error": f"Candidate model feature schema mismatch (found {len(validator_model.feature_names)}, expected 22).",
+                "diagnostics": verdict.to_structured_diagnostics(),
+            }
 
-        # Compute test metrics for candidate vs BaselineRuleModel
+        # Compute test metrics for candidate vs BaselineRuleModel (Prompt 10 Section 18 & 19)
         baseline = BaselineRuleModel()
         X_test = [feature_rows[i] for i in test_idx]
         y_test = [targets[i] for i in test_idx]
@@ -315,7 +396,60 @@ class ProductionTrainingCoordinator:
             actuals=y_test,
         )
 
-        # Atomic artifact replacement:
+        # Per-horizon real validation breakdown (Prompt 10 Section 18)
+        horizon_metrics = {}
+        for h in [1, 3, 7, 14]:
+            h_idx = [i for i, row in enumerate(X_test) if row.get("target_horizon_days") == h]
+            if h_idx:
+                h_p = [xgb_preds[i] for i in h_idx]
+                h_y = [y_test[i] for i in h_idx]
+                horizon_metrics[f"H={h}"] = {
+                    "mae": compute_mae(h_p, h_y),
+                    "rmse": compute_rmse(h_p, h_y),
+                    "r2": compute_r2(h_p, h_y),
+                    "samples": len(h_idx),
+                }
+            else:
+                horizon_metrics[f"H={h}"] = {"status": "insufficient_horizon_samples"}
+
+        real_validation_metrics = {
+            "overall": xgb_metrics,
+            "per_horizon": horizon_metrics,
+            "label": "REAL PRODUCTION VALIDATION METRICS",
+            "evaluated_on": "chronological_held_out_real_data",
+        }
+
+        # Section 19: Baseline Comparison & Promotion Criteria Check
+        promotion_allowed = True
+        rejection_reason = None
+        if xgb_metrics["mae"] > baseline_metrics["mae"]:
+            promotion_allowed = False
+            rejection_reason = f"Candidate MAE ({xgb_metrics['mae']:.2f}) is worse than baseline MAE ({baseline_metrics['mae']:.2f})."
+        elif xgb_metrics["r2"] < -0.5:
+            promotion_allowed = False
+            rejection_reason = f"Candidate R2 ({xgb_metrics['r2']:.2f}) indicates poor fit."
+
+        if not promotion_allowed:
+            logger.warning(f"ProductionTrainingCoordinator: candidate promotion rejected: {rejection_reason}")
+            if os.path.exists(self.candidate_model_path):
+                try:
+                    os.remove(self.candidate_model_path)
+                except Exception:
+                    pass
+            return {
+                "status": PROMOTION_REJECTED,
+                "trained": True,
+                "promoted": False,
+                "model_status": BASELINE_ACTIVE,
+                "rejection_reason": rejection_reason,
+                "evaluation_metrics": xgb_metrics,
+                "real_production_validation_metrics": real_validation_metrics,
+                "baseline_metrics": baseline_metrics,
+                "comparison": comparison,
+                "diagnostics": verdict.to_structured_diagnostics(),
+            }
+
+        # Atomic artifact replacement (Prompt 10 Section 21 & 23):
         # 1. If existing production artifact exists, create backup
         if os.path.exists(self.model_path):
             try:
@@ -327,10 +461,20 @@ class ProductionTrainingCoordinator:
         shutil.move(self.candidate_model_path, self.model_path)
         logger.info(f"ProductionTrainingCoordinator: atomically promoted candidate to {self.model_path}")
 
-        # 3. Reload active model in registry
-        xgboost_crowd_model._model_path = self.model_path
-        xgboost_crowd_model._try_load()
-        self.registry.register_model(xgboost_crowd_model)
+        # 3. Reload active model in registry with rollback fallback
+        try:
+            xgboost_crowd_model._model_path = self.model_path
+            xgboost_crowd_model._try_load()
+            self.registry.register_model(xgboost_crowd_model)
+        except Exception as e:
+            logger.error(f"Failed to load promoted model, executing rollback: {e}")
+            self.rollback_to_baseline(reason=f"Promotion loading failure: {e}")
+            return {
+                "status": TRAINING_FAILED,
+                "trained": False,
+                "model_status": BASELINE_ACTIVE,
+                "error": f"Promotion loading failure, rolled back to baseline: {e}",
+            }
 
         now_iso = datetime.now(timezone.utc).isoformat()
         metadata = {
@@ -343,8 +487,10 @@ class ProductionTrainingCoordinator:
             "training_rows": verdict.total_rows,
             "training_destinations": verdict.distinct_destinations,
             "training_temporal_span_days": verdict.temporal_span_days,
+            "dataset_fingerprint": dataset_fingerprint,
             "horizons_supported": [1, 3, 7, 14],
             "evaluation_metrics": xgb_metrics,
+            "real_production_validation_metrics": real_validation_metrics,
             "baseline_metrics": baseline_metrics,
             "comparison": comparison,
             "promotion_reason": (
@@ -362,6 +508,7 @@ class ProductionTrainingCoordinator:
             "model_status": REAL_PRODUCTION_ACTIVE,
             "message": "Candidate XGBoost model successfully trained, validated, and promoted to production.",
             "training_metadata": metadata,
+            "real_production_validation_metrics": real_validation_metrics,
             "diagnostics": verdict.to_structured_diagnostics(),
         }
 
@@ -401,6 +548,18 @@ class ProductionTrainingCoordinator:
             "evaluation_metrics": active_meta.get("evaluation_metrics", {}),
             "baseline_metrics": active_meta.get("baseline_metrics", {}),
             "promotion_reason": active_meta.get("promotion_reason", "Using deterministic baseline Crowd Engine V2 rules."),
+            "accumulation_state": self.get_accumulation_state(db=db),
+            "gate_status": readiness.get("gate_status", "INSUFFICIENT_DATA"),
+            "total_real_rows": readiness.get("total_real_rows", readiness["real_rows"]),
+            "ml_eligible_real_rows": readiness.get("ml_eligible_real_rows", readiness["real_rows"]),
+            "invalid_rows": readiness.get("invalid_rows", 0),
+            "unique_dates": readiness.get("unique_dates", readiness["distinct_dates"]),
+            "rows_by_destination": readiness.get("rows_by_destination", readiness["rows_per_destination"]),
+            "minimum_destination_depth": readiness.get("minimum_destination_depth", readiness.get("min_rows_per_destination", 0)),
+            "rows_remaining": readiness.get("rows_remaining", readiness.get("remaining_rows_required", 0)),
+            "destination_rows_remaining": readiness.get("destination_rows_remaining", readiness.get("remaining_destination_depth_required", 0)),
+            "days_remaining": readiness.get("days_remaining", readiness.get("remaining_days_required", 0)),
+            "requirements_breakdown": readiness.get("requirements_breakdown", {}),
             "eligibility_diagnostics": verdict.to_structured_diagnostics(),
             "real_rows": readiness["real_rows"],
             "required_rows": readiness["required_rows"],
@@ -417,6 +576,8 @@ class ProductionTrainingCoordinator:
             "oldest_observation_date": readiness["oldest_observation_date"],
             "core_signal_missingness_percent": readiness["core_signal_missingness_percent"],
             "core_signal_availability_percent": readiness["core_signal_availability_percent"],
+            "target_availability": readiness.get("target_availability", 100.0),
+            "target_variance": readiness.get("target_variance", 0.0),
             "quality_breakdown": readiness["quality_breakdown"],
             "projection": readiness["projection"],
             "readiness_metrics": readiness,

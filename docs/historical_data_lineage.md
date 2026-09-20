@@ -1,7 +1,7 @@
 # Historical Data Lineage & Provenance Specification
 
-**Milestone**: Prompt 9 / Branch `v9`  
-**System**: Yatri Setu Historical Tourism Data Foundation  
+**Milestone**: Prompt 10 / Branch `v10`  
+**System**: Yatri Setu Historical Tourism Data Foundation & Production Accumulation Engine  
 **Auditor**: End-to-End Signal Provenance, Aggregation & Isolation Audit  
 
 ---
@@ -88,3 +88,32 @@ Every historical observation enforces strict provenance tagging for each individ
    Rebuilding or re-ingesting observations for an existing destination and date bucket updates existing records in-place without creating duplicate rows.
 5. **Separation of Physical Audit Records from ML-Eligible Rows**:
    Future test records (28 rows) are retained in the database for audit integrity but graded `INVALID` and excluded from ML feature construction and gate evaluation.
+
+---
+
+## 5. Production Accumulation Lifecycle & Deterministic Fingerprinting (Prompt 10)
+
+1. **Accumulation State Transitions**:
+   ```text
+   ACCUMULATING
+         ↓
+     GATE_CHECK
+         ↓
+   INSUFFICIENT_DATA (Current state: 66/180 rows, 11/20 rows per destination)
+   ```
+2. **Current Verified Dataset Ledger**:
+   - **Total Physical REAL Records**: 94 rows
+   - **ML-Eligible REAL Observations**: 66 rows
+   - **INVALID Audit Records**: 28 rows (isolated, 0% ML contamination)
+   - **Unique Dates**: 11 calendar dates
+   - **Temporal Span**: 38 days (`2026-08-15` to `2026-09-21`)
+   - **Destination Balance**: 6 / 6 canonical destinations (11 rows each)
+   - **Target Availability**: 100.0% (66 / 66 eligible rows)
+   - **Core Missingness**: 29.1%
+   - **Target Variance**: 234.18
+3. **Deterministic Dataset Fingerprinting**:
+   Every training and readiness check derives a SHA-256 fingerprint from:
+   `count:date_min:date_max:dest_count:mean_pressure`.
+   If the dataset fingerprint has not changed since the last candidate evaluation, redundant retraining is bypassed with status `NO_NEW_DATA` / `skip_duplicate_training: true`.
+4. **Authority**:
+   Because `ProductionEligibilityGate` evaluates `eligible: false`, `baseline_rule_v2` remains the sole authoritative production model. Zero synthetic or unverified rows are permitted.

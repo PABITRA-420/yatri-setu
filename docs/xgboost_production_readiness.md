@@ -1,7 +1,7 @@
-# Yatri Setu — XGBoost Forecasting Production Readiness Report (Prompt 9)
+# Yatri Setu — XGBoost Forecasting Production Readiness Report (Prompt 10)
 
 > **Mandatory Policy Statement:**  
-> **XGBoost production training remains correctly blocked by the ProductionEligibilityGate. The system has deeply exhausted all legitimate historical observations recoverable from genuine source data (achieving 60 ML-eligible observations across 37 days of temporal span and all 6 destinations). The gate is NOT lowered, synthetic rows are NOT mixed, and baseline_rule_v2 remains the authoritative production model until organic accumulation satisfies the remaining thresholds.**
+> **XGBoost production training remains correctly blocked by the ProductionEligibilityGate. The system has continuously accumulated genuine observations across all 6 canonical destinations (achieving 66 ML-eligible observations across 38 days of temporal span). The gate thresholds are immutable, synthetic rows are NOT mixed into production, and baseline_rule_v2 remains authoritative until organic accumulation satisfies all criteria.**
 
 ---
 
@@ -9,13 +9,14 @@
 
 - **Active Production Model**: `baseline_rule_v2` (`BaselineRuleModel`)
 - **Active Model Status**: `BASELINE_ACTIVE`
+- **Accumulation State**: `INSUFFICIENT_DATA`
 - **XGBoost Candidate Status**: Held in `INSUFFICIENT_DATA` status
 - **Synthetic Benchmark Status**: `SYNTHETIC_BENCHMARK` (`production_eligible = False`, strictly isolated)
-- **Production Eligibility Verdict**: `FAIL` (Correctly blocked by `ProductionEligibilityGate`)
+- **Production Eligibility Verdict**: `FAIL` (Blocked by `ProductionEligibilityGate`)
 
 ---
 
-## 2. Production Eligibility Gate Evaluation
+## 2. Production Eligibility Gate Evaluation (Current Live Audit)
 
 Running `GET /api/admin/ml/production-readiness` against the current database returns:
 
@@ -26,47 +27,53 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
   "model_version": "2.0.0",
   "dataset_mode": "DETERMINISTIC_RULES",
   "production_eligible": false,
-  "eligibility_diagnostics": {
-    "eligible": false,
-    "dataset_mode": "REAL",
-    "total_rows": 60,
-    "distinct_destinations": 6,
-    "temporal_span_days": 37,
-    "target_availability_percent": 100.0,
-    "core_signal_missingness_percent": 30.0,
-    "target_variance": 204.61,
-    "requirements": {
-      "min_rows": 180,
-      "min_destinations": 3,
-      "min_rows_per_destination": 20,
-      "min_days": 30,
-      "target_availability": 100,
-      "max_core_missingness": 70,
-      "min_target_variance": 4
-    },
-    "failed_requirements": [
-      "total_rows (60) < min_rows (180)",
-      "min_rows_per_destination (10) < required (20)"
-    ]
-  }
+  "accumulation_state": "INSUFFICIENT_DATA",
+  "gate_status": "INSUFFICIENT_DATA",
+  "total_real_rows": 94,
+  "ml_eligible_real_rows": 66,
+  "invalid_rows": 28,
+  "unique_dates": 11,
+  "temporal_span_days": 38,
+  "destinations_present": 6,
+  "minimum_destination_depth": 11,
+  "target_availability": 100.0,
+  "core_missingness": 29.1,
+  "target_variance": 234.18,
+  "requirements_breakdown": {
+    "dataset_mode": "PASS",
+    "total_rows": "FAIL",
+    "temporal_span": "PASS",
+    "destinations": "PASS",
+    "destination_depth": "FAIL",
+    "target_availability": "PASS",
+    "core_missingness": "PASS",
+    "target_variance": "PASS"
+  },
+  "failed_requirements": [
+    "total_rows (66) < min_rows (180)",
+    "min_rows_per_destination (11) < required (20)"
+  ],
+  "rows_remaining": 114,
+  "destination_rows_remaining": 9,
+  "days_remaining": 0
 }
 ```
 
 ### Gate Compliance Breakdown:
 * [x] **Dataset Mode**: `REAL` (**PASS**)
-* [ ] **Total Rows**: `60 / 180` (**FAIL** - 120 rows required)
-* [x] **Temporal Span**: `37 / 30 days` (**PASS** - Exceeds requirement by 7 days)
+* [ ] **Total Rows**: `66 / 180` (**FAIL** - 114 rows required)
+* [x] **Temporal Span**: `38 / 30 days` (**PASS** - Exceeds requirement by 8 days)
 * [x] **Destinations Present**: `6 / 3` (**PASS** - All 6 canonical destinations present)
-* [ ] **Rows per Destination**: `10 / 20` (**FAIL** - 10 rows/destination required)
+* [ ] **Rows per Destination**: `11 / 20` (**FAIL** - 9 rows/destination required)
 * [x] **Target Availability**: `100.0% / 100.0%` (**PASS** - Zero missing targets)
-* [x] **Core Signal Missingness**: `30.0% / <= 70.0%` (**PASS** - Well below limit)
-* [x] **Target Variance**: `204.61 / >= 4.0` (**PASS** - Highly dynamic variance)
+* [x] **Core Signal Missingness**: `29.1% / <= 70.0%` (**PASS** - Well below limit)
+* [x] **Target Variance**: `234.18 / >= 4.0` (**PASS** - Highly dynamic variance)
 
 ---
 
 ## 3. Real Production Metrics vs Synthetic Benchmark Metrics
 
-* **Real Production XGBoost Metrics**: **NOT AVAILABLE** (Training correctly refused due to `INSUFFICIENT_DATA`).
+* **Real Production XGBoost Metrics**: **NOT AVAILABLE** (Training correctly refused per Prompt 10 Section 9/18).
 * **Synthetic Benchmark Metrics**:
   * MAE: 4.82
   * RMSE: 6.14
@@ -79,9 +86,9 @@ Running `GET /api/admin/ml/production-readiness` against the current database re
 ## 4. Exact Remaining Real-World Data Requirements
 
 To unlock automated XGBoost production training without fabricating data:
-1. **Total Rows Required**: 120 additional genuine daily observations.
-2. **Temporal Span Required**: 0 days (already satisfied at 37 days).
-3. **Destination Depth Required**: 10 additional observations per destination.
-4. **Projected Accumulation Time**: ~20-25 days of full 6-destination continuous daily captures (6 destinations $\times$ 20 days = 120 rows).
+1. **Total Rows Required**: 114 additional genuine daily observations.
+2. **Temporal Span Required**: 0 days (already satisfied at 38 days).
+3. **Destination Depth Required**: 9 additional observations per destination.
+4. **Projected Accumulation Time**: ~19 days of full 6-destination daily captures (6 destinations $\times$ 19 days = 114 rows).
 
 Until these thresholds are genuinely met, `baseline_rule_v2` remains authoritative.

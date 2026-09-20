@@ -16,7 +16,7 @@ Classifications:
 - INVALID: Future date, non-canonical destination, invalid timestamp, or missing target ground truth
 """
 
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 
@@ -93,9 +93,10 @@ class ObservationQualityScorer:
         else:
             try:
                 dt = datetime.strptime(str(date_bucket), "%Y-%m-%d").date()
-                # Check not far in the future
-                today = datetime.utcnow().date()
-                if dt > today:
+                # Check not in the future (respecting IST local calendar alignment)
+                now_utc = datetime.now(timezone.utc)
+                today_ist = (now_utc + timedelta(hours=5, minutes=30)).date()
+                if dt > today_ist:
                     temporal_valid = False
                     validation_errors.append(f"date_bucket '{date_bucket}' is in the future.")
             except ValueError:
