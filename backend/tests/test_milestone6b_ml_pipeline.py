@@ -261,6 +261,19 @@ class TestEvaluationMetrics:
         assert result["ml_improves_over_baseline"] is False
         assert result["mae_delta"] is None
 
+    def test_compare_models_with_prediction_arrays(self):
+        candidate_preds = [10.0, 20.0, 30.0]
+        baseline_preds = [12.0, 25.0, 35.0]
+        actuals = [10.0, 20.0, 30.0]
+        result = compare_models(
+            candidate_preds=candidate_preds,
+            baseline_preds=baseline_preds,
+            actuals=actuals,
+        )
+        assert result["ml_improves_over_baseline"] is True
+        assert result["mae_delta"] > 0
+
+
 
 # ─── 7. Model Registry & Fallback Tests ──────────────────────────────────────
 
