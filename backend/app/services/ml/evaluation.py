@@ -34,6 +34,19 @@ def compute_rmse(predictions: List[float], actuals: List[float]) -> float:
     return round(math.sqrt(mse), 4)
 
 
+def compute_r2(predictions: List[float], actuals: List[float]) -> float:
+    """Coefficient of determination (R²)."""
+    if not predictions or len(predictions) < 2:
+        return 0.0
+    mean_actual = sum(actuals) / len(actuals)
+    ss_tot = sum((a - mean_actual) ** 2 for a in actuals)
+    ss_res = sum((a - p) ** 2 for p, a in zip(predictions, actuals))
+    if ss_tot < 1e-6:
+        return 0.0
+    return round(float(1.0 - (ss_res / ss_tot)), 4)
+
+
+
 def compute_directional_accuracy(predictions: List[float], actuals: List[float]) -> float:
     """
     Directional accuracy: percentage of consecutive pairs where the predicted

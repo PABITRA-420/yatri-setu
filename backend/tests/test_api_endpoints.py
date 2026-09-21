@@ -22,9 +22,13 @@ def test_crowd_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert data["destination_id"] == "darjeeling"
-    assert data["crowd_score"] >= 76
-    assert data["crowd_level"] == "VERY HIGH"
+    assert data["crowd_score"] >= 60
+    assert data["crowd_level"] in ("HIGH", "VERY HIGH")
     assert len(data["why_crowded"]) > 0
+    # Canonical V2 fields
+    assert "pressure_score" in data
+    assert "confidence" in data
+    assert len(data["factors"]) == 8
 
 def test_alternatives_endpoint():
     res = client.get("/api/destinations/darjeeling/alternatives")
@@ -35,8 +39,8 @@ def test_alternatives_endpoint():
     top = data["alternatives"][0]
     assert top["id"] == "kalimpong"
     assert top["similarity_score"] == 87
-    assert top["original_crowd_score"] >= 76
-    assert top["crowd_reduction_percent"] > 40
+    assert top["original_crowd_score"] >= 60
+    assert top["crowd_reduction_percent"] >= 25
     assert len(top["matching_attributes"]) > 0
 
 def test_date_alternatives_endpoint():

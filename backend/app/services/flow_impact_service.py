@@ -1,6 +1,5 @@
 from typing import List, Dict, Any
 from app.models.flow_impact import DestinationFlowImpact
-from app.services.crowd_engine import calculate_crowd_score
 
 class FlowImpactService:
     def calculate_destination_impact(self, destination_id: str) -> DestinationFlowImpact:

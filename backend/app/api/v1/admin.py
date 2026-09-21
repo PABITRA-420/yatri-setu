@@ -478,6 +478,52 @@ def list_rural_audit_logs(limit: int = Query(50, ge=1, le=200)):
     return rural_operations_service.list_audit_logs(limit=limit)
 
 
+# ─── Historical Data Administration (Prompt 8) ──────────────────────────────
+
+@router.get("/historical/forensics")
+def admin_historical_forensics(
+    dataset_mode: str = Query("REAL", description="REAL, SYNTHETIC, or MIXED")
+):
+    """
+    Admin command center forensic audit of invalid historical observations.
+    """
+    from app.services.historical.repair_service import historical_repair_service
+    return historical_repair_service.audit_invalid_observations(dataset_mode=dataset_mode)
+
+
+@router.post("/historical/repair-invalid")
+def admin_repair_invalid_observations(
+    dataset_mode: str = Query("REAL", description="REAL, SYNTHETIC, or MIXED"),
+    dry_run: bool = Query(True, description="Dry run flag")
+):
+    """
+    Admin command center evidence-backed repair of invalid observations.
+    """
+    from app.services.historical.repair_service import historical_repair_service
+    return historical_repair_service.repair_invalid_observations(dataset_mode=dataset_mode, dry_run=dry_run)
+
+
+@router.post("/historical/rebuild")
+def admin_rebuild_historical_dataset(
+    start_date: str = Query("2026-09-15", description="Start date YYYY-MM-DD"),
+    end_date: str = Query("2026-09-20", description="End date YYYY-MM-DD"),
+    destinations: Optional[List[str]] = Query(None, description="Optional destination filter"),
+    dataset_mode: str = Query("REAL", description="Classification: REAL, SYNTHETIC, or MIXED"),
+    dry_run: bool = Query(False, description="Dry run flag")
+):
+    """
+    Admin command center deterministic rebuild of historical observations.
+    """
+    from app.services.historical.repair_service import historical_repair_service
+    return historical_repair_service.rebuild_historical_dataset(
+        start_date=start_date,
+        end_date=end_date,
+        destinations=destinations,
+        dataset_mode=dataset_mode,
+        dry_run=dry_run
+    )
+
+
 
 
 

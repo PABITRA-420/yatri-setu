@@ -12,7 +12,7 @@ from app.services.capacity.schemas import CapacityHealthStatus
 from app.services.capacity.service import capacity_service, classify_capacity_health
 from app.services.traffic.service import traffic_service
 from app.services.weather.service import weather_service
-from app.services.crowd_engine import calculate_crowd_score
+from app.services.crowd_engine_v2 import crowd_engine_v2
 
 
 class RedirectionAbsorptionResult(BaseModel):
@@ -49,7 +49,7 @@ def can_absorb_redirection(
     severe_weather = bool(wth.severe_weather and "warning" in wth.severe_weather.lower())
 
     # Current Pressure
-    current_crowd = calculate_crowd_score(clean_id)
+    current_crowd = crowd_engine_v2.get_canonical_crowd_response(clean_id)
     current_pressure = current_crowd.crowd_score
 
     # Convert visitors to unit demand (2 visitors per room)

@@ -6,7 +6,7 @@ from app.models.destination import Destination, DestinationSummary
 from app.models.crowd import (
     CrowdResponse, AlternativesResponse, DateAlternativesResponse, DestinationDecisionResponse
 )
-from app.services.crowd_engine import calculate_crowd_score
+from app.services.crowd_engine_v2 import crowd_engine_v2
 from app.services.alternative_engine import get_alternative_destinations
 from app.services.date_advisor import get_date_alternatives
 from app.services.flow_decision_engine import compute_destination_decision
@@ -51,7 +51,7 @@ def list_destinations(
             if not (name_match or tag_match or state_match or desc_match):
                 continue
 
-        crowd = calculate_crowd_score(d["id"])
+        crowd = crowd_engine_v2.get_canonical_crowd_response(d["id"])
         
         # Crowd level filter
         if crowd_level and crowd.crowd_level.value.upper() != crowd_level.upper():
@@ -106,7 +106,7 @@ def get_destination_crowd(destination_id: str):
     exists = any(d["id"] == norm_id for d in DESTINATIONS_DATA)
     if not exists:
         raise HTTPException(status_code=404, detail=f"Destination '{destination_id}' not found")
-    return calculate_crowd_score(norm_id)
+    return crowd_engine_v2.get_canonical_crowd_response(norm_id)
 
 @router.get("/{destination_id}/alternatives", response_model=AlternativesResponse)
 def get_destination_alternatives(destination_id: str):

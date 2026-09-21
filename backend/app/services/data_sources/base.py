@@ -11,6 +11,11 @@ from datetime import datetime
 from typing import Optional, List
 
 
+VALID_PROVIDER_MODES = (
+    "REAL", "LIVE", "CACHED", "HISTORICAL", "COMPUTED",
+    "SYNTHETIC", "DEMO", "MOCK", "UNAVAILABLE"
+)
+
 @dataclass
 class DataSourceReading:
     """
@@ -25,14 +30,16 @@ class DataSourceReading:
     unit: str = ""                  # e.g. "percent", "count", "index"
     timestamp: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     notes: str = ""
-    provider_mode: str = "MOCK"    # MOCK, REAL, CACHED
+    provider_mode: str = "MOCK"    # LIVE, CACHED, HISTORICAL, COMPUTED, SYNTHETIC, DEMO, MOCK, UNAVAILABLE
     data_quality: str = "HIGH"     # HIGH, MEDIUM, LOW, DEGRADED
     signal_type: str = "UNKNOWN"
 
     def __post_init__(self):
         self.value = max(0.0, min(100.0, self.value))
         self.confidence = max(0.0, min(1.0, self.confidence))
-        if self.provider_mode not in ("MOCK", "REAL", "CACHED"):
+        if self.provider_mode.upper() in VALID_PROVIDER_MODES:
+            self.provider_mode = self.provider_mode.upper()
+        else:
             self.provider_mode = "MOCK"
         if self.data_quality not in ("HIGH", "MEDIUM", "LOW", "DEGRADED"):
             self.data_quality = "HIGH"
@@ -71,7 +78,7 @@ class BaseDataSourceProvider(ABC):
             source=self.PROVIDER_TYPE,
             confidence=0.0,
             notes=reason,
-            provider_mode=self.PROVIDER_MODE,
+            provider_mode="UNAVAILABLE",
             data_quality="DEGRADED"
         )
 

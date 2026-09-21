@@ -66,11 +66,37 @@ class BaselineRuleModel(BaseCrowdModel):
     def version(self) -> str:
         return "2.0.0"
 
+    @property
+    def model_status(self) -> str:
+        return "BASELINE"
+
+    @property
+    def production_eligible(self) -> bool:
+        return True
+
     def predict(self, features: Dict[str, Any]) -> float:
-        score = sum(
-            features.get(sig, 50.0) * weight
-            for sig, weight in self.WEIGHTS.items()
-        )
+        """
+        Predict crowd pressure using weighted rule formula.
+        Dynamically renormalizes over available non-null, non-NaN signals
+        to avoid converting missing telemetry into artificial zeros or defaults.
+        """
+        valid_items = []
+        for sig, weight in self.WEIGHTS.items():
+            val = features.get(sig)
+            if val is not None:
+                try:
+                    fval = float(val)
+                    if fval == fval:  # not NaN
+                        valid_items.append((fval, weight))
+                except (ValueError, TypeError):
+                    pass
+
+        if valid_items:
+            total_weight = sum(w for _, w in valid_items)
+            score = sum(val * w for val, w in valid_items) / total_weight
+        else:
+            score = 50.0
+
         return round(max(0.0, min(100.0, score)), 1)
 
 
@@ -80,7 +106,7 @@ class ModelRegistry:
 
     Fallback contract:
       Every predict() call is wrapped in a try/except.
-      If the preferred model fails, BaselineRuleModel is used automatically.
+      If the preferred model fails or schema does not match, BaselineRuleModel is used automatically.
       This guarantees no user-facing endpoint crashes due to ML unavailability.
     """
 
@@ -88,6 +114,7 @@ class ModelRegistry:
         self._baseline = BaselineRuleModel()
         self._models: Dict[str, BaseCrowdModel] = {}
         self.register_model(self._baseline)
+        self.auto_register_persisted_models()
 
     def register_model(self, model: BaseCrowdModel) -> None:
         self._models[model.name] = model
@@ -96,16 +123,27 @@ class ModelRegistry:
     def get_model(self, name: str) -> Optional[BaseCrowdModel]:
         return self._models.get(name)
 
+    def auto_register_persisted_models(self) -> None:
+        """
+        Auto-register persisted XGBoost model from disk if it was previously trained
+        and passes feature schema integrity checks.
+        """
+        try:
+            from app.services.ml.xgboost_model import xgboost_crowd_model
+            if getattr(xgboost_crowd_model, "is_trained", False):
+                self.register_model(xgboost_crowd_model)
+                logger.info("ModelRegistry: successfully auto-registered persisted XGBoost model from disk.")
+        except Exception as e:
+            logger.warning(f"ModelRegistry: auto-registration of persisted model skipped: {e}")
+
     def get_preferred_model(self) -> BaseCrowdModel:
         """
         Return the best available trained ML model.
         Falls back to the deterministic baseline if no ML model is trained.
         """
-        # Prefer ML models (non-baseline) if they are trained
         for model in self._models.values():
             if model.name != "baseline_rule_v2":
-                # Check if it has an is_trained attribute and it's True
-                if getattr(model, "is_trained", True):
+                if getattr(model, "is_trained", False):
                     return model
         return self._baseline
 
@@ -116,7 +154,14 @@ class ModelRegistry:
         Returns a dict with:
           - predicted_pressure: float
           - model_used: str
-          - fallback_reason: str | None (set if ML was bypassed)
+          - model_version: str
+          - model_status: str
+          - production_eligible: bool
+          - dataset_mode: str
+          - feature_schema_version: str
+          - feature_importances: dict
+          - fallback_active: bool
+          - fallback_reason: str | None
         """
         model = self._models.get(prefer_model) if prefer_model else self.get_preferred_model()
 
@@ -128,6 +173,12 @@ class ModelRegistry:
                     "predicted_pressure": pred,
                     "model_used": model.name,
                     "model_version": model.version,
+                    "model_status": getattr(model, "model_status", "UNKNOWN"),
+                    "production_eligible": getattr(model, "production_eligible", False),
+                    "dataset_mode": getattr(model, "dataset_mode", "UNKNOWN"),
+                    "feature_schema_version": getattr(model, "feature_schema_version", "2.0.0"),
+                    "feature_importances": getattr(model, "feature_importances", {}),
+                    "fallback_active": False,
                     "fallback_reason": None,
                 }
             except Exception as e:
@@ -135,6 +186,9 @@ class ModelRegistry:
                     f"ML model '{model.name}' prediction failed ({e}). "
                     f"Falling back to BaselineRuleModel."
                 )
+                fallback_reason = f"ML model prediction error ({type(e).__name__}): {e}"
+        else:
+            fallback_reason = "No trained ML model available; using deterministic baseline."
 
         # Baseline fallback (always succeeds)
         pred = self._baseline.predict(features)
@@ -142,7 +196,13 @@ class ModelRegistry:
             "predicted_pressure": pred,
             "model_used": self._baseline.name,
             "model_version": self._baseline.version,
-            "fallback_reason": "ML model unavailable or prediction failed; using deterministic baseline.",
+            "model_status": "BASELINE_FALLBACK" if (prefer_model or model != self._baseline) else "BASELINE",
+            "production_eligible": False,
+            "dataset_mode": "DETERMINISTIC_RULES",
+            "feature_schema_version": "2.0.0",
+            "feature_importances": {},
+            "fallback_active": True if (prefer_model or model != self._baseline) else False,
+            "fallback_reason": fallback_reason,
         }
 
     def list_models(self) -> List[Dict[str, Any]]:
@@ -155,18 +215,58 @@ class ModelRegistry:
                 "type": "BASELINE_RULE" if "baseline" in m.name else "ML_REGRESSOR",
                 "backend": getattr(m, "backend", "rule_based"),
                 "is_trained": getattr(m, "is_trained", True),
+                "model_status": getattr(m, "model_status", "BASELINE" if "baseline" in m.name else "UNKNOWN"),
+                "production_eligible": getattr(m, "production_eligible", False),
+                "dataset_mode": getattr(m, "dataset_mode", "REAL" if "baseline" not in m.name else "DETERMINISTIC_RULES"),
             }
-            # Include training metadata if present
             metadata = getattr(m, "_metadata", {})
             if metadata:
                 entry["training_date"] = metadata.get("training_date")
-                entry["dataset_mode"] = metadata.get("dataset_mode")
+                entry["dataset_mode"] = metadata.get("dataset_mode", entry["dataset_mode"])
                 entry["dataset_version"] = metadata.get("dataset_version")
+                entry["feature_schema_version"] = metadata.get("feature_schema_version", "2.0.0")
+                entry["training_rows"] = metadata.get("training_rows")
+                entry["destination_count"] = metadata.get("destination_count")
+                entry["horizons_supported"] = metadata.get("horizons_supported", [1, 3, 7, 14])
                 entry["test_mae"] = metadata.get("test_mae")
                 entry["test_rmse"] = metadata.get("test_rmse")
+                entry["test_r2"] = metadata.get("test_r2")
                 entry["test_directional_accuracy"] = metadata.get("test_directional_accuracy")
+                entry["production_eligible"] = metadata.get("production_eligible", False)
+                entry["top_features"] = metadata.get("top_features", [])
             results.append(entry)
         return results
+
+    def get_production_readiness(self) -> Dict[str, Any]:
+        """
+        Returns complete model registry readiness state, transparently disclosing
+        whether active forecasting is powered by REAL XGBoost, SYNTHETIC_BENCHMARK,
+        or BASELINE fallback.
+        """
+        preferred = self.get_preferred_model()
+        is_xgb = preferred.name != "baseline_rule_v2"
+        meta = getattr(preferred, "_metadata", {}) or {}
+
+        return {
+            "model_status": getattr(preferred, "model_status", "BASELINE" if not is_xgb else "UNKNOWN"),
+            "model_version": getattr(preferred, "version", "2.0.0"),
+            "dataset_mode": getattr(preferred, "dataset_mode", "DETERMINISTIC_RULES" if not is_xgb else "UNKNOWN"),
+            "production_eligible": getattr(preferred, "production_eligible", False),
+            "feature_schema_version": getattr(preferred, "feature_schema_version", "2.0.0"),
+            "trained_at": meta.get("trained_at") or meta.get("training_date"),
+            "training_rows": meta.get("training_rows", 0),
+            "training_destinations": meta.get("training_destinations") or meta.get("destination_count", 0),
+            "training_temporal_span_days": meta.get("training_temporal_span_days", 0),
+            "training_provenance": meta.get("training_provenance", {}),
+            "evaluation_metrics": meta.get("evaluation_metrics") or {
+                "test_mae": meta.get("test_mae"),
+                "test_rmse": meta.get("test_rmse"),
+                "test_r2": meta.get("test_r2"),
+                "test_directional_accuracy": meta.get("test_directional_accuracy"),
+            },
+            "baseline_metrics": meta.get("baseline_metrics", {}),
+            "promotion_reason": meta.get("promotion_reason", "Using deterministic baseline Crowd Engine V2 rules."),
+        }
 
 
 # Singleton instance

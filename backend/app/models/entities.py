@@ -6,7 +6,7 @@ Defines all 16 core platform entities.
 
 from datetime import datetime, date
 from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, Date, DateTime, Text, ForeignKey, JSON, UniqueConstraint
+    Column, String, Integer, Float, Boolean, Date, DateTime, Text, ForeignKey, JSON, UniqueConstraint, Index
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -28,6 +28,7 @@ class DestinationModel(Base):
 
     attractions = relationship("AttractionModel", back_populates="destination", cascade="all, delete-orphan")
     homestays = relationship("HomestayModel", back_populates="destination", cascade="all, delete-orphan")
+    historical_observations = relationship("HistoricalObservationModel", back_populates="destination", cascade="all, delete-orphan")
 
 
 # 2. Attraction Entity
@@ -311,3 +312,88 @@ class DemandEventModel(Base):
     metadata_json = Column(JSON, nullable=True)
     source = Column(String(128), default="YATRI_SETU_NETWORK", nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# 18. Historical Tourism & Crowd Observation Entity (Milestone 10 / Prompt 3)
+class HistoricalObservationModel(Base):
+    __tablename__ = "historical_crowd_observations"
+
+    id = Column(String(64), primary_key=True, index=True) # Deterministic hash: {destination_id}:{date_bucket}:{dataset_mode}
+    destination_id = Column(String(64), ForeignKey("destinations.id"), nullable=False, index=True)
+    observed_at = Column(DateTime, nullable=False, index=True)
+    date_bucket = Column(String(10), nullable=False, index=True) # YYYY-MM-DD canonical daily alignment
+
+    # Signals are explicitly nullable - missing signals remain NULL/None, never manufactured
+    footfall = Column(Float, nullable=True)
+    accommodation_occupancy = Column(Float, nullable=True)
+    booking_demand = Column(Float, nullable=True)
+    search_demand = Column(Float, nullable=True)
+    traffic_pressure = Column(Float, nullable=True)
+    weather_pressure = Column(Float, nullable=True)
+    holiday_pressure = Column(Float, nullable=True)
+    event_pressure = Column(Float, nullable=True)
+    current_crowd_pressure = Column(Float, nullable=True) # Computed by Crowd Engine V2
+
+    # Calendar & Event Context
+    is_weekend = Column(Boolean, default=False)
+    is_holiday = Column(Boolean, default=False)
+    holiday_name = Column(String(128), nullable=True)
+    active_events_count = Column(Integer, default=0)
+
+    # Signal-level provenance & quality auditing
+    signal_provenance_json = Column(JSON, nullable=True) # Dict of signal_name -> {source, provider_mode, confidence, is_available}
+    data_status = Column(String(32), default="PARTIAL") # COMPLETE, PARTIAL, DEGRADED, UNAVAILABLE, SYNTHETIC
+    dataset_mode = Column(String(32), default="REAL", index=True) # REAL, SYNTHETIC, MIXED
+    composite_confidence = Column(Float, default=0.0)
+    ingested_at = Column(DateTime, default=datetime.utcnow)
+
+    @property
+    def signal_provenance(self):
+        return self.signal_provenance_json
+
+    # Relationships & Constraints
+    destination = relationship("DestinationModel", back_populates="historical_observations")
+
+    __table_args__ = (
+        Index("idx_hist_dest_observed_at", "destination_id", "observed_at"),
+        UniqueConstraint("destination_id", "date_bucket", "dataset_mode", name="uq_dest_date_bucket_mode"),
+    )
+
+
+# 19. Daily Operational Capture Ledger Entity (Milestone 13 / Prompt 12)
+class DailyCaptureLedgerModel(Base):
+    __tablename__ = "daily_capture_ledger"
+
+    id = Column(String(128), primary_key=True, index=True) # {destination_id}_{date_bucket}_{dataset_mode}
+    destination_id = Column(String(64), ForeignKey("destinations.id"), nullable=False, index=True)
+    date_bucket = Column(String(10), nullable=False, index=True) # YYYY-MM-DD
+    dataset_mode = Column(String(32), default="REAL", index=True) # REAL, SYNTHETIC, MIXED
+
+    attempted = Column(Boolean, default=True)
+    attempted_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    attempts_count = Column(Integer, default=1)
+    retry_count = Column(Integer, default=0)
+
+    sources_attempted_json = Column(JSON, nullable=True)
+    sources_succeeded_json = Column(JSON, nullable=True)
+    sources_failed_json = Column(JSON, nullable=True)
+
+    validation_passed = Column(Boolean, default=False)
+    validation_errors_json = Column(JSON, nullable=True)
+    ml_eligible = Column(Boolean, default=False)
+    is_quarantined = Column(Boolean, default=False)
+    quarantine_reason = Column(String(256), nullable=True)
+    is_duplicate = Column(Boolean, default=False)
+
+    final_status = Column(String(32), default="EXPECTED", index=True) # CAPTURED_VALID, CAPTURED_INVALID, MISSING, INCOMPLETE, DUPLICATE, EXPECTED
+    provenance_summary_json = Column(JSON, nullable=True)
+    observation_record_id = Column(String(64), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_ledger_dest_date", "destination_id", "date_bucket"),
+        UniqueConstraint("destination_id", "date_bucket", "dataset_mode", name="uq_ledger_dest_date_mode"),
+    )

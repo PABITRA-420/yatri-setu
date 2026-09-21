@@ -127,6 +127,7 @@ def _migrate_sqlite_columns() -> None:
 def init_db() -> None:
     """Initialize all registered SQLAlchemy tables with graceful error handling."""
     try:
+        import app.models.entities  # Ensure all models are registered on Base
         Base.metadata.create_all(bind=engine)
         _migrate_sqlite_columns()
         logger.info(f"Database schema initialized successfully (dialect: {engine.dialect.name}).")

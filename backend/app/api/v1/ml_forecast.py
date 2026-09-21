@@ -63,6 +63,14 @@ class MLForecastResponse(BaseModel):
         "They have NOT been statistically calibrated against held-out data."
     )
     generated_at: str
+    model_status: Optional[str] = None
+    production_eligible: bool = False
+    feature_schema_version: Optional[str] = "2.0.0"
+    feature_timestamp: Optional[str] = None
+    forecast_source_classification: Optional[str] = Field(
+        None,
+        description="REAL_XGBOOST_FORECAST | SYNTHETIC_BENCHMARK | BASELINE_FALLBACK | INSUFFICIENT_DATA"
+    )
 
 
 def _pressure_level(score: float) -> str:
@@ -85,12 +93,13 @@ def get_ml_pressure_forecast(
 
     - Uses XGBoostCrowdModel if trained, with automatic fallback to BaselineRuleModel.
     - Supports 1, 3, 7, and 14-day horizons.
+    - Feature vectors are constructed using canonical StandardFeatureBuilder.
     - Confidence values are heuristic (NOT statistically calibrated).
     - Fallback is transparent: 'fallback_active' and 'fallback_reason' are always returned.
     """
     dest = destination_id.lower().strip()
 
-    # Use existing crowd engine for current pressure reference
+    # Use canonical Crowd Engine V2 for current pressure reference
     try:
         current = crowd_engine_v2.calculate_pressure(dest, None)
         current_pressure = current.pressure_score
@@ -98,68 +107,94 @@ def get_ml_pressure_forecast(
     except Exception:
         current_pressure = 50.0
         dest_name = dest.title()
+        current = None
 
-    # Use the crowd engine's 7-day forecast as base signal inputs
+    # Base forecast for calendar/holiday context
     try:
         base_forecast = crowd_engine_v2.calculate_pressure_forecast(dest, max(days, 7))
         base_days = base_forecast.forecast_days
     except Exception:
         base_days = []
 
+    now_dt = datetime.now(timezone.utc)
+    feature_date = now_dt.date()
+    feature_timestamp_str = feature_date.strftime("%Y-%m-%d")
+
+    # Extract genuine available signals from Crowd Engine V2 (no artificial multipliers)
+    current_telemetry: Dict[str, Any] = {}
+    if current and hasattr(current, "signals") and current.signals:
+        for s in current.signals:
+            if getattr(s, "available", True):
+                val = getattr(s, "value", None)
+                if val is not None:
+                    k = getattr(s, "signal_key", "")
+                    if k in ("footfall", "historical_footfall"):
+                        current_telemetry["footfall"] = val
+                    elif k in ("accommodation", "accommodation_occupancy"):
+                        current_telemetry["accommodation_occupancy"] = val
+                    elif k in ("booking", "booking_demand"):
+                        current_telemetry["booking_demand"] = val
+                    elif k in ("search", "search_demand"):
+                        current_telemetry["search_demand"] = val
+                    elif k in ("events", "event_pressure"):
+                        current_telemetry["event_pressure"] = val
+                    elif k in ("holidays", "holiday_pressure"):
+                        current_telemetry["holiday_pressure"] = val
+                    elif k in ("weather", "weather_pressure"):
+                        current_telemetry["weather_pressure"] = val
+                    elif k in ("traffic", "traffic_pressure"):
+                        current_telemetry["traffic_pressure"] = val
+
+    # Fallback to current composite pressure if footfall was not separately measured
+    if "footfall" not in current_telemetry:
+        current_telemetry["footfall"] = current_pressure
+
     forecast_days: List[MLForecastDay] = []
     fallback_active = False
     model_used_name = "baseline_rule_v2"
     model_version = "2.0.0"
     dataset_mode = None
+    model_status = None
+    production_eligible = False
+    feature_schema_version = "2.0.0"
+
+    preferred = model_registry.get_preferred_model()
+    if preferred:
+        model_used_name = preferred.name
+        model_version = preferred.version
+        model_status = getattr(preferred, "model_status", "BASELINE" if "baseline" in preferred.name else "UNKNOWN")
+        production_eligible = getattr(preferred, "production_eligible", False)
+        if hasattr(preferred, "_metadata") and preferred._metadata:
+            dataset_mode = preferred._metadata.get("dataset_mode", getattr(preferred, "dataset_mode", None))
+            feature_schema_version = preferred._metadata.get("feature_schema_version", "2.0.0")
 
     for d in range(days):
-        target_date = (datetime.now(timezone.utc) + timedelta(days=d + 1)).date()
+        target_horizon_days = d + 1
+        target_date = feature_date + timedelta(days=target_horizon_days)
         date_str = target_date.strftime("%Y-%m-%d")
         day_name = target_date.strftime("%A")
         is_weekend = target_date.weekday() >= 4
 
-        # Build feature dict from the base forecast if available
+        # Contextual day signals (e.g. from calendar/base forecast)
+        day_telemetry = dict(current_telemetry)
         if d < len(base_days):
             base = base_days[d]
-            features = {
-                "historical_footfall": current_pressure,
-                "accommodation_occupancy": current_pressure * 0.95,
-                "booking_demand": current_pressure * 0.9,
-                "search_demand": current_pressure * 1.05,
-                "event_pressure": float(getattr(base, "is_holiday", False)) * 50.0 + 15.0,
-                "holiday_pressure": float(getattr(base, "is_holiday", False)) * 60.0,
-                "weather_pressure": 55.0,
-                "traffic_pressure": current_pressure * 0.85,
-                "day_of_week": target_date.weekday(),
-                "is_weekend": int(is_weekend),
-                "month": target_date.month,
-                "day_of_year": target_date.timetuple().tm_yday,
-                "search_to_booking_ratio": 1.05,
-                "is_peak_summer": int(target_date.month in (4, 5, 6)),
-                "is_peak_autumn": int(target_date.month in (9, 10, 11)),
-                **{f"dest_{d_}": int(d_ == dest) for d_ in ["darjeeling","kalimpong","mirik","lava","lolegaon","rishop"]},
-            }
-        else:
-            features = {
-                "historical_footfall": current_pressure,
-                "accommodation_occupancy": current_pressure * 0.95,
-                "booking_demand": current_pressure * 0.9,
-                "search_demand": current_pressure * 1.05,
-                "event_pressure": 20.0,
-                "holiday_pressure": 15.0,
-                "weather_pressure": 55.0,
-                "traffic_pressure": current_pressure * 0.85,
-                "day_of_week": target_date.weekday(),
-                "is_weekend": int(is_weekend),
-                "month": target_date.month,
-                "day_of_year": target_date.timetuple().tm_yday,
-                "search_to_booking_ratio": 1.0,
-                "is_peak_summer": int(target_date.month in (4, 5, 6)),
-                "is_peak_autumn": int(target_date.month in (9, 10, 11)),
-                **{f"dest_{d_}": int(d_ == dest) for d_ in ["darjeeling","kalimpong","mirik","lava","lolegaon","rishop"]},
-            }
+            is_hol = getattr(base, "is_holiday", False)
+            if is_hol:
+                day_telemetry["holiday_pressure"] = 60.0
+                day_telemetry["event_pressure"] = max(day_telemetry.get("event_pressure", 20.0), 50.0)
 
-        # Use ML-aware safe_predict (with automatic fallback)
+        # Single Source of Truth: Canonical StandardFeatureBuilder
+        features = _feature_builder.build_inference_features(
+            destination_id=dest,
+            target_date=target_date,
+            feature_date=feature_date,
+            target_horizon_days=target_horizon_days,
+            horizon_days=target_horizon_days,
+            current_telemetry=day_telemetry
+        )
+
+        # Safe prediction with schema validation & baseline fallback
         result = model_registry.safe_predict(features)
         predicted = result["predicted_pressure"]
         m_used = result["model_used"]
@@ -185,11 +220,18 @@ def get_ml_pressure_forecast(
             is_weekend=is_weekend,
         ))
 
-    # Get metadata if ML model trained
-    meta = model_registry.get_preferred_model()
-    if hasattr(meta, "_metadata") and meta._metadata:
-        dataset_mode = meta._metadata.get("dataset_mode")
-        model_version = getattr(meta, "version", "2.0.0")
+    # Determine explicit classification distinguishing REAL vs SYNTHETIC vs BASELINE vs INSUFFICIENT
+    if fallback_active or "baseline" in model_used_name:
+        if fallback_reason and "insufficient" in fallback_reason.lower():
+            classification = "INSUFFICIENT_DATA"
+        else:
+            classification = "BASELINE_FALLBACK"
+    elif dataset_mode == "REAL" and production_eligible:
+        classification = "REAL_XGBOOST_FORECAST"
+    elif dataset_mode == "SYNTHETIC":
+        classification = "SYNTHETIC_BENCHMARK"
+    else:
+        classification = "BASELINE_FALLBACK"
 
     return MLForecastResponse(
         destination_id=dest,
@@ -201,5 +243,14 @@ def get_ml_pressure_forecast(
         model_version=model_version,
         dataset_mode=dataset_mode,
         fallback_active=fallback_active,
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        confidence_note=(
+            "Confidence values are heuristic estimates that decay with forecast horizon. "
+            "They have NOT been statistically calibrated against held-out data."
+        ),
+        generated_at=now_dt.isoformat(),
+        model_status=model_status,
+        production_eligible=production_eligible,
+        feature_schema_version=feature_schema_version,
+        feature_timestamp=feature_timestamp_str,
+        forecast_source_classification=classification,
     )

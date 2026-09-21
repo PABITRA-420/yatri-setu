@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/accordion';
 import { DestinationSummary } from '@/types';
 import { cn } from '@/lib/utils';
+import { fetchDestinations } from '@/lib/api';
 
 export default function HomePage() {
   const router = useRouter();
@@ -128,14 +129,40 @@ export default function HomePage() {
     }
   ];
 
-  const regionalTickerData = [
+  const [regionalTickerData, setRegionalTickerData] = useState([
     { id: 'darjeeling', name: 'Darjeeling', score: 88, level: 'CRITICAL', trend: '+14% vs avg', color: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400', dot: 'bg-rose-500 animate-ping' },
     { id: 'kalimpong', name: 'Kalimpong', score: 42, level: 'MODERATE', trend: 'Balanced flow', color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
     { id: 'lava', name: 'Lava', score: 24, level: 'CALM', trend: 'Open trails', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
     { id: 'lolegaon', name: 'Lolegaon', score: 18, level: 'SERENE', trend: 'Canopy open', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
     { id: 'rishop', name: 'Rishop', score: 15, level: 'SERENE', trend: 'Crystal clear', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
     { id: 'mirik', name: 'Mirik', score: 38, level: 'MODERATE', trend: 'Lake relaxed', color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' }
-  ];
+  ]);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchDestinations()
+      .then((items) => {
+        if (isMounted && items && items.length > 0) {
+          setRegionalTickerData((prev) =>
+            prev.map((t) => {
+              const live = items.find((x) => x.id === t.id);
+              if (!live) return t;
+              return {
+                ...t,
+                score: live.crowd_score,
+                level: live.crowd_level.toUpperCase()
+              };
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Using offline fallback destinations on homepage:', err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredTicker = useMemo(() => {
     if (activeTickerFilter === 'calm') {
@@ -145,7 +172,7 @@ export default function HomePage() {
       return regionalTickerData.filter(d => d.score >= 50);
     }
     return regionalTickerData;
-  }, [activeTickerFilter]);
+  }, [activeTickerFilter, regionalTickerData]);
 
 
 

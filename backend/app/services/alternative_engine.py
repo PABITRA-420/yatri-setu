@@ -4,7 +4,7 @@ from app.data.seed_data import DESTINATIONS_DATA
 from app.models.crowd import (
     AlternativeRecommendation, AlternativesResponse, CrowdLevel, AlternativeWeather
 )
-from app.services.crowd_engine import calculate_crowd_score
+from app.services.crowd_engine_v2 import crowd_engine_v2
 
 def haversine_distance_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance between two GPS coordinates in kilometers."""
@@ -175,7 +175,7 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
     else:
         origin_dest = dest_map[origin_id_norm]
 
-    origin_crowd = calculate_crowd_score(origin_id_norm)
+    origin_crowd = crowd_engine_v2.get_canonical_crowd_response(origin_id_norm)
     origin_cost = origin_dest["attributes"]["avg_cost_per_day_inr"]
 
     recommendations: List[AlternativeRecommendation] = []
@@ -216,7 +216,7 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
             continue  # Skip saturated destinations
 
         # 5. Pressure Filter: Exclude destinations at critical pressure or higher than origin
-        crowd_data = calculate_crowd_score(dest_id)
+        crowd_data = crowd_engine_v2.get_canonical_crowd_response(dest_id)
         if crowd_data.crowd_score >= 80:
             continue  # Do not redirect to high/critical pressure zones
 
@@ -359,6 +359,7 @@ def get_alternative_destinations(origin_id: str) -> AlternativesResponse:
                 crowd_score=crowd_data.crowd_score,
                 crowd_level=crowd_data.crowd_level,
                 similarity_score=similarity,
+                similarity_provenance="DEMO_CALIBRATION_BENCHMARK",
                 original_crowd_score=origin_crowd.crowd_score,
                 alternative_crowd_score=crowd_data.crowd_score,
                 crowd_reduction_percent=reduction_percent,
