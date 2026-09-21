@@ -594,9 +594,10 @@ class ProductionTrainingCoordinator:
         }
 
         comparison = compare_models(
-            candidate_preds=xgb_preds,
-            baseline_preds=baseline_preds,
-            actuals=y_test,
+            baseline_mae=baseline_metrics["mae"],
+            ml_mae=xgb_metrics["mae"],
+            baseline_rmse=baseline_metrics["rmse"],
+            ml_rmse=xgb_metrics["rmse"],
         )
 
         # Per-horizon real validation breakdown (Prompt 10 Section 18)
