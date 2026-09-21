@@ -261,3 +261,30 @@ def execute_accumulation_cycle(
     """
     from app.services.ml.production_training_coordinator import production_training_coordinator
     return production_training_coordinator.run_automated_accumulation_cycle(force_retrain=force)
+
+
+@router.get("/accumulation-health", summary="Get comprehensive daily accumulation health report")
+def get_daily_accumulation_health(
+    date_bucket: Optional[str] = Query(None, description="Observation date YYYY-MM-DD (defaults to today)"),
+    dataset_mode: str = Query("REAL", description="Dataset mode: REAL | SYNTHETIC | MIXED"),
+):
+    """
+    Returns structured daily historical accumulation health result (Prompt 12 Section 5, 25):
+    expected vs captured canonical destinations, valid/invalid/missing/incomplete/duplicate breakdown,
+    source health & freshness, accumulation streaks, velocity, hardened non-guaranteed projection,
+    and authoritative ProductionEligibilityGate evaluation.
+    """
+    from app.services.historical.accumulation_health_service import accumulation_health_service
+    return accumulation_health_service.get_daily_accumulation_health(date_bucket=date_bucket, dataset_mode=dataset_mode)
+
+
+@router.get("/accumulation-history", summary="Get historical daily accumulation health records")
+def get_accumulation_history(
+    limit_days: int = Query(14, ge=1, le=90, description="Number of recent observation dates to return"),
+    dataset_mode: str = Query("REAL", description="Dataset mode: REAL | SYNTHETIC | MIXED"),
+):
+    """
+    Returns historical chronological daily accumulation health records (Prompt 12 Section 25).
+    """
+    from app.services.historical.accumulation_health_service import accumulation_health_service
+    return {"history": accumulation_health_service.get_accumulation_history(limit_days=limit_days, dataset_mode=dataset_mode)}

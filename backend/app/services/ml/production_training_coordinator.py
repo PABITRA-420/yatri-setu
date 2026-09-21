@@ -829,25 +829,37 @@ class ProductionTrainingCoordinator:
         db: Optional[Session] = None,
     ) -> Dict[str, Any]:
         """
-        Executes automated daily accumulation, gate evaluation, and conditional training (Prompt 11 Section 14, 25).
+        Executes automated daily accumulation, durable ledger auditing, health computation,
+        gate evaluation, and conditional training (Prompt 11 Section 14, 25; Prompt 12 Section 21).
         """
-        from app.services.historical.ingestion_service import historical_ingestion_service
-        capture_res = historical_ingestion_service.run_daily_scheduled_capture(
-            date_bucket=str(target_date) if target_date else None,
-            db=db,
-        )
+        from app.services.historical.ingestion_service import historical_ingestion_service, _CAPTURE_SCHEDULER_LOCK
+        from app.services.historical.accumulation_health_service import accumulation_health_service
 
-        transition_res = self.detect_state_transition(db=db)
-        training_res = self.retrain_if_eligible(force=force_retrain, db=db)
+        with _CAPTURE_SCHEDULER_LOCK:
+            target_date_str = str(target_date) if target_date else None
+            capture_res = historical_ingestion_service.run_daily_scheduled_capture(
+                date_bucket=target_date_str,
+                db=db,
+            )
 
-        return {
-            "cycle_status": "COMPLETED",
-            "capture_summary": capture_res,
-            "transition_summary": transition_res,
-            "training_summary": training_res,
-            "final_state": self.get_production_state(db=db),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+            actual_date_str = capture_res.get("date_bucket") or target_date_str
+            health_res = accumulation_health_service.get_daily_accumulation_health(
+                date_bucket=actual_date_str,
+                db=db,
+            )
+
+            transition_res = self.detect_state_transition(db=db)
+            training_res = self.retrain_if_eligible(force=force_retrain, db=db)
+
+            return {
+                "cycle_status": "COMPLETED",
+                "capture_summary": capture_res,
+                "accumulation_health": health_res,
+                "transition_summary": transition_res,
+                "training_summary": training_res,
+                "final_state": self.get_production_state(db=db),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
 
 
 # Singleton instance

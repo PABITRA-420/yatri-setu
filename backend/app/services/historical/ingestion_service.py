@@ -40,7 +40,11 @@ from app.services.historical.destination_registry import (
     is_canonical_destination,
 )
 
+import threading
 logger = logging.getLogger(__name__)
+
+# Concurrency lock ensuring single-worker scheduled capture execution
+_CAPTURE_SCHEDULER_LOCK = threading.RLock()
 
 
 class HistoricalIngestionService:
@@ -426,138 +430,221 @@ class HistoricalIngestionService:
         db: Optional[Session] = None
     ) -> Dict[str, Any]:
         """
-        Scheduled daily observation capture with retry handling, duplicate protection,
-        idempotent ingestion, and explicit provenance logging.
+        Scheduled daily observation capture with concurrency locking, retry handling,
+        duplicate protection, durable operational ledger auditing, and explicit provenance logging.
         Ensures continuous, non-fabricated dataset growth over time.
         """
         import time
         from datetime import timedelta
-        close_db = False
-        if db is None:
-            db = SessionLocal()
-            close_db = True
+        from app.services.historical.quality_scoring import observation_quality_scorer
+        from app.services.historical.accumulation_health_service import accumulation_health_service
 
-        start_time = datetime.now(timezone.utc)
-        self._last_capture_start = start_time.isoformat()
+        with _CAPTURE_SCHEDULER_LOCK:
+            close_db = False
+            if db is None:
+                db = SessionLocal()
+                close_db = True
 
-        try:
-            results = []
-            errors = []
-            rows_created = 0
-            rows_updated = 0
-            duplicates_prevented = 0
-            retry_count = 0
-            provider_failures = []
-            total_signals_avail = 0
-            total_signals_unavail = 0
-            date_str = date_bucket or start_time.strftime("%Y-%m-%d")
+            start_time = datetime.now(timezone.utc)
+            self._last_capture_start = start_time.isoformat()
 
-            for dest in CANONICAL_DESTINATIONS:
-                record_id = self._generate_record_id(dest, date_str, dataset_mode)
-                existing = db.query(HistoricalObservationModel).filter(
-                    HistoricalObservationModel.id == record_id
-                ).first()
-                is_create = existing is None
-                existing_signals = (
-                    existing.footfall, existing.accommodation_occupancy, existing.booking_demand,
-                    existing.search_demand, existing.traffic_pressure, existing.weather_pressure,
-                    existing.holiday_pressure, existing.event_pressure, existing.current_crowd_pressure
-                ) if existing else None
+            try:
+                results = []
+                errors = []
+                rows_created = 0
+                rows_updated = 0
+                duplicates_prevented = 0
+                retry_count = 0
+                provider_failures = []
+                total_signals_avail = 0
+                total_signals_unavail = 0
+                date_str = date_bucket or start_time.strftime("%Y-%m-%d")
 
-                attempt = 0
-                success = False
-                last_err = None
-                while attempt < max_retries and not success:
-                    attempt += 1
-                    if attempt > 1:
-                        retry_count += 1
-                    try:
-                        rec = self.capture_current_observation(
-                            destination_id=dest,
-                            date_bucket=date_str,
-                            dataset_mode=dataset_mode,
-                            db=db
-                        )
-                        results.append(rec)
-                        success = True
-                        if is_create:
-                            rows_created += 1
-                        else:
-                            new_signals = (
+                for dest in CANONICAL_DESTINATIONS:
+                    record_id = self._generate_record_id(dest, date_str, dataset_mode)
+                    existing = db.query(HistoricalObservationModel).filter(
+                        HistoricalObservationModel.id == record_id
+                    ).first()
+                    is_create = existing is None
+                    existing_signals = (
+                        existing.footfall, existing.accommodation_occupancy, existing.booking_demand,
+                        existing.search_demand, existing.traffic_pressure, existing.weather_pressure,
+                        existing.holiday_pressure, existing.event_pressure, existing.current_crowd_pressure
+                    ) if existing else None
+
+                    attempt = 0
+                    success = False
+                    last_err = None
+                    dest_provider_failures = []
+                    rec = None
+
+                    while attempt < max_retries and not success:
+                        attempt += 1
+                        if attempt > 1:
+                            retry_count += 1
+                        try:
+                            rec = self.capture_current_observation(
+                                destination_id=dest,
+                                date_bucket=date_str,
+                                dataset_mode=dataset_mode,
+                                db=db
+                            )
+                            results.append(rec)
+                            success = True
+                            is_dup = False
+                            if is_create:
+                                rows_created += 1
+                            else:
+                                new_signals = (
+                                    rec.footfall, rec.accommodation_occupancy, rec.booking_demand,
+                                    rec.search_demand, rec.traffic_pressure, rec.weather_pressure,
+                                    rec.holiday_pressure, rec.event_pressure, rec.current_crowd_pressure
+                                )
+                                if existing_signals == new_signals:
+                                    duplicates_prevented += 1
+                                    is_dup = True
+                                else:
+                                    rows_updated += 1
+
+                            # Calculate signal availability
+                            all_signals = [
                                 rec.footfall, rec.accommodation_occupancy, rec.booking_demand,
                                 rec.search_demand, rec.traffic_pressure, rec.weather_pressure,
                                 rec.holiday_pressure, rec.event_pressure, rec.current_crowd_pressure
-                            )
-                            if existing_signals == new_signals:
-                                duplicates_prevented += 1
+                            ]
+                            avail = sum(1 for s in all_signals if s is not None)
+                            total_signals_avail += avail
+                            total_signals_unavail += (len(all_signals) - avail)
+
+                            # Quality score for ledger audit
+                            q = observation_quality_scorer.score_observation(rec)
+                            is_invalid = (q.quality_grade == "INVALID")
+                            validation_passed = not is_invalid
+
+                            if is_invalid:
+                                final_status = "CAPTURED_INVALID"
+                            elif rec.current_crowd_pressure is None:
+                                final_status = "INCOMPLETE"
+                            elif is_dup:
+                                final_status = "DUPLICATE"
                             else:
-                                rows_updated += 1
+                                final_status = "CAPTURED_VALID"
 
-                        # Calculate signal availability
-                        all_signals = [
-                            rec.footfall, rec.accommodation_occupancy, rec.booking_demand,
-                            rec.search_demand, rec.traffic_pressure, rec.weather_pressure,
-                            rec.holiday_pressure, rec.event_pressure, rec.current_crowd_pressure
-                        ]
-                        avail = sum(1 for s in all_signals if s is not None)
-                        total_signals_avail += avail
-                        total_signals_unavail += (len(all_signals) - avail)
+                            # Extract sources attempted and succeeded from provenance
+                            prov = rec.signal_provenance_json or {}
+                            s_att = []
+                            s_succ = []
+                            for s_name, p_entry in prov.items():
+                                if isinstance(p_entry, dict):
+                                    src = p_entry.get("source")
+                                    if src:
+                                        s_att.append(src)
+                                        if p_entry.get("is_available"):
+                                            s_succ.append(src)
 
-                    except Exception as e:
-                        last_err = str(e)
-                        provider_failures.append({
-                            "destination_id": dest,
-                            "attempt": attempt,
-                            "error": last_err
-                        })
-                        logger.warning(f"Daily capture attempt {attempt}/{max_retries} failed for {dest}: {e}")
-                        if attempt < max_retries:
-                            time.sleep(0.5)
-                if not success:
-                    logger.error(f"Failed all {max_retries} daily capture attempts for {dest}: {last_err}")
-                    errors.append({"destination_id": dest, "error": last_err, "attempts": attempt})
+                            # Record into durable operational ledger
+                            accumulation_health_service.record_daily_ledger_entry(
+                                destination_id=dest,
+                                date_bucket=date_str,
+                                dataset_mode=dataset_mode,
+                                attempted=True,
+                                attempts_count=attempt,
+                                retry_count=attempt - 1,
+                                sources_attempted=sorted(list(set(s_att))),
+                                sources_succeeded=sorted(list(set(s_succ))),
+                                sources_failed=dest_provider_failures,
+                                validation_passed=validation_passed,
+                                validation_errors=q.validation_errors,
+                                ml_eligible=validation_passed,
+                                is_quarantined=is_invalid,
+                                quarantine_reason=", ".join(q.validation_errors) if q.validation_errors else None,
+                                is_duplicate=is_dup,
+                                final_status=final_status,
+                                provenance_summary=prov,
+                                observation_record_id=rec.id,
+                                db=db,
+                            )
 
-            completion_time = datetime.now(timezone.utc)
-            self._last_capture_completion = completion_time.isoformat()
-            if results:
-                self._last_successful_capture = completion_time.isoformat()
-            if errors:
-                self._last_failed_capture = completion_time.isoformat()
+                        except Exception as e:
+                            last_err = str(e)
+                            fail_entry = {
+                                "destination_id": dest,
+                                "attempt": attempt,
+                                "error": last_err
+                            }
+                            provider_failures.append(fail_entry)
+                            dest_provider_failures.append(fail_entry)
+                            logger.warning(f"Daily capture attempt {attempt}/{max_retries} failed for {dest}: {e}")
+                            if attempt < max_retries:
+                                time.sleep(0.5)
 
-            status_summary = {
-                "status": "SUCCESS" if not errors else ("PARTIAL" if results else "FAILED"),
-                "last_capture": completion_time.isoformat(),
-                "last_capture_start": self._last_capture_start,
-                "last_capture_completion": self._last_capture_completion,
-                "last_successful_capture": self._last_successful_capture,
-                "last_failed_capture": self._last_failed_capture,
-                "next_recommended_capture": (completion_time + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat(),
-                "destinations_attempted": len(CANONICAL_DESTINATIONS),
-                "destinations_successful": [r.destination_id for r in results],
-                "destinations_failed": [e["destination_id"] for e in errors],
-                "successful_destinations": [r.destination_id for r in results],
-                "failed_destinations": [e["destination_id"] for e in errors],
-                "captured_destinations": [r.destination_id for r in results],
-                "signals_available": total_signals_avail,
-                "signals_unavailable": total_signals_unavail,
-                "captured_count": len(results),
-                "rows_captured": len(results),
-                "rows_inserted": rows_created,
-                "rows_created": rows_created,
-                "rows_updated": rows_updated,
-                "duplicates_prevented": duplicates_prevented,
-                "provider_failures": provider_failures,
-                "retry_count": retry_count,
-                "error_count": len(errors),
-                "capture_freshness_seconds": 0.0,
-                "dataset_mode": dataset_mode.upper(),
-                "date_bucket": date_str,
-            }
-            self._last_capture_status = status_summary
-            return status_summary
-        finally:
-            if close_db and db:
-                db.close()
+                    if not success:
+                        logger.error(f"Failed all {max_retries} daily capture attempts for {dest}: {last_err}")
+                        errors.append({"destination_id": dest, "error": last_err, "attempts": attempt})
+                        # Record failure into durable operational ledger
+                        accumulation_health_service.record_daily_ledger_entry(
+                            destination_id=dest,
+                            date_bucket=date_str,
+                            dataset_mode=dataset_mode,
+                            attempted=True,
+                            attempts_count=attempt,
+                            retry_count=attempt - 1,
+                            sources_attempted=[],
+                            sources_succeeded=[],
+                            sources_failed=dest_provider_failures,
+                            validation_passed=False,
+                            validation_errors=[last_err] if last_err else [],
+                            ml_eligible=False,
+                            is_quarantined=False,
+                            quarantine_reason=last_err,
+                            is_duplicate=False,
+                            final_status="MISSING",
+                            provenance_summary={},
+                            observation_record_id=None,
+                            db=db,
+                        )
+
+                completion_time = datetime.now(timezone.utc)
+                self._last_capture_completion = completion_time.isoformat()
+                if results:
+                    self._last_successful_capture = completion_time.isoformat()
+                if errors:
+                    self._last_failed_capture = completion_time.isoformat()
+
+                status_summary = {
+                    "status": "SUCCESS" if not errors else ("PARTIAL" if results else "FAILED"),
+                    "last_capture": completion_time.isoformat(),
+                    "last_capture_start": self._last_capture_start,
+                    "last_capture_completion": self._last_capture_completion,
+                    "last_successful_capture": self._last_successful_capture,
+                    "last_failed_capture": self._last_failed_capture,
+                    "next_recommended_capture": (completion_time + timedelta(days=1)).replace(hour=0, minute=0, second=0).isoformat(),
+                    "destinations_attempted": len(CANONICAL_DESTINATIONS),
+                    "destinations_successful": [r.destination_id for r in results],
+                    "destinations_failed": [e["destination_id"] for e in errors],
+                    "successful_destinations": [r.destination_id for r in results],
+                    "failed_destinations": [e["destination_id"] for e in errors],
+                    "captured_destinations": [r.destination_id for r in results],
+                    "signals_available": total_signals_avail,
+                    "signals_unavailable": total_signals_unavail,
+                    "captured_count": len(results),
+                    "rows_captured": len(results),
+                    "rows_inserted": rows_created,
+                    "rows_created": rows_created,
+                    "rows_updated": rows_updated,
+                    "duplicates_prevented": duplicates_prevented,
+                    "provider_failures": provider_failures,
+                    "retry_count": retry_count,
+                    "error_count": len(errors),
+                    "capture_freshness_seconds": 0.0,
+                    "dataset_mode": dataset_mode.upper(),
+                    "date_bucket": date_str,
+                }
+                self._last_capture_status = status_summary
+                return status_summary
+            finally:
+                if close_db and db:
+                    db.close()
 
     def get_capture_status(self, db: Optional[Session] = None) -> Dict[str, Any]:
         """

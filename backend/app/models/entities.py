@@ -358,3 +358,42 @@ class HistoricalObservationModel(Base):
         Index("idx_hist_dest_observed_at", "destination_id", "observed_at"),
         UniqueConstraint("destination_id", "date_bucket", "dataset_mode", name="uq_dest_date_bucket_mode"),
     )
+
+
+# 19. Daily Operational Capture Ledger Entity (Milestone 13 / Prompt 12)
+class DailyCaptureLedgerModel(Base):
+    __tablename__ = "daily_capture_ledger"
+
+    id = Column(String(128), primary_key=True, index=True) # {destination_id}_{date_bucket}_{dataset_mode}
+    destination_id = Column(String(64), ForeignKey("destinations.id"), nullable=False, index=True)
+    date_bucket = Column(String(10), nullable=False, index=True) # YYYY-MM-DD
+    dataset_mode = Column(String(32), default="REAL", index=True) # REAL, SYNTHETIC, MIXED
+
+    attempted = Column(Boolean, default=True)
+    attempted_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    attempts_count = Column(Integer, default=1)
+    retry_count = Column(Integer, default=0)
+
+    sources_attempted_json = Column(JSON, nullable=True)
+    sources_succeeded_json = Column(JSON, nullable=True)
+    sources_failed_json = Column(JSON, nullable=True)
+
+    validation_passed = Column(Boolean, default=False)
+    validation_errors_json = Column(JSON, nullable=True)
+    ml_eligible = Column(Boolean, default=False)
+    is_quarantined = Column(Boolean, default=False)
+    quarantine_reason = Column(String(256), nullable=True)
+    is_duplicate = Column(Boolean, default=False)
+
+    final_status = Column(String(32), default="EXPECTED", index=True) # CAPTURED_VALID, CAPTURED_INVALID, MISSING, INCOMPLETE, DUPLICATE, EXPECTED
+    provenance_summary_json = Column(JSON, nullable=True)
+    observation_record_id = Column(String(64), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_ledger_dest_date", "destination_id", "date_bucket"),
+        UniqueConstraint("destination_id", "date_bucket", "dataset_mode", name="uq_ledger_dest_date_mode"),
+    )
