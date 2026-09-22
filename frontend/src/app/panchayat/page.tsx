@@ -93,11 +93,11 @@ export default function PanchayatPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#0A0D12] text-white py-10 px-4 sm:px-8 lg:px-12">
+      <div className="max-w-[1440px] mx-auto space-y-8">
         
         {/* Official Civic Authority Header */}
-        <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-emerald-500/30 relative overflow-hidden">
+        <div className="bg-stone-900/90 backdrop-blur-xl text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-emerald-500/30 relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-4">

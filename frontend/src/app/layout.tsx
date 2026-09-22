@@ -41,11 +41,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", editorialFont.variable, sansFont.variable)}>
-      <body className="min-h-full flex flex-col bg-[#F6F4F0] text-stone-900 dark:bg-[#0C0F14] dark:text-stone-100 transition-colors font-sans selection:bg-amber-500/20 selection:text-amber-900 dark:selection:text-amber-200">
+    <html lang="en" className={cn("h-full dark", "antialiased", editorialFont.variable, sansFont.variable)} style={{ colorScheme: 'dark' }}>
+      <body className="min-h-full flex flex-col bg-[#0A0D12] text-stone-100 font-sans selection:bg-amber-500/20 selection:text-amber-200">
         <SmoothScrollProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 bg-[#0A0D12] text-stone-100">{children}</main>
           <Footer />
         </SmoothScrollProvider>
       </body>

@@ -226,6 +226,7 @@ export default function HimalayanThemesGallery() {
 
   return (
     <section
+      id="hidden-india"
       className="relative w-full py-18 lg:py-24 z-10 overflow-hidden"
       aria-label="Curated Escapes: Find Your Himalayan Rhythm"
     >

@@ -51,12 +51,43 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { DestinationSummary } from '@/types';
+import { fetchDestinations, fetchDestinationAlternatives } from '@/lib/api';
 import { cn } from '@/lib/utils';
+
+interface TickerNode {
+  id: string;
+  name: string;
+  score: number;
+  level: string;
+  trend: string;
+  color: string;
+  dot: string;
+}
+
+const INITIAL_TICKER_DATA: TickerNode[] = [
+  { id: 'darjeeling', name: 'Darjeeling', score: 88, level: 'CRITICAL', trend: '+14% vs avg', color: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400', dot: 'bg-rose-500 animate-ping' },
+  { id: 'kalimpong', name: 'Kalimpong', score: 42, level: 'MODERATE', trend: 'Balanced flow', color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
+  { id: 'lava', name: 'Lava', score: 24, level: 'CALM', trend: 'Open trails', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'lolegaon', name: 'Lolegaon', score: 18, level: 'SERENE', trend: 'Canopy open', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'rishop', name: 'Rishop', score: 15, level: 'SERENE', trend: 'Crystal clear', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { id: 'mirik', name: 'Mirik', score: 38, level: 'MODERATE', trend: 'Lake relaxed', color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' }
+];
 
 export default function HomePage() {
   const router = useRouter();
   const [popupTickerModalOpen, setPopupTickerModalOpen] = useState(false);
   const [activeTickerFilter, setActiveTickerFilter] = useState<'all' | 'calm' | 'critical'>('all');
+  const [tickerData, setTickerData] = useState<TickerNode[]>(INITIAL_TICKER_DATA);
+  const [heroAlert, setHeroAlert] = useState({
+    originName: 'Darjeeling',
+    originLocation: 'Tiger Hill peak congestion',
+    originScore: 88,
+    originId: 'darjeeling',
+    altName: 'Kalimpong',
+    altScore: 42,
+    altMatch: 87,
+    altUrl: '/destinations/darjeeling/alternatives'
+  });
 
   // Handle keyboard escape and body scroll locking for the modal
   useEffect(() => {
@@ -77,77 +108,90 @@ export default function HomePage() {
     };
   }, [popupTickerModalOpen]);
 
-  const sampleDestinations: DestinationSummary[] = [
-    {
-      id: 'darjeeling',
-      name: 'Darjeeling',
-      tagline: 'Colonial tea heritage & Himalayan railway facing heavy holiday congestion',
-      region: 'Eastern Himalayas',
-      state: 'West Bengal',
-      hero_image: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=800&q=80',
-      crowd_score: 88,
-      crowd_level: 'VERY HIGH',
-      avg_cost_per_day_inr: 4800,
-      tags: ['Heritage Rail', 'Tiger Hill', 'High Congestion']
-    },
-    {
-      id: 'kalimpong',
-      name: 'Kalimpong',
-      tagline: 'Tranquil orchid ridge, vibrant monasteries & 87% similarity match',
-      region: 'Eastern Himalayas',
-      state: 'West Bengal',
-      hero_image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80',
-      crowd_score: 42,
-      crowd_level: 'MEDIUM',
-      avg_cost_per_day_inr: 2800,
-      tags: ['Orchids', 'Serene Ridge', 'Recommended Alternative']
-    },
-    {
-      id: 'rishop',
-      name: 'Rishop',
-      tagline: '360° panoramic Kanchenjunga sunrise haven without Tiger Hill queues',
-      region: 'Eastern Himalayas',
-      state: 'West Bengal',
-      hero_image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
-      crowd_score: 15,
-      crowd_level: 'LOW',
-      avg_cost_per_day_inr: 2200,
-      tags: ['Sunrise Ridge', 'Dark Sky', 'Zero Traffic']
-    },
-    {
-      id: 'lava',
-      name: 'Lava',
-      tagline: 'Misty pine woodlands & pristine gateway to Neora Valley National Park',
-      region: 'Eastern Himalayas',
-      state: 'West Bengal',
-      hero_image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80',
-      crowd_score: 24,
-      crowd_level: 'LOW',
-      avg_cost_per_day_inr: 2100,
-      tags: ['Pine Forest', 'Birding', 'Misty Trails']
-    }
-  ];
+  // Fetch real telemetry data on mount to supersede mock fallbacks
+  useEffect(() => {
+    let isMounted = true;
+    async function loadLiveTelemetry() {
+      try {
+        const dests = await fetchDestinations();
+        if (!isMounted || !dests || dests.length === 0) return;
 
-  const regionalTickerData = [
-    { id: 'darjeeling', name: 'Darjeeling', score: 88, level: 'CRITICAL', trend: '+14% vs avg', color: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400', dot: 'bg-rose-500 animate-ping' },
-    { id: 'kalimpong', name: 'Kalimpong', score: 42, level: 'MODERATE', trend: 'Balanced flow', color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
-    { id: 'lava', name: 'Lava', score: 24, level: 'CALM', trend: 'Open trails', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-    { id: 'lolegaon', name: 'Lolegaon', score: 18, level: 'SERENE', trend: 'Canopy open', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-    { id: 'rishop', name: 'Rishop', score: 15, level: 'SERENE', trend: 'Crystal clear', color: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-    { id: 'mirik', name: 'Mirik', score: 38, level: 'MODERATE', trend: 'Lake relaxed', color: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' }
-  ];
+        // Map live scores to ticker
+        setTickerData(prev =>
+          prev.map(node => {
+            const live = dests.find(d => d.id.toLowerCase() === node.id.toLowerCase());
+            if (!live) return node;
+            const score = live.crowd_score;
+            let level = 'MODERATE';
+            let color = 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400';
+            let dot = 'bg-amber-500';
+
+            if (score >= 70) {
+              level = 'CRITICAL';
+              color = 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:text-rose-400';
+              dot = 'bg-rose-500 animate-ping';
+            } else if (score < 30) {
+              level = score <= 18 ? 'SERENE' : 'CALM';
+              color = 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+              dot = 'bg-emerald-500';
+            }
+
+            return {
+              ...node,
+              score,
+              level,
+              color,
+              dot
+            };
+          })
+        );
+
+        // Find highest congestion destination for dynamic hero alert
+        const sorted = [...dests].sort((a, b) => (b.crowd_score || 0) - (a.crowd_score || 0));
+        const highest = sorted[0];
+        if (highest && highest.crowd_score >= 50) {
+          try {
+            const altRes = await fetchDestinationAlternatives(highest.id);
+            if (isMounted && altRes && altRes.alternatives && altRes.alternatives.length > 0) {
+              const bestAlt = altRes.alternatives[0];
+              setHeroAlert({
+                originName: highest.name,
+                originLocation: highest.id === 'darjeeling' ? 'Tiger Hill peak congestion' : `${highest.name} peak corridor`,
+                originScore: highest.crowd_score,
+                originId: highest.id,
+                altName: bestAlt.name,
+                altScore: bestAlt.crowd_score,
+                altMatch: bestAlt.similarity_score || 87,
+                altUrl: `/destinations/${highest.id}/alternatives`
+              });
+            }
+          } catch {
+            setHeroAlert(prev => ({
+              ...prev,
+              originScore: highest.crowd_score
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn('Live homepage telemetry fallback active:', err);
+      }
+    }
+
+    loadLiveTelemetry();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredTicker = useMemo(() => {
     if (activeTickerFilter === 'calm') {
-      return regionalTickerData.filter(d => d.score < 30);
+      return tickerData.filter(d => d.score < 30);
     }
     if (activeTickerFilter === 'critical') {
-      return regionalTickerData.filter(d => d.score >= 50);
+      return tickerData.filter(d => d.score >= 50);
     }
-    return regionalTickerData;
-  }, [activeTickerFilter]);
-
-
+    return tickerData;
+  }, [tickerData, activeTickerFilter]);
 
 
 
@@ -155,7 +199,7 @@ export default function HomePage() {
     <div className="pb-28">
       {/* 1. HERO SECTION: Full Viewport Height/Width Immersive Himalayan Photography */}
       <section className="relative w-full min-h-screen flex flex-col justify-between pt-0 overflow-hidden bg-stone-950">
-        <div className="relative min-h-screen w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 text-white overflow-hidden">
+        <div className="relative min-h-screen w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 pb-12 sm:pb-16 lg:pb-20 pb-safe text-white overflow-hidden">
           {/* Full-bleed Background Immersive Photography */}
           <div className="absolute inset-0 z-0">
             <img
@@ -189,7 +233,7 @@ export default function HomePage() {
           <div className="relative z-10 max-w-5xl lg:max-w-6xl space-y-6 my-auto py-8">
             {/* Headline with Brand Editorial Accent */}
             <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight leading-[1.04] text-white drop-shadow-md">
-              <span className="block whitespace-nowrap text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem] 2xl:text-8xl font-extrabold tracking-tight bg-gradient-to-r from-[#FF9933] via-white to-[#138808] bg-clip-text text-transparent pb-1">
+              <span className="block whitespace-nowrap text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[5rem] 2xl:text-8xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 via-white to-amber-300 bg-clip-text text-transparent pb-1">
                 EXPLORE RURAL INDIA
               </span>
               Travel beyond <br />
@@ -199,11 +243,11 @@ export default function HomePage() {
             </h1>
 
             {/* Improved Tagline Text */}
-            <p className="text-xl sm:text-2xl text-amber-100/90 font-editorial italic font-medium tracking-wide leading-relaxed drop-shadow-sm">
-              "Explore the unseen, collect the moments."
+            <p className="text-2xl sm:text-3xl text-amber-200/90 font-serif italic font-normal tracking-wide leading-relaxed drop-shadow-md">
+              &ldquo;Explore the unseen, collect the moments.&rdquo;
             </p>
 
-            {/* Explore & Contact Us Buttons */}
+            {/* Explore, Contact Us & Hidden India Buttons */}
             <div className="flex flex-wrap items-center gap-3 md:flex-row pt-2">
               <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
                 <Link href="/destinations" className="text-white hover:text-amber-300">Explore</Link>
@@ -211,22 +255,25 @@ export default function HomePage() {
               <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
                 <Link href="/contact" className="text-white hover:text-amber-300">Contact Us</Link>
               </Button>
+              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                <Link href="#hidden-india" className="text-white hover:text-amber-300">Hidden India</Link>
+              </Button>
             </div>
 
             {/* Live Real-Time Decongestion Alert Banner */}
-            <div className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3.5 pr-4 rounded-2xl bg-stone-900/80 backdrop-blur-xl border border-rose-500/30 text-xs shadow-xl">
+            <div className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3.5 pr-4 rounded-2xl bg-stone-900/80 backdrop-blur-xl border border-rose-500/30 text-xs shadow-xl mb-4 sm:mb-6">
               <div className="flex items-center gap-2 font-bold text-rose-300">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 animate-pulse" />
                 <span>LIVE OVERCROWD ALERT:</span>
               </div>
               <span className="text-stone-300">
-                Darjeeling Tiger Hill peak congestion <span className="font-mono font-bold text-rose-400">(88/100)</span>.
+                {heroAlert.originName} {heroAlert.originLocation} <span className="font-mono font-bold text-rose-400">({heroAlert.originScore}/100)</span>.
               </span>
               <Link
-                href="/destinations/darjeeling/alternatives"
+                href={heroAlert.altUrl}
                 className="inline-flex items-center gap-1 font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4"
               >
-                <span>Switch to Kalimpong (42/100, 87% match)</span>
+                <span>Switch to {heroAlert.altName} ({heroAlert.altScore}/100, {heroAlert.altMatch}% match)</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>

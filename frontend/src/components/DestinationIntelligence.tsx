@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence, useInView } from 'motion/react';
 import { cn, formatINR } from '@/lib/utils';
+import { fetchDestinations } from '@/lib/api';
 
 export interface IntelligenceDestination {
   id: string;
@@ -178,6 +179,7 @@ function useAnimatedCounter(target: number | null, duration = 600) {
 }
 
 export function DestinationIntelligence() {
+  const [destinations, setDestinations] = useState<IntelligenceDestination[]>(DESTINATIONS_DATA);
   const [activeId, setActiveId] = useState<string>('darjeeling');
   const [hoveredSecondaryId, setHoveredSecondaryId] = useState<string | null>(null);
   const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
@@ -197,15 +199,57 @@ export function DestinationIntelligence() {
     }
   }, []);
 
+  // Fetch real telemetry data on mount to supersede mock fallbacks
+  useEffect(() => {
+    let isMounted = true;
+    async function loadLiveData() {
+      try {
+        const liveList = await fetchDestinations();
+        if (!isMounted || !liveList || liveList.length === 0) return;
+
+        setDestinations((prev) =>
+          prev.map((dest) => {
+            const match = liveList.find((d) => d.id.toLowerCase() === dest.id.toLowerCase());
+            if (!match) return dest;
+
+            let status_label = dest.status_label;
+            if (match.crowd_level === 'VERY HIGH' || match.crowd_level === 'HIGH') {
+              status_label = 'HIGH CONGESTION';
+            } else if (match.crowd_level === 'MEDIUM') {
+              status_label = 'BALANCED FLOW';
+            } else if (match.crowd_level === 'LOW') {
+              status_label = match.crowd_score <= 18 ? 'SERENE REFUGE' : 'OPEN TRAILS';
+            }
+
+            return {
+              ...dest,
+              crowd_score: match.crowd_score,
+              crowd_level: match.crowd_level as any,
+              avg_cost_per_day_inr: match.avg_cost_per_day_inr || dest.avg_cost_per_day_inr,
+              status_label,
+              has_numerical_intelligence: true
+            };
+          })
+        );
+      } catch (err) {
+        console.warn('DestinationIntelligence live fetch fallback active:', err);
+      }
+    }
+    loadLiveData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Active destination
   const activeDest = useMemo(() => {
-    return DESTINATIONS_DATA.find((d) => d.id === activeId) || DESTINATIONS_DATA[0];
-  }, [activeId]);
+    return destinations.find((d) => d.id === activeId) || destinations[0];
+  }, [destinations, activeId]);
 
   // Secondary destinations (all other destinations)
   const secondaryDestinations = useMemo(() => {
-    return DESTINATIONS_DATA.filter((d) => d.id !== activeId);
-  }, [activeId]);
+    return destinations.filter((d) => d.id !== activeId);
+  }, [destinations, activeId]);
 
   // Primary 3 secondary cards for desktop asymmetric grid
   const primarySecondaryCards = secondaryDestinations.slice(0, 3);
@@ -253,7 +297,7 @@ export function DestinationIntelligence() {
 
   // Hovered target info for main card visual response
   const hoveredDest = hoveredSecondaryId
-    ? DESTINATIONS_DATA.find((d) => d.id === hoveredSecondaryId)
+    ? destinations.find((d) => d.id === hoveredSecondaryId)
     : null;
 
   return (
@@ -505,7 +549,7 @@ export function DestinationIntelligence() {
                       <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 block font-semibold">
                         STATUS
                       </span>
-                      <span className="text-sm sm:text-base font-mono font-extrabold text-amber-400 mt-1 block uppercase tracking-tight truncate">
+                      <span className="text-xs font-mono font-extrabold text-amber-400 mt-1 block uppercase tracking-tight leading-tight">
                         {activeDest.status_label}
                       </span>
                       <span className="text-[10px] text-stone-400 font-mono">
@@ -588,7 +632,7 @@ export function DestinationIntelligence() {
                   {/* Connected Orbit Chips */}
                   <div className="flex flex-wrap items-center gap-2">
                     {activeDest.nearby_ids.map((nid) => {
-                      const targetDest = DESTINATIONS_DATA.find((d) => d.id === nid);
+                      const targetDest = destinations.find((d) => d.id === nid);
                       if (!targetDest) return null;
                       const isHovered = hoveredSecondaryId === nid;
 

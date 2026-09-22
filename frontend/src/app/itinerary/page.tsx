@@ -122,33 +122,33 @@ function ItineraryPlannerContent() {
   }, [destinationId]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-10 space-y-10">
       {/* Page Header & AI Badge */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 font-bold text-xs uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5" />
             <span>SIH 2026 • Tourist Flow & Adaptive AI Engine</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
             Adaptive AI Travel Intelligence
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl mt-1">
+          <p className="text-xs sm:text-sm text-stone-400 max-w-2xl mt-1">
             Genuinely adaptive multi-day planning powered by provider abstraction. Guardrails keep crowd scores, pricing, availability, and traveler safety strictly deterministic.
           </p>
         </div>
 
         {/* AI Provider Status Pill */}
-        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3 shrink-0 shadow-sm">
+        <div className="bg-stone-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 flex items-center gap-3 shrink-0 shadow-md">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           <div className="text-xs">
-            <div className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <div className="font-extrabold text-stone-200 flex items-center gap-1.5">
               <span>AI Provider:</span>
-              <span className="text-amber-600 dark:text-amber-400 uppercase font-mono tracking-wide">
+              <span className="text-amber-400 uppercase font-mono tracking-wide">
                 {itinerary?.ai_provider_used || 'MOCK (ZERO-CONFIG)'}
               </span>
             </div>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] text-stone-400">
               Deterministic crowd & safety guardrails
             </span>
           </div>
@@ -158,7 +158,7 @@ function ItineraryPlannerContent() {
       {/* Preferences Form Card */}
       <form
         onSubmit={handleGenerate}
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6"
+        className="bg-stone-900/70 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl space-y-6"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Destination Selector */}
