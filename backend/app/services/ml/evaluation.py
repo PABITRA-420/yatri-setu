@@ -34,6 +34,19 @@ def compute_rmse(predictions: List[float], actuals: List[float]) -> float:
     return round(math.sqrt(mse), 4)
 
 
+def compute_r2(predictions: List[float], actuals: List[float]) -> float:
+    """Coefficient of determination (R²)."""
+    if not predictions or len(predictions) < 2:
+        return 0.0
+    mean_actual = sum(actuals) / len(actuals)
+    ss_tot = sum((a - mean_actual) ** 2 for a in actuals)
+    ss_res = sum((a - p) ** 2 for p, a in zip(predictions, actuals))
+    if ss_tot < 1e-6:
+        return 0.0
+    return round(float(1.0 - (ss_res / ss_tot)), 4)
+
+
+
 def compute_directional_accuracy(predictions: List[float], actuals: List[float]) -> float:
     """
     Directional accuracy: percentage of consecutive pairs where the predicted
@@ -163,16 +176,35 @@ def compute_error_by_horizon(
 
 
 def compare_models(
-    baseline_mae: float,
-    ml_mae: float,
-    baseline_rmse: float,
-    ml_rmse: float,
+    baseline_mae: Optional[float] = None,
+    ml_mae: Optional[float] = None,
+    baseline_rmse: Optional[float] = None,
+    ml_rmse: Optional[float] = None,
+    *,
+    candidate_preds: Optional[List[float]] = None,
+    baseline_preds: Optional[List[float]] = None,
+    actuals: Optional[List[float]] = None,
 ) -> Dict[str, Any]:
     """
     Honest comparison between baseline and ML model.
     Only reports 'improvement' if ML actually outperforms baseline on BOTH MAE and RMSE.
     Never fabricates ML superiority.
+    Supports either precomputed metric floats or raw prediction arrays.
     """
+    if candidate_preds is not None and baseline_preds is not None and actuals is not None:
+        if baseline_mae is None:
+            baseline_mae = compute_mae(baseline_preds, actuals)
+        if ml_mae is None:
+            ml_mae = compute_mae(candidate_preds, actuals)
+        if baseline_rmse is None:
+            baseline_rmse = compute_rmse(baseline_preds, actuals)
+        if ml_rmse is None:
+            ml_rmse = compute_rmse(candidate_preds, actuals)
+
+    baseline_mae = 0.0 if baseline_mae is None else float(baseline_mae)
+    ml_mae = 0.0 if ml_mae is None else float(ml_mae)
+    baseline_rmse = 0.0 if baseline_rmse is None else float(baseline_rmse)
+    ml_rmse = 0.0 if ml_rmse is None else float(ml_rmse)
     mae_improved = ml_mae < baseline_mae
     rmse_improved = ml_rmse < baseline_rmse
     is_improved = mae_improved and rmse_improved

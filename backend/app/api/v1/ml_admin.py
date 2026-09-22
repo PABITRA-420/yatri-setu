@@ -58,12 +58,16 @@ class MLModelStatus(BaseModel):
     baseline_model: str
     fallback_active: bool
     synthetic_data_warning: Optional[str] = None
+    model_status: str = "UNKNOWN"
+    production_eligible: bool = False
+    feature_schema_version: str = "2.0.0"
+    horizons_supported: List[int] = [1, 3, 7, 14]
 
 
 class TrainRequest(BaseModel):
     dataset_mode: str = Field(
         default="SYNTHETIC",
-        description="Dataset mode: SYNTHETIC | REAL | MIXED. Only SYNTHETIC is currently supported.",
+        description="Dataset mode: SYNTHETIC | REAL | MIXED.",
     )
 
 
@@ -83,6 +87,8 @@ def get_ml_status():
     dataset_mode = "NOT_TRAINED"
     training_dataset = "None"
     synthetic_warning = None
+    model_status = getattr(xgboost_crowd_model, "model_status", "UNKNOWN" if is_trained else "NOT_TRAINED")
+    production_eligible = getattr(xgboost_crowd_model, "production_eligible", False)
 
     if is_trained and meta:
         metrics = ModelMetrics(
@@ -96,6 +102,8 @@ def get_ml_status():
         dataset_mode = meta.get("dataset_mode", "UNKNOWN")
         training_dataset = meta.get("dataset_version", "Unknown")
         synthetic_warning = meta.get("synthetic_data_warning")
+        model_status = meta.get("model_status", model_status)
+        production_eligible = meta.get("production_eligible", production_eligible)
 
     return MLModelStatus(
         model_available=is_trained,
@@ -110,6 +118,10 @@ def get_ml_status():
         baseline_model="baseline_rule_v2 v2.0.0",
         fallback_active=not is_trained,
         synthetic_data_warning=synthetic_warning,
+        model_status=model_status,
+        production_eligible=production_eligible,
+        feature_schema_version="2.0.0",
+        horizons_supported=[1, 3, 7, 14],
     )
 
 
@@ -155,8 +167,9 @@ def get_feature_importance():
 def trigger_training(req: TrainRequest):
     """
     Triggers a full ML training run. Admin-only operation.
-    Training is synchronous and may take 10–60 seconds depending on dataset size.
-    Dataset mode must be 'SYNTHETIC' (REAL/MIXED not yet supported).
+    Training is synchronous.
+    Supports dataset modes: SYNTHETIC, REAL, MIXED.
+    If REAL data is insufficient, returns status 'INSUFFICIENT_DATA' without fabricating rows.
     """
     logger.info(f"Admin triggered ML training: dataset_mode={req.dataset_mode}")
     report = ml_training_service.train(dataset_mode=req.dataset_mode)
@@ -169,3 +182,109 @@ def trigger_training(req: TrainRequest):
 def list_registered_models():
     """Lists all models currently registered in the ModelRegistry."""
     return {"models": model_registry.list_models()}
+
+
+@router.post("/retrain-if-eligible", summary="Trigger atomic production training if REAL dataset is eligible")
+def retrain_if_eligible(
+    force: bool = Query(False, description="If True, retrains even if no new data has accumulated")
+):
+    """
+    Evaluates REAL dataset against ProductionEligibilityGate.
+    - If ineligible -> returns INSUFFICIENT_DATA with failed requirements and preserves active baseline.
+    - If eligible and unchanged -> returns NO_NEW_DATA.
+    - If eligible and new -> trains candidate model atomically, validates, and promotes to active production.
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.retrain_if_eligible(force=force)
+
+
+@router.get("/production-readiness", summary="Get comprehensive ML production readiness report")
+def get_production_readiness():
+    """
+    Returns the complete production readiness status of the forecasting system,
+    including active model status, training provenance, schema version,
+    evaluation metrics, baseline metrics, and current eligibility diagnostics.
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.get_readiness_report()
+
+
+@router.get("/accumulation-readiness", summary="Get formal accumulation readiness report")
+def get_accumulation_readiness():
+    """
+    Returns deterministic accumulation readiness metrics (Prompt 11 Section 5):
+    eligible rows, remaining rows, temporal span, remaining span, and per-destination depth.
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.get_accumulation_readiness()
+
+
+@router.get("/destination-depth", summary="Get canonical destination depth report")
+def get_destination_depth():
+    """
+    Returns first-class destination depth report auditing every canonical destination (Prompt 11 Section 6).
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.get_destination_depth_report()
+
+
+@router.get("/accumulation-gaps", summary="Detect accumulation gaps across canonical destinations")
+def detect_accumulation_gaps(
+    start_date: Optional[str] = Query(None, description="Start date YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="End date YYYY-MM-DD"),
+):
+    """
+    Audits accumulation window and classifies destination-date observations into
+    EXPECTED, CAPTURED_VALID, CAPTURED_INVALID, MISSING, INCOMPLETE, DUPLICATE (Prompt 11 Section 8).
+    """
+    from app.services.historical.readiness_service import historical_readiness_service
+    return historical_readiness_service.detect_accumulation_gaps(start_date=start_date, end_date=end_date)
+
+
+@router.post("/rollback", summary="Safely rollback production model to baseline")
+def rollback_model(
+    reason: str = Query("Manual administrative rollback", description="Reason for rollback")
+):
+    """
+    Safely falls back to BaselineRuleModel without corrupting production availability (Prompt 11 Section 20).
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.rollback_to_baseline(reason=reason)
+
+
+@router.post("/accumulation-cycle", summary="Execute automated daily accumulation and conditional training cycle")
+def execute_accumulation_cycle(
+    force: bool = Query(False, description="Force retrain if eligible even without new data")
+):
+    """
+    Executes automated daily accumulation, gate evaluation, and conditional training (Prompt 11 Section 14, 25).
+    """
+    from app.services.ml.production_training_coordinator import production_training_coordinator
+    return production_training_coordinator.run_automated_accumulation_cycle(force_retrain=force)
+
+
+@router.get("/accumulation-health", summary="Get comprehensive daily accumulation health report")
+def get_daily_accumulation_health(
+    date_bucket: Optional[str] = Query(None, description="Observation date YYYY-MM-DD (defaults to today)"),
+    dataset_mode: str = Query("REAL", description="Dataset mode: REAL | SYNTHETIC | MIXED"),
+):
+    """
+    Returns structured daily historical accumulation health result (Prompt 12 Section 5, 25):
+    expected vs captured canonical destinations, valid/invalid/missing/incomplete/duplicate breakdown,
+    source health & freshness, accumulation streaks, velocity, hardened non-guaranteed projection,
+    and authoritative ProductionEligibilityGate evaluation.
+    """
+    from app.services.historical.accumulation_health_service import accumulation_health_service
+    return accumulation_health_service.get_daily_accumulation_health(date_bucket=date_bucket, dataset_mode=dataset_mode)
+
+
+@router.get("/accumulation-history", summary="Get historical daily accumulation health records")
+def get_accumulation_history(
+    limit_days: int = Query(14, ge=1, le=90, description="Number of recent observation dates to return"),
+    dataset_mode: str = Query("REAL", description="Dataset mode: REAL | SYNTHETIC | MIXED"),
+):
+    """
+    Returns historical chronological daily accumulation health records (Prompt 12 Section 25).
+    """
+    from app.services.historical.accumulation_health_service import accumulation_health_service
+    return {"history": accumulation_health_service.get_accumulation_history(limit_days=limit_days, dataset_mode=dataset_mode)}

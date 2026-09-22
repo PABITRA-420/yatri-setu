@@ -52,31 +52,53 @@ class ChronologicalDatasetSplitter(BaseDatasetSplitter):
           - train_indices, validation_indices, test_indices: original positional indices
           - no_shuffle_verified: always True (chronological ordering enforced)
         """
-        # Sort observations strictly chronologically (date + destination)
-        sorted_obs = sorted(observations, key=lambda x: (x.date, x.destination_id))
+        def get_date(o: Any) -> str:
+            return getattr(o, "date", None) or getattr(o, "date_bucket", "")
 
-        train_obs: List[HistoricalObservation] = []
-        val_obs: List[HistoricalObservation] = []
-        test_obs: List[HistoricalObservation] = []
+        def get_dest(o: Any) -> str:
+            return getattr(o, "destination_id", "")
+
+        # Sort observations strictly chronologically (date + destination)
+        sorted_obs = sorted(observations, key=lambda x: (get_date(x), get_dest(x)))
+
+        # Determine effective split dates
+        all_dates = sorted(set(get_date(o) for o in sorted_obs if get_date(o)))
+        train_cutoff = self.train_end_date
+        val_cutoff = self.val_end_date
+
+        if all_dates:
+            min_d, max_d = all_dates[0], all_dates[-1]
+            # If dates are completely outside the default 2023 range, calculate chronological quantile cutoffs
+            if min_d > self.val_end_date or max_d < self.train_end_date:
+                t_idx = int(len(all_dates) * 0.70)
+                v_idx = int(len(all_dates) * 0.85)
+                train_cutoff = all_dates[min(t_idx, len(all_dates) - 1)]
+                val_cutoff = all_dates[min(v_idx, len(all_dates) - 1)]
+
+        train_obs: List[Any] = []
+        val_obs: List[Any] = []
+        test_obs: List[Any] = []
 
         train_indices: List[int] = []
         val_indices: List[int] = []
         test_indices: List[int] = []
 
         for i, obs in enumerate(sorted_obs):
-            if obs.date <= self.train_end_date:
+            o_date = get_date(obs)
+            if o_date <= train_cutoff:
                 train_obs.append(obs)
                 train_indices.append(i)
-            elif obs.date <= self.val_end_date:
+            elif o_date <= val_cutoff:
                 val_obs.append(obs)
                 val_indices.append(i)
             else:
                 test_obs.append(obs)
                 test_indices.append(i)
 
-        train_dates = [o.date for o in train_obs]
-        val_dates = [o.date for o in val_obs]
-        test_dates = [o.date for o in test_obs]
+        train_dates = [get_date(o) for o in train_obs]
+        val_dates = [get_date(o) for o in val_obs]
+        test_dates = [get_date(o) for o in test_obs]
+
 
         return {
             # Observation subsets

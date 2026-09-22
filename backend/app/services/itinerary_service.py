@@ -87,7 +87,7 @@ from app.models.itinerary import (
     AIItineraryOutput
 )
 from app.data.seed_data import DESTINATIONS_DATA
-from app.services.crowd_engine import calculate_crowd_score
+from app.services.crowd_engine_v2 import crowd_engine_v2
 from app.services.weather_service import get_destination_weather
 from app.services.route_service import get_route_estimate
 from app.services.sustainability_engine import calculate_sustainability
@@ -125,7 +125,7 @@ def _build_context(
     norm_id = destination_id.lower().strip()
     dest = dest_map.get(norm_id, dest_map["kalimpong"])
 
-    crowd_resp = calculate_crowd_score(dest["id"])
+    crowd_resp = crowd_engine_v2.get_canonical_crowd_response(dest["id"])
     weather = get_destination_weather(dest["id"])
     
     # Inter-town and local routes

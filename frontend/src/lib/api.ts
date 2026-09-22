@@ -74,14 +74,12 @@ import {
 
 
 
-// Production same-origin proxy router: on Vercel, routes via Next.js reverse proxy to eliminate CORS
+// Production & Dev same-origin proxy router: routes via Next.js reverse proxy (/api) to live backend
 function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return '/api';
-    }
+    return '/api';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://yatri-setu.onrender.com/api';
 }
 
 const API_BASE_URL = getApiBaseUrl();

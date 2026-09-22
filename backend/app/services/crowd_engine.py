@@ -297,17 +297,29 @@ def compute_dynamic_crowd_factors(destination_id: str) -> Tuple[Dict[str, float]
     return factors, meta
 
 
-def calculate_crowd_score(destination_id: str, custom_factors: Dict[str, float] = None) -> CrowdResponse:
+def calculate_crowd_score(
+    destination_id: str,
+    custom_factors: Dict[str, float] = None,
+    use_canonical_v2: bool = False
+) -> CrowdResponse:
     """
-    Deterministic crowd score computation.
-    crowd_score =
-      35% historical_footfall +
-      25% booking_density +
-      15% seasonality +
-      10% holiday_factor +
-      10% weather_event_factor +
-      5% traffic_factor
+    DEPRECATED (Milestone 10): calculate_crowd_score in crowd_engine.py is deprecated.
+    Crowd Engine V2 is the canonical source of truth for CURRENT crowd pressure.
+    Pass use_canonical_v2=True to invoke crowd_engine_v2.get_canonical_crowd_response().
+    By default in this deprecated function, legacy V1 calculation is preserved for backward test compatibility.
     """
+    import warnings
+    warnings.warn(
+        "calculate_crowd_score in crowd_engine.py is deprecated. "
+        "Use crowd_engine_v2.get_canonical_crowd_response() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
+    if use_canonical_v2 and custom_factors is None:
+        from app.services.crowd_engine_v2 import crowd_engine_v2
+        return crowd_engine_v2.get_canonical_crowd_response(destination_id)
+
     norm_id = destination_id.lower().strip()
     provenance_meta: Dict[str, Any] = {
         # Initialized as PENDING — overwritten by compute_dynamic_crowd_factors result

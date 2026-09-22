@@ -7,7 +7,20 @@ multi-day forecasts, and administrative intervention simulations.
 Milestone 1's crowd_engine.py is untouched and preserved.
 """
 from datetime import datetime, date, timedelta
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Union
+
+from app.models.crowd import CrowdLevel, CrowdResponse, CrowdFactorItem
+
+def classify_crowd_level(score: Union[int, float]) -> Tuple[CrowdLevel, str]:
+    """Helper to map a crowd score (0-100) to CrowdLevel enum and hex color."""
+    if score <= 25:
+        return CrowdLevel.LOW, "#10b981"
+    elif score <= 50:
+        return CrowdLevel.MEDIUM, "#f59e0b"
+    elif score <= 75:
+        return CrowdLevel.HIGH, "#f97316"
+    else:
+        return CrowdLevel.VERY_HIGH, "#ef4444"
 
 from app.models.pressure import (
     PressureLevel,
@@ -121,6 +134,32 @@ DESTINATION_METADATA: Dict[str, Dict[str, Any]] = {
         "capacity_baseline": 1100,
         "is_hub": False
     }
+}
+
+BOTTLENECKS_BY_DESTINATION: Dict[str, List[str]] = {
+    "darjeeling": [
+        "NH-110 Hill Cart Road",
+        "Chowrasta Mall promenade",
+        "Ghoom railway crossing",
+        "Tiger Hill access gate"
+    ],
+    "kalimpong": [
+        "NH 10 Teesta Bridge / 10th Mile",
+        "Motor Stand junction during peak hours"
+    ],
+    "mirik": [
+        "Mirik Lake promenade bridge",
+        "Helipad viewpoint crossing"
+    ],
+    "lava": [
+        "Algarah-Lava pine highway single-lane curve"
+    ],
+    "lolegaon": [
+        "Canopy Walk heritage approach trail"
+    ],
+    "rishop": [
+        "Upper Rishop 4x4 forest track entry point"
+    ]
 }
 
 
@@ -301,6 +340,211 @@ class CrowdEngineV2:
             best_time_to_visit=meta["best_time_to_visit"],
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         )
+
+    def get_canonical_crowd_response(
+        self,
+        destination_id: str,
+        date_str: Optional[str] = None,
+        custom_weights: Optional[Dict[str, float]] = None
+    ) -> CrowdResponse:
+        """
+        Canonical Source of Truth for CURRENT crowd pressure across Yatri Setu.
+        Computes multi-signal pressure via CrowdEngineV2 and returns a unified,
+        backward-compatible CrowdResponse containing:
+          - pressure_score & pressure_level (canonical V2)
+          - crowd_score & crowd_level (frontend compatibility)
+          - contributing signals & factor breakdowns (factors)
+          - confidence, data status, provenance, and timestamp
+          - dynamic explainability drivers and carrying capacity metrics.
+        """
+        dest_clean = destination_id.lower().strip()
+        pressure_resp = self.calculate_pressure(dest_clean, date_str, custom_weights)
+
+        # 1. Canonical score and classification
+        crowd_score = int(round(pressure_resp.pressure_score))
+        level_map = {
+            PressureLevel.CRITICAL: CrowdLevel.VERY_HIGH,
+            PressureLevel.HIGH: CrowdLevel.HIGH,
+            PressureLevel.MODERATE: CrowdLevel.MEDIUM,
+            PressureLevel.LOW: CrowdLevel.LOW,
+        }
+        crowd_lvl = level_map.get(pressure_resp.pressure_level, CrowdLevel.LOW)
+
+        # 2. Map V2 signals to frontend CrowdFactorItem list
+        factors: List[CrowdFactorItem] = []
+        for s in pressure_resp.signals:
+            factors.append(
+                CrowdFactorItem(
+                    name=s.signal_name,
+                    key=s.signal_key,
+                    raw_value=round(s.value, 1),
+                    weight_percentage=int(round(s.weight * 100)),
+                    weighted_contribution=round(s.weighted_score, 1),
+                    description=s.notes or f"{s.signal_name} multi-signal telemetry ({s.source})"
+                )
+            )
+
+        # 3. Dynamic explainability: why_crowded
+        why_crowded = self._generate_why_crowded(
+            pressure_resp.signals,
+            pressure_resp.destination_name,
+            pressure_resp.pressure_score
+        )
+
+        # 4. Bottlenecks
+        bottlenecks = list(BOTTLENECKS_BY_DESTINATION.get(
+            dest_clean,
+            [f"{pressure_resp.destination_name} access corridor"]
+        ))
+
+        # 5. Live traffic status
+        traffic_sig = next((s for s in pressure_resp.signals if s.signal_key == "traffic_pressure"), None)
+        if traffic_sig and traffic_sig.value >= 75:
+            live_traffic = "Heavy Delays (+45 min transit time)"
+        elif traffic_sig and traffic_sig.value >= 50:
+            live_traffic = "Moderate Delays / Controlled Mountain Flow"
+        else:
+            live_traffic = "Smooth / Normal Mountain Flow"
+
+        # 6. Hotel occupancy rate
+        acc_sig = next((s for s in pressure_resp.signals if s.signal_key == "accommodation_occupancy"), None)
+        occ_pct = int(round(acc_sig.value)) if acc_sig else crowd_score
+        hotel_occupancy = f"{occ_pct}% (Live Telemetry & Baseline)"
+
+        # 7. Human-readable summary
+        if crowd_score >= 76:
+            summary = (
+                f"{pressure_resp.destination_name} is currently experiencing heavy congestion across major "
+                "landmarks and roads. Yatri Setu strongly advises exploring calmer neighboring ridge towns."
+            )
+        elif crowd_score >= 51:
+            summary = (
+                f"{pressure_resp.destination_name} has elevated visitor density. "
+                "Off-peak visiting hours and advance homestay reservations are recommended."
+            )
+        elif crowd_score >= 26:
+            summary = (
+                f"{pressure_resp.destination_name} has moderate, peaceful footfall with ample breathing "
+                "space and active orchid nurseries."
+            )
+        else:
+            summary = (
+                f"{pressure_resp.destination_name} has low, peaceful footfall with serene walking trails "
+                "and smooth mountain transit."
+            )
+
+        # 8. Provenance determination
+        has_real = any(s.source and "REAL" in s.source for s in pressure_resp.signals)
+        prov_label = "CANONICAL V2 — LIVE MULTI-SIGNAL SENSORS & TELEMETRY" if has_real else "CANONICAL V2 — CALIBRATED TELEMETRY & BASELINES"
+        prov_mode = "REAL" if has_real else "COMPUTED"
+
+        return CrowdResponse(
+            destination_id=pressure_resp.destination_id,
+            destination_name=pressure_resp.destination_name,
+            crowd_score=crowd_score,
+            crowd_level=crowd_lvl,
+            color_code=pressure_resp.color_code,
+            summary=summary,
+            why_crowded=why_crowded,
+            bottlenecks=bottlenecks,
+            peak_visiting_hours=pressure_resp.peak_hours,
+            best_time_to_visit_today=pressure_resp.best_time_to_visit,
+            factors=factors,
+            live_traffic_status=live_traffic,
+            hotel_occupancy_rate=hotel_occupancy,
+            last_updated=pressure_resp.timestamp,
+            provenance_label=prov_label,
+            provider_mode=prov_mode,
+            data_quality="HIGH",
+            # Canonical V2 structured fields
+            pressure_score=pressure_resp.pressure_score,
+            pressure_level=pressure_resp.pressure_level.value,
+            confidence=pressure_resp.confidence_score,
+            confidence_score=pressure_resp.confidence_score,
+            confidence_percent=pressure_resp.confidence_percent,
+            signals_available=pressure_resp.signals_available,
+            total_signals=pressure_resp.total_signals,
+            signals=pressure_resp.signals,
+            carrying_capacity_percent=pressure_resp.carrying_capacity_percent,
+            advisory=pressure_resp.advisory,
+            recommended_action=pressure_resp.recommended_action,
+            timestamp=pressure_resp.timestamp,
+            data_status="ACTIVE"
+        )
+
+    def _generate_why_crowded(
+        self,
+        signals: List[DestinationSignal],
+        dest_name: str,
+        score: float
+    ) -> List[str]:
+        reasons: List[str] = []
+        sig_dict = {s.signal_key: s for s in signals}
+
+        footfall = sig_dict.get("historical_footfall")
+        if footfall and footfall.value >= 70:
+            reasons.append(
+                f"Peak seasonal tourist footfall ({int(footfall.value)}/100 baseline) across major {dest_name} viewpoints."
+            )
+
+        occ = sig_dict.get("accommodation_occupancy")
+        if occ and occ.value >= 70:
+            reasons.append(
+                f"Elevated homestay and resort room occupancy (~{int(occ.value)}% seasonal capacity utilization)."
+            )
+
+        booking = sig_dict.get("booking_demand")
+        if booking and booking.value >= 65:
+            reasons.append(
+                f"Strong forward booking velocity across Yatri Setu network ({int(booking.value)}/100)."
+            )
+
+        traffic = sig_dict.get("traffic_pressure")
+        if traffic and traffic.value >= 50:
+            reasons.append(
+                f"Mountain corridor transit friction ({int(traffic.value)}/100 congestion index) leading to vehicular queuing."
+            )
+
+        holiday = sig_dict.get("holiday_pressure")
+        if holiday and holiday.value >= 55:
+            reasons.append(
+                f"Weekend or regional holiday travel influx ({int(holiday.value)}/100)."
+            )
+
+        search = sig_dict.get("search_demand")
+        if search and search.value >= 70:
+            reasons.append(
+                f"Surging travel search velocity and traveler intent ({int(search.value)}/100)."
+            )
+
+        event = sig_dict.get("event_pressure")
+        if event and event.value >= 40:
+            reasons.append(
+                f"Scheduled cultural events and tours elevating footfall ({int(event.value)}/100)."
+            )
+
+        weather = sig_dict.get("weather_pressure")
+        if weather and weather.value >= 70:
+            reasons.append(
+                "Clear mountain visibility and favorable weather index triggering spontaneous visits."
+            )
+
+        if score >= 55 and not reasons:
+            reasons.append(
+                f"Multi-signal concentration of arrivals and road transit across {dest_name} ridges."
+            )
+            reasons.append(
+                f"Active tourist interest approaching peak carrying capacity ({int(score)}/100)."
+            )
+        elif not reasons:
+            reasons.append(
+                f"Balanced, serene visitor movement with ample open breathing space in {dest_name}."
+            )
+            reasons.append(
+                "Uncongested arterial routes and comfortable authentic homestay availability."
+            )
+
+        return reasons
 
     def get_pressure_evidence(
         self,
