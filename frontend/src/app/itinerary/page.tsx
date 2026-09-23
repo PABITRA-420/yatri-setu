@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { CustomSelect } from '@/components/CustomSelect';
 
 function ItineraryPlannerContent() {
   const searchParams = useSearchParams();
@@ -166,26 +167,24 @@ function ItineraryPlannerContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Destination Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              Destination
-            </label>
-            <select
+            <CustomSelect
+              label="Destination"
               value={destinationId}
-              onChange={(e) => setDestinationId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="kalimpong">Kalimpong (Orchid Ridge • 42/100)</option>
-              <option value="lava">Lava (Misty Neora Pine • 24/100 • 🌧️ Rain Test)</option>
-              <option value="rishop">Rishop (360° Kanchenjunga • 15/100)</option>
-              <option value="lolegaon">Lolegaon (Canopy Forest • 18/100)</option>
-              <option value="mirik">Mirik (Sumendu Lake • 38/100)</option>
-              <option value="darjeeling">Darjeeling (High Demand • 88/100)</option>
-            </select>
+              onChange={(val) => setDestinationId(val)}
+              options={[
+                { value: 'kalimpong', label: 'Kalimpong (Orchid Ridge • 42/100)' },
+                { value: 'lava', label: 'Lava (Misty Neora Pine • 24/100)' },
+                { value: 'rishop', label: 'Rishop (360° Kanchenjunga • 15/100)' },
+                { value: 'lolegaon', label: 'Lolegaon (Canopy Forest • 18/100)' },
+                { value: 'mirik', label: 'Mirik (Sumendu Lake • 38/100)' },
+                { value: 'darjeeling', label: 'Darjeeling (High Demand • 88/100)' }
+              ]}
+            />
           </div>
 
           {/* Duration Days */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-stone-300 uppercase tracking-wider mb-1.5">
               Duration (Days)
             </label>
             <div className="flex items-center gap-2">
@@ -194,10 +193,10 @@ function ItineraryPlannerContent() {
                   key={d}
                   type="button"
                   onClick={() => setDurationDays(d)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all active:scale-95 ${
                     durationDays === d
-                      ? 'bg-amber-600 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                      ? 'bg-amber-400 text-stone-950 font-black shadow-md shadow-amber-500/20'
+                      : 'bg-stone-950/80 border border-white/10 text-stone-300 hover:bg-white/10'
                   }`}
                 >
                   {d}D
@@ -209,47 +208,46 @@ function ItineraryPlannerContent() {
           {/* Traveler Type & Number of Persons */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-stone-300 uppercase tracking-wider">
                 Party & Persons
               </label>
-              <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">
+              <span className="text-[10px] font-mono text-amber-400 font-bold">
                 {numberOfTravelers} {numberOfTravelers === 1 ? 'Person' : 'Persons'}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <select
+              <CustomSelect
                 value={travelerType}
-                onChange={(e) => {
-                  const val = e.target.value;
+                onChange={(val) => {
                   setTravelerType(val);
                   if (val === 'Solo') setNumberOfTravelers(1);
                   else if (val === 'Couple') setNumberOfTravelers(2);
                   else if (val === 'Family') setNumberOfTravelers(4);
                   else if (val === 'Friends') setNumberOfTravelers(4);
                 }}
-                className="w-full px-2.5 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
-              >
-                <option value="Solo">Solo</option>
-                <option value="Couple">Couple</option>
-                <option value="Family">Family</option>
-                <option value="Friends">Friends</option>
-              </select>
+                options={[
+                  { value: 'Solo', label: 'Solo' },
+                  { value: 'Couple', label: 'Couple' },
+                  { value: 'Family', label: 'Family' },
+                  { value: 'Friends', label: 'Friends' }
+                ]}
+              />
 
-              <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-2 py-1 justify-between">
+              <div className="flex items-center bg-stone-950/80 rounded-2xl border border-white/10 px-2 py-1 justify-between">
                 <button
                   type="button"
                   onClick={() => setNumberOfTravelers(Math.max(1, numberOfTravelers - 1))}
-                  className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 font-black text-xs hover:bg-amber-600 hover:text-white transition-colors"
+                  className="w-7 h-7 rounded-xl bg-stone-800 text-stone-200 font-black text-xs hover:bg-amber-400 hover:text-stone-950 transition-colors"
                 >
                   -
                 </button>
-                <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">
+                <span className="text-xs font-bold font-mono text-white">
                   {numberOfTravelers}p
                 </span>
                 <button
                   type="button"
                   onClick={() => setNumberOfTravelers(Math.min(12, numberOfTravelers + 1))}
-                  className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 font-black text-xs hover:bg-amber-600 hover:text-white transition-colors"
+                  className="w-7 h-7 rounded-xl bg-stone-800 text-stone-200 font-black text-xs hover:bg-amber-400 hover:text-stone-950 transition-colors"
                 >
                   +
                 </button>

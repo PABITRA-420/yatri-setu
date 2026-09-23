@@ -199,9 +199,9 @@ export default function HomePage() {
 
   return (
     <div className="pb-28">
-      {/* 1. HERO SECTION: Full Viewport Height/Width Immersive Himalayan Photography */}
-      <section className="relative w-full min-h-screen flex flex-col justify-between pt-0 overflow-hidden bg-stone-950">
-        <div className="relative min-h-screen w-full flex flex-col justify-between p-6 sm:p-12 lg:p-20 pb-12 sm:pb-16 lg:pb-20 pb-safe text-white overflow-hidden">
+      {/* 1. HERO SECTION: Immersive Himalayan Photography */}
+      <section className="relative w-full min-h-fit md:min-h-screen flex flex-col justify-between pt-0 overflow-hidden bg-stone-950">
+        <div className="relative min-h-fit md:min-h-screen w-full flex flex-col justify-between p-4 sm:p-12 lg:p-20 pb-8 sm:pb-16 lg:pb-20 pb-safe text-white overflow-hidden">
           {/* Full-bleed Background Immersive Photography */}
           <div className="absolute inset-0 z-0">
             <img
@@ -290,8 +290,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. WHY YATRI-SETU SECTION: Full Screen / Max Height & Width with hero2.jpg */}
-      <section className="relative w-full min-h-screen flex flex-col justify-start items-center pt-8 sm:pt-12 pb-16 px-4 sm:px-6 lg:px-8 text-white overflow-hidden bg-stone-950">
+      {/* 2. WHY YATRI-SETU SECTION */}
+      <section className="relative w-full min-h-fit md:min-h-screen flex flex-col justify-start items-center pt-6 sm:pt-12 pb-10 sm:pb-16 px-4 sm:px-6 lg:px-8 text-white overflow-hidden bg-stone-950">
         {/* Full-bleed Background Immersive Photography hero2.jpg */}
         <div className="absolute inset-0 z-0">
           <img
