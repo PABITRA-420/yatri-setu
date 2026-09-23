@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { createBooking, fetchHomestays, fetchHomestayAvailability, cancelBooking } from '@/lib/api';
 import { HomestayBookingResponse, Homestay, HomestayAvailabilitySnapshot } from '@/types';
 import { formatINR } from '@/lib/utils';
+import { ConfettiEffect } from '@/components/ConfettiEffect';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { motion } from 'motion/react';
 import { 
   CheckCircle2, 
   QrCode, 
@@ -125,6 +128,9 @@ function BookingConfirmationContent() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {booking && !cancelled && <ConfettiEffect />}
+      <Breadcrumbs />
+
       {/* If Booking is already confirmed */}
       {booking ? (
         <div className="space-y-6">

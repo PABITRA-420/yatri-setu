@@ -33,6 +33,8 @@ import {
   Eye
 } from 'lucide-react';
 
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+
 function ItineraryPlannerContent() {
   const searchParams = useSearchParams();
   const initialDest = searchParams.get('destination') || 'kalimpong';
@@ -116,13 +118,14 @@ function ItineraryPlannerContent() {
     }
   };
 
-  // Initial load auto-generates for quick demo readiness
   useEffect(() => {
     handleGenerate();
   }, [destinationId]);
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-10 space-y-10">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-8 space-y-8">
+      <Breadcrumbs />
+
       {/* Page Header & AI Badge */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -73,7 +73,7 @@ export default function TouristDashboardPage() {
     name: 'Aarav Sharma',
     initials: 'AS',
     role: 'Verified Traveler',
-    subtitle: 'Active Eco-Citizen • SIH 2026 Smart Tourist Companion'
+    subtitle: 'Active Eco-Citizen â€¢ SIH 2026 Smart Tourist Companion'
   };
 
   const loadData = useCallback(async (isRefresh = false) => {
@@ -234,7 +234,7 @@ export default function TouristDashboardPage() {
                     {trip?.homestay_name || 'Pineview Orchid Retreat & Homestay'}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Support: {trip?.host_support_number || '+91 98320 87123'} • {trip?.dates || 'Oct 12 - Oct 15, 2026'}
+                    Support: {trip?.host_support_number || '+91 98320 87123'} â€¢ {trip?.dates || 'Oct 12 - Oct 15, 2026'}
                   </p>
                   <div className="pt-2 flex flex-wrap gap-2">
                     <span className="text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">
@@ -363,7 +363,7 @@ export default function TouristDashboardPage() {
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <p className="text-[10px] text-center text-slate-400 font-mono">
-              Dynamic reward state • Instant redemption
+              Dynamic reward state â€¢ Instant redemption
             </p>
           </div>
         </div>
@@ -459,7 +459,7 @@ export default function TouristDashboardPage() {
                       <h4 className="font-bold text-base text-slate-900 dark:text-white">
                         {dest.name}
                       </h4>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badge.badge}`}>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
                         <AnimatedNumber value={dest.crowd_score} />/100 {dest.crowd_level}
                       </span>
                     </div>

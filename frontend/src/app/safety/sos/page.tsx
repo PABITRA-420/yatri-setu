@@ -14,6 +14,7 @@ import {
   EmergencySeverity,
   OfficialEmergencyContact
 } from '@/types';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
 import {
   ShieldAlert,
   Radio,
@@ -269,6 +270,8 @@ export default function SosSafetyScreen() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <Breadcrumbs />
+
       {/* Network Status Strip */}
       <div className="flex items-center justify-between px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs">
         <div className="flex items-center gap-2">

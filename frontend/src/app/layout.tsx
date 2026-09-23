@@ -4,6 +4,11 @@ import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { SmoothScrollProvider } from '@/components/SmoothScrollProvider';
+import { PageTransition } from '@/components/PageTransition';
+import { ScrollProgress } from '@/components/ScrollProgress';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { GlobalKeyboardShortcuts } from '@/components/GlobalKeyboardShortcuts';
+import { OfflineDataToast } from '@/components/OfflineDataToast';
 import { cn } from "@/lib/utils";
 
 const sansFont = Plus_Jakarta_Sans({
@@ -20,8 +25,6 @@ const editorialFont = Cormorant_Garamond({
   style: ['normal', 'italic'],
   weight: ['400', '500', '600', '700']
 });
-
-import { PageTransition } from '@/components/PageTransition';
 
 export const metadata: Metadata = {
   title: 'Yatri Setu | Himalayan Flow Intelligence & Hyperlocal Tourism',
@@ -44,13 +47,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn("h-full dark", "antialiased", editorialFont.variable, sansFont.variable)} style={{ colorScheme: 'dark' }}>
-      <body className="min-h-full flex flex-col bg-[#0A0D12] text-stone-100 font-sans selection:bg-amber-500/20 selection:text-amber-200">
+      <body className="min-h-full flex flex-col bg-[#0A0D12] text-stone-100 font-sans selection:bg-amber-500/20 selection:text-amber-200 pb-16 md:pb-0">
+        <ScrollProgress />
+        <GlobalKeyboardShortcuts />
+        <OfflineDataToast />
         <SmoothScrollProvider>
           <Navbar />
           <main className="flex-1 bg-[#0A0D12] text-stone-100 flex flex-col">
             <PageTransition>{children}</PageTransition>
           </main>
           <Footer />
+          <MobileBottomNav />
         </SmoothScrollProvider>
       </body>
     </html>

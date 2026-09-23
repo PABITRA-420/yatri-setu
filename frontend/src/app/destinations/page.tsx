@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DestinationSummary, CrowdLevel } from '@/types';
+import { DestinationSummary } from '@/types';
 import { fetchDestinations } from '@/lib/api';
 import { DestinationCard } from '@/components/DestinationCard';
 import { SkeletonCard, FetchProgressBar } from '@/components/SkeletonCard';
-import { Search, Flame, Filter, SlidersHorizontal, ArrowRight, Compass } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { Search, Flame, Filter, ArrowRight, Compass } from 'lucide-react';
+import { motion } from 'motion/react';
 import Link from 'next/link';
 
 function DestinationsContent() {
@@ -32,7 +35,9 @@ function DestinationsContent() {
   const crowdFilters = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'VERY HIGH'];
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-10 space-y-10">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-8 space-y-8">
+      <Breadcrumbs />
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-white/10">
         <div>
@@ -51,7 +56,7 @@ function DestinationsContent() {
         {/* Demo Alert Banner */}
         <Link
           href="/destinations/darjeeling/crowd"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold hover:bg-rose-500/25 transition-all self-start md:self-auto shadow-xs"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold hover:bg-rose-500/25 active:scale-95 transition-all self-start md:self-auto shadow-xs"
         >
           <Flame className="w-4 h-4 text-rose-400 animate-pulse" />
           <span>Demo: View Darjeeling (88/100 Overcrowded)</span>
@@ -81,7 +86,7 @@ function DestinationsContent() {
                 setQuery('');
                 setSelectedCrowd('ALL');
               }}
-              className="text-xs font-bold text-stone-400 hover:text-white px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors"
+              className="text-xs font-bold text-stone-400 hover:text-white px-3.5 py-2.5 rounded-xl hover:bg-white/10 active:scale-95 transition-all"
             >
               Reset Filters
             </button>
@@ -99,7 +104,7 @@ function DestinationsContent() {
             <button
               key={lvl}
               onClick={() => setSelectedCrowd(lvl)}
-              className={`px-3.5 py-1.5 rounded-xl font-bold uppercase text-[11px] whitespace-nowrap transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl font-bold uppercase text-[11px] whitespace-nowrap transition-all active:scale-95 ${
                 selectedCrowd === lvl
                   ? 'bg-amber-400 text-stone-950 font-black shadow-xs'
                   : 'bg-white/5 border border-white/10 text-stone-300 hover:bg-white/10'
@@ -121,22 +126,24 @@ function DestinationsContent() {
           ))}
         </div>
       ) : destinations.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-[#121824] rounded-3xl border border-stone-200/80 dark:border-white/10 shadow-xs">
-          <p className="text-stone-500 text-sm">No destinations found matching your criteria.</p>
-          <button
-            onClick={() => {
-              setQuery('');
-              setSelectedCrowd('ALL');
-            }}
-            className="mt-4 px-5 py-2.5 rounded-2xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition-all shadow-xs"
-          >
-            Clear Filters
-          </button>
-        </div>
+        <EmptyState
+          message="No Himalayan sanctuaries match your search query and density criteria."
+          onReset={() => {
+            setQuery('');
+            setSelectedCrowd('ALL');
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {destinations.map((d) => (
-            <DestinationCard key={d.id} destination={d} />
+          {destinations.map((d, index) => (
+            <motion.div
+              key={d.id}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: index * 0.06 }}
+            >
+              <DestinationCard destination={d} />
+            </motion.div>
           ))}
         </div>
       )}
@@ -155,4 +162,3 @@ export default function DestinationsPage() {
     </Suspense>
   );
 }
-
