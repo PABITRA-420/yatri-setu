@@ -85,8 +85,16 @@ function BookingConfirmationContent() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setBookingError(null);
+
+    // Guardrail: Validate traveler contact phone number
+    const cleanPhone = travelerPhone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      setBookingError('Please provide a valid 10-digit mobile contact number.');
+      return;
+    }
+
+    setLoading(true);
     setBookingStatusText('Checking inventory ledger...');
     try {
       await new Promise(r => setTimeout(r, 200));

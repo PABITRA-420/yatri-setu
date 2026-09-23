@@ -74,19 +74,22 @@ import {
 
 
 
-// Production & Dev same-origin proxy router: routes via Next.js reverse proxy (/api) to live backend
+// Production & Dev router: uses NEXT_PUBLIC_API_URL or defaults to live backend
 function getApiBaseUrl(): string {
-  if (typeof window !== 'undefined') {
-    return '/api';
+  let envUrl = process.env.NEXT_PUBLIC_API_URL || 'https://yatri-setu.onrender.com/api';
+  // Strip trailing slash or accidental /docs suffix if present
+  envUrl = envUrl.replace(/\/+$/, '');
+  if (envUrl.endsWith('/docs')) {
+    envUrl = envUrl.replace(/\/docs$/, '/api');
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'https://yatri-setu.onrender.com/api';
+  return envUrl;
 }
 
 const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Safely constructs a valid URL for fetch regardless of whether API_BASE_URL
- * is an absolute URL (e.g. http://localhost:8000/api) or a relative path (e.g. /api).
+ * is an absolute URL (e.g. https://yatri-setu.onrender.com/api) or relative path (/api).
  */
 export function buildApiUrl(path: string): URL {
   const base = getApiBaseUrl();

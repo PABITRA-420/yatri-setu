@@ -133,6 +133,22 @@ export default function SosSafetyScreen() {
     return () => clearInterval(timer);
   }, [graceSeconds]);
 
+  // Clean up Web Audio siren on unmount to prevent memory leaks or audio playing in background
+  useEffect(() => {
+    return () => {
+      try {
+        oscRef.current?.stop();
+        lfoRef.current?.stop();
+        audioCtxRef.current?.close();
+      } catch {
+        // Safe silence on unmount
+      }
+      audioCtxRef.current = null;
+      oscRef.current = null;
+      lfoRef.current = null;
+    };
+  }, []);
+
   const toggleSirenAudio = () => {
     if (alarmSounding) {
       try {
