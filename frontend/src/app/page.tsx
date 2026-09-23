@@ -55,6 +55,7 @@ import { fetchDestinations, fetchDestinationAlternatives } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { MagneticButton } from '@/components/MagneticButton';
 import { TextReveal } from '@/components/TextReveal';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 interface TickerNode {
   id: string;
@@ -466,11 +467,11 @@ export default function HomePage() {
                     <ul className="space-y-3 font-normal">
                       <li className="flex items-start gap-3">
                         <span className="font-mono text-cyan-400 font-bold shrink-0">i.</span>
-                        <span className="text-stone-300">Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do eiusmod.</span>
+                        <span className="text-stone-300">Panchayat-backed host registration ensuring direct local community earnings.</span>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="font-mono text-cyan-400 font-bold shrink-0">ii.</span>
-                        <span className="text-stone-300">Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi.</span>
+                        <span className="text-stone-300">Predictive weather & avalanche safety telecasts synced with SDRF mountain rescue.</span>
                       </li>
                       <li className="flex items-start gap-3">
                         <span className="font-mono text-cyan-400 font-bold shrink-0">iii.</span>
@@ -503,28 +504,36 @@ export default function HomePage() {
 
 
       {/* 3. LIVE FLOW INTELLIGENCE: Core Innovation */}
-      <LiveFlowIntelligence onOpenCalculator={() => setPopupTickerModalOpen(true)} />
-
-
+      <ErrorBoundary fallbackTitle="Live Flow Intelligence Telemetry Temporarily Unavailable">
+        <LiveFlowIntelligence onOpenCalculator={() => setPopupTickerModalOpen(true)} />
+      </ErrorBoundary>
 
       {/* 4. SIGNATURE YATRI SETU FLOW STORY: Scroll-driven Visual Journey */}
-      <SignatureFlowStory />
+      <ErrorBoundary fallbackTitle="Visual Journey Story Temporarily Unavailable">
+        <SignatureFlowStory />
+      </ErrorBoundary>
 
-      {/* 6. IMMERSIVE HIMALAYAN THEMES (Find Your Himalayan Rhythm Gallery) */}
-      <HimalayanThemesGallery />
+      {/* 6. IMMERSIVE HIMALAYAN THEMES */}
+      <ErrorBoundary fallbackTitle="Himalayan Rhythm Gallery Temporarily Unavailable">
+        <HimalayanThemesGallery />
+      </ErrorBoundary>
 
-      {/* 7. DESTINATION INTELLIGENCE (ESCAPE THE PRESSURE. FIND YOUR PLACE.) */}
-      <DestinationIntelligence />
+      {/* 7. DESTINATION INTELLIGENCE */}
+      <ErrorBoundary fallbackTitle="Destination Intelligence Module Temporarily Unavailable">
+        <DestinationIntelligence />
+      </ErrorBoundary>
 
-      {/* 8. HOW YATRI SETU WORKS: CINEMATIC SCROLL + PARALLAX + FEATURE JOURNEY */}
-      <HowYatriSetuWorks />
+      {/* 8. HOW YATRI SETU WORKS */}
+      <ErrorBoundary fallbackTitle="How Yatri Setu Works Walkthrough Temporarily Unavailable">
+        <HowYatriSetuWorks />
+      </ErrorBoundary>
 
-
-
-      {/* Live Data Sources Panel — System Provenance & Live Providers */}
+      {/* Live Data Sources Panel */}
       <section className="relative w-full pb-16 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <DataSourcesPanel />
+          <ErrorBoundary fallbackTitle="Data Sources Panel Temporarily Unavailable">
+            <DataSourcesPanel />
+          </ErrorBoundary>
         </div>
       </section>
 

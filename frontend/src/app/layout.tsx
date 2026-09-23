@@ -9,6 +9,7 @@ import { ScrollProgress } from '@/components/ScrollProgress';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { GlobalKeyboardShortcuts } from '@/components/GlobalKeyboardShortcuts';
 import { OfflineDataToast } from '@/components/OfflineDataToast';
+import { RuralEmergencyDrawer } from '@/components/RuralEmergencyDrawer';
 import { cn } from "@/lib/utils";
 
 const sansFont = Plus_Jakarta_Sans({
@@ -51,6 +52,7 @@ export default function RootLayout({
         <ScrollProgress />
         <GlobalKeyboardShortcuts />
         <OfflineDataToast />
+        <RuralEmergencyDrawer />
         <SmoothScrollProvider>
           <Navbar />
           <main className="flex-1 bg-[#0A0D12] text-stone-100 flex flex-col">
@@ -59,6 +61,19 @@ export default function RootLayout({
           <Footer />
           <MobileBottomNav />
         </SmoothScrollProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.log('SW registration failed: ', err);
+                  });
+                });
+              }
+            `
+          }}
+        />
       </body>
     </html>
   );

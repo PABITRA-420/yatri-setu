@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/animate-ui/components/buttons/button';
 import { RadioTower } from '@/components/animate-ui/icons/radio-tower';
+import { RuralModeToggle } from '@/components/RuralModeToggle';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -511,8 +512,9 @@ export const Navbar: React.FC = () => {
 
             </nav>
 
-            {/* 3. Right: SOS Red Button (Continuous Infinite Wave Animation) + More Dropdown */}
+            {/* 3. Right: SOS Red Button + Rural Mode Toggle + More Dropdown */}
             <div className="flex items-center gap-2.5">
+              <RuralModeToggle />
 
               {/* SOS Emergency Button with Infinite Radio Tower Animation */}
               <Button

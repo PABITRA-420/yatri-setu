@@ -100,6 +100,7 @@ export function buildApiUrl(path: string): URL {
 
 // Fallback seed data extracted to dedicated module (see P0 audit)
 import { FALLBACK_DESTINATIONS, FALLBACK_HOMESTAYS } from './fallback-data';
+import { saveToRuralCache, getFromRuralCache } from './ruralCache';
 
 export async function fetchDestinations(query?: string, crowdLevel?: string): Promise<DestinationSummary[]> {
   try {
@@ -107,11 +108,31 @@ export async function fetchDestinations(query?: string, crowdLevel?: string): Pr
     if (query) url.searchParams.set('query', query);
     if (crowdLevel) url.searchParams.set('crowd_level', crowdLevel);
 
-    const res = await fetch(url.toString(), { cache: 'no-store' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout for 2G/3G connections
+
+    const res = await fetch(url.toString(), { cache: 'no-store', signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (!res.ok) throw new Error('API fetch failed');
-    return await res.json();
+    const data = await res.json();
+    saveToRuralCache('destinations_list', data);
+    return data;
   } catch (err) {
-    console.warn('Using client fallback for destinations:', err);
+    console.warn('Using rural cache / client fallback for destinations:', err);
+    const cached = getFromRuralCache<DestinationSummary[]>('destinations_list');
+    if (cached && cached.length > 0) {
+      let list = cached;
+      if (query) {
+        const q = query.toLowerCase().trim();
+        list = list.filter(d => d.name.toLowerCase().includes(q) || d.tags?.some(t => t.toLowerCase().includes(q)));
+      }
+      if (crowdLevel) {
+        list = list.filter(d => d.crowd_level === crowdLevel);
+      }
+      return list;
+    }
+
     let list = FALLBACK_DESTINATIONS.map(d => {
       let lvl: any = 'LOW';
       if (d.base_crowd_score > 75) lvl = 'VERY HIGH';
