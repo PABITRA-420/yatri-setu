@@ -53,6 +53,8 @@ import {
 import { DestinationSummary } from '@/types';
 import { fetchDestinations, fetchDestinationAlternatives } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { MagneticButton } from '@/components/MagneticButton';
+import { TextReveal } from '@/components/TextReveal';
 
 interface TickerNode {
   id: string;
@@ -249,16 +251,23 @@ export default function HomePage() {
 
             {/* Explore, Contact Us & Hidden India Buttons */}
             <div className="flex flex-wrap items-center gap-3 md:flex-row pt-2">
-              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
-                <Link href="/destinations" className="text-white hover:text-amber-300">Explore</Link>
-              </Button>
-              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
-                <Link href="/contact" className="text-white hover:text-amber-300">Contact Us</Link>
-              </Button>
-              <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
-                <Link href="#hidden-india" className="text-white hover:text-amber-300">Hidden India</Link>
-              </Button>
+              <MagneticButton>
+                <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                  <Link href="/destinations" className="text-white hover:text-amber-300">Explore</Link>
+                </Button>
+              </MagneticButton>
+              <MagneticButton>
+                <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                  <Link href="/contact" className="text-white hover:text-amber-300">Contact Us</Link>
+                </Button>
+              </MagneticButton>
+              <MagneticButton>
+                <Button variant="outline" asChild className="rounded-xl border-white/30 bg-stone-900/60 hover:bg-stone-900/90 text-white hover:text-amber-300 hover:border-amber-400/50 font-bold px-7 h-12 text-base sm:text-lg shadow-md backdrop-blur-md transition-all">
+                  <Link href="#hidden-india" className="text-white hover:text-amber-300">Hidden India</Link>
+                </Button>
+              </MagneticButton>
             </div>
+
 
             {/* Live Real-Time Decongestion Alert Banner */}
             <div className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3.5 pr-4 rounded-2xl bg-stone-900/80 backdrop-blur-xl border border-rose-500/30 text-xs shadow-xl mb-4 sm:mb-6">

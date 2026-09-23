@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Homestay } from '@/types';
 import { formatINR } from '@/lib/utils';
+import { ImageWithSkeleton } from '@/components/ImageWithSkeleton';
 import { 
   Star, 
   ShieldCheck, 
@@ -42,17 +43,17 @@ export const HomestayCard: React.FC<HomestayCardProps> = ({ homestay, onQuickVie
   };
 
   return (
-    <div className="neo-card group relative flex flex-col justify-between rounded-3xl bg-white dark:bg-[#121824] border border-stone-200/80 dark:border-white/10 overflow-hidden hover:border-amber-500/40 hover:-translate-y-1 transition-all duration-300">
+    <div className="neo-card group relative flex flex-col justify-between rounded-3xl bg-white dark:bg-[#121824] border border-stone-200/80 dark:border-white/10 overflow-hidden hover:border-amber-500/40 hover:-translate-y-1 transition-all duration-300 shadow-xl">
       <div>
         {/* Cover Photography & Carousel */}
         <div className="relative h-60 w-full overflow-hidden bg-stone-900 group/img">
-          <img
+          <ImageWithSkeleton
             src={images[currentImageIdx]}
             alt={homestay.title}
+            containerClassName="w-full h-full"
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.95] group-hover:brightness-100"
-            loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent pointer-events-none" />
 
           {/* Carousel Arrows */}
           {images.length > 1 && (
@@ -116,7 +117,7 @@ export const HomestayCard: React.FC<HomestayCardProps> = ({ homestay, onQuickVie
         </div>
 
         {/* Content Details */}
-        <div className="p-6">
+        <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-extrabold text-lg text-stone-950 dark:text-white group-hover:text-amber-400 transition-colors line-clamp-1">
               {homestay.title}
@@ -186,7 +187,7 @@ export const HomestayCard: React.FC<HomestayCardProps> = ({ homestay, onQuickVie
       </div>
 
       {/* Footer / Price and CTA */}
-      <div className="px-6 pb-6 pt-3 border-t border-stone-100 dark:border-white/5 flex items-center justify-between">
+      <div className="px-5 sm:px-6 pb-5 sm:pb-6 pt-3 border-t border-stone-100 dark:border-white/5 flex items-center justify-between">
         <div>
           <div className="flex items-baseline gap-1">
             <span className="font-extrabold text-base text-stone-950 dark:text-white font-mono">
