@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ItineraryDay, ActivitySlot } from '@/types';
 import { formatINR } from '@/lib/utils';
+import { motion } from 'motion/react';
 import { 
   Clock, 
   MapPin, 
@@ -25,7 +26,7 @@ export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days, pers
 
   if (!days || days.length === 0) {
     return (
-      <div className="p-8 text-center text-slate-500">
+      <div className="p-8 text-center text-stone-500">
         No itinerary days available.
       </div>
     );
@@ -36,32 +37,32 @@ export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days, pers
   const getPeriodIcon = (period: string) => {
     switch (period) {
       case 'Morning':
-        return <Sun className="w-4 h-4 text-amber-500" />;
+        return <Sun className="w-4 h-4 text-amber-400" />;
       case 'Afternoon':
-        return <Sunset className="w-4 h-4 text-orange-500" />;
+        return <Sunset className="w-4 h-4 text-orange-400" />;
       case 'Evening':
         return <Moon className="w-4 h-4 text-indigo-400" />;
       default:
-        return <Clock className="w-4 h-4 text-slate-400" />;
+        return <Clock className="w-4 h-4 text-stone-400" />;
     }
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-sm">
+    <div className="bg-stone-900/80 backdrop-blur-xl rounded-3xl border border-white/10 p-6 sm:p-8 shadow-xl">
       {/* Day Selector Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-3 border-b border-slate-100 dark:border-slate-800 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 border-b border-white/10 scrollbar-none">
         {days.map((day, idx) => (
           <button
             key={day.day_number}
             onClick={() => setActiveDayIdx(idx)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+            className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 active:scale-95 ${
               activeDayIdx === idx
-                ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20 scale-102'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                ? 'bg-amber-400 text-stone-950 font-black shadow-lg shadow-amber-500/20 scale-102'
+                : 'bg-stone-950/60 text-stone-300 border border-white/5 hover:bg-white/10'
             }`}
           >
             <span>Day {day.day_number}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeDayIdx === idx ? 'bg-amber-700/80 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full ${activeDayIdx === idx ? 'bg-stone-950 text-amber-300 font-mono' : 'bg-stone-800 text-stone-400 font-mono'}`}>
               {formatINR(day.estimated_budget_inr * personMultiplier)}
             </span>
           </button>
@@ -69,67 +70,73 @@ export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days, pers
       </div>
 
       {/* Active Day Header */}
-      <div className="py-4 border-b border-slate-100 dark:border-slate-800/80">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="py-5 border-b border-white/10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider">
-              Day {currentDay.day_number} Focus
+            <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider block">
+              Day {currentDay.day_number} Himalayan Focus
             </span>
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+            <h3 className="text-xl font-extrabold text-white mt-0.5 tracking-tight">
               {currentDay.theme}
             </h3>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60">
-            <Bus className="w-3.5 h-3.5 text-amber-500" />
+          <div className="flex items-center gap-2 text-xs text-stone-300 bg-stone-950/80 px-3.5 py-2 rounded-2xl border border-white/10">
+            <Bus className="w-4 h-4 text-amber-400 shrink-0" />
             <span>Transit: {currentDay.transit_advice}</span>
           </div>
         </div>
-        <p className="text-xs text-slate-600 dark:text-slate-300 mt-2">
+        <p className="text-xs text-stone-400 mt-2 leading-relaxed">
           {currentDay.overview}
         </p>
       </div>
 
       {/* Activity Timeline List */}
-      <div className="relative mt-6 space-y-6 before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+      <div className="relative mt-8 space-y-6 before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-gradient-to-b before:from-amber-500 before:via-emerald-500 before:to-stone-800">
         {currentDay.activities.map((activity, idx) => (
-          <div key={idx} className="relative flex items-start gap-4 group">
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: idx * 0.08 }}
+            className="relative flex items-start gap-4 group"
+          >
             {/* Timeline Marker */}
-            <div className="relative z-10 w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/30 shrink-0 group-hover:scale-110 transition-transform">
+            <div className="relative z-10 w-7 h-7 rounded-full bg-stone-950 border-2 border-amber-400 text-white flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0 group-hover:scale-110 transition-transform">
               {getPeriodIcon(activity.period)}
             </div>
 
             {/* Content Card */}
-            <div className="flex-1 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-slate-100/70 dark:hover:bg-slate-800 border border-slate-200/70 dark:border-slate-700/70 rounded-xl p-4 transition-all">
+            <div className="flex-1 bg-stone-950/70 hover:bg-stone-950/90 border border-white/10 hover:border-amber-500/30 rounded-2xl p-5 transition-all">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <span className="text-xs font-bold text-amber-400 flex items-center gap-1 font-mono">
+                    <Clock className="w-3.5 h-3.5" />
                     {activity.time_slot}
                   </span>
-                  <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-stone-300">
                     {activity.category}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                     Crowd: {activity.crowd_forecast}
                   </span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  <span className="font-bold text-white font-mono">
                     {activity.cost_estimate_inr === 0 ? 'Free Entry' : formatINR(activity.cost_estimate_inr)}
                   </span>
                 </div>
               </div>
 
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+              <h4 className="font-extrabold text-base text-white tracking-tight">
                 {activity.title}
               </h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              <p className="text-xs text-stone-400 mt-1 leading-relaxed">
                 {activity.description}
               </p>
 
               {activity.is_weather_adapted && (
-                <div className="mt-2.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-[11px] flex items-center gap-2">
+                <div className="mt-3 px-3.5 py-2 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-200 text-xs flex items-center gap-2">
                   <span className="shrink-0 text-sm">🌧️</span>
                   <div>
                     <span className="font-bold">Weather Adaptive Substitution: </span>
@@ -138,22 +145,23 @@ export const ItineraryTimeline: React.FC<ItineraryTimelineProps> = ({ days, pers
                 </div>
               )}
 
-              <div className="mt-3 flex flex-wrap items-center gap-3 pt-2 border-t border-slate-200/50 dark:border-slate-700/50 text-[11px] text-slate-500">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400" />
+              <div className="mt-4 flex flex-wrap items-center gap-4 pt-3 border-t border-white/5 text-[11px] text-stone-400">
+                <div className="flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-amber-400" />
                   <span>{activity.location_name}</span>
                 </div>
                 {activity.travel_tip && (
-                  <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                    <Lightbulb className="w-3 h-3" />
+                  <div className="flex items-center gap-1.5 text-amber-300">
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
                     <span>Tip: {activity.travel_tip}</span>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
+
     </div>
   );
 };

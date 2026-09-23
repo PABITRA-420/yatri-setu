@@ -20,6 +20,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fetchDestinations } from '@/lib/api';
 
 /* ─────────────────────────────── Animated Counter Hook ─────────────────────────────── */
 interface CountUpOptions {
@@ -51,6 +52,14 @@ function useCountUp({
   const finalValue = formatNumber(target, decimals, useGrouping);
   const [displayValue, setDisplayValue] = useState<string>(initialValue);
   const startedRef = useRef(false);
+  const prevTargetRef = useRef(target);
+
+  useEffect(() => {
+    if (startedRef.current && prevTargetRef.current !== target) {
+      prevTargetRef.current = target;
+      setDisplayValue(finalValue);
+    }
+  }, [target, finalValue]);
 
   useEffect(() => {
     if (!startTrigger || startedRef.current) return;
@@ -152,9 +161,48 @@ export function SignatureFlowStory() {
     return () => observer.disconnect();
   }, [statsTriggered]);
 
+  // Live metrics state with graceful default fallbacks
+  const [metrics, setMetrics] = useState({
+    darjCrowd: 88,
+    darjTariff: 4800,
+    darjQueue: 2.5,
+    kalCrowd: 42,
+    kalTariff: 2800,
+    kalWait: 0
+  });
+
+  // Fetch real telemetry on mount to update stats dynamically
+  useEffect(() => {
+    let isMounted = true;
+    async function loadStoryTelemetry() {
+      try {
+        const dests = await fetchDestinations();
+        if (!isMounted || !dests || dests.length === 0) return;
+
+        const darj = dests.find(d => d.id.toLowerCase() === 'darjeeling');
+        const kal = dests.find(d => d.id.toLowerCase() === 'kalimpong');
+
+        setMetrics(prev => ({
+          ...prev,
+          darjCrowd: darj?.crowd_score ?? prev.darjCrowd,
+          darjTariff: darj?.avg_cost_per_day_inr ?? prev.darjTariff,
+          kalCrowd: kal?.crowd_score ?? prev.kalCrowd,
+          kalTariff: kal?.avg_cost_per_day_inr ?? prev.kalTariff
+        }));
+      } catch (err) {
+        console.warn('SignatureFlowStory live telemetry fallback active:', err);
+      }
+    }
+
+    loadStoryTelemetry();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // LEFT / CURRENT CONDITION STATS (Stagger: 0ms, 100ms, 200ms)
   const darjCrowd = useCountUp({
-    target: 88,
+    target: metrics.darjCrowd,
     duration: 1600,
     delay: 0,
     decimals: 0,
@@ -163,7 +211,7 @@ export function SignatureFlowStory() {
   });
 
   const darjTariff = useCountUp({
-    target: 4800,
+    target: metrics.darjTariff,
     duration: 1600,
     delay: 100,
     decimals: 0,
@@ -172,7 +220,7 @@ export function SignatureFlowStory() {
   });
 
   const darjQueue = useCountUp({
-    target: 2.5,
+    target: metrics.darjQueue,
     duration: 1600,
     delay: 200,
     decimals: 1,
@@ -182,7 +230,7 @@ export function SignatureFlowStory() {
 
   // RIGHT / ALTERNATIVE STATS (Stagger: 100ms, 200ms, 300ms)
   const kalCrowd = useCountUp({
-    target: 42,
+    target: metrics.kalCrowd,
     duration: 1600,
     delay: 100,
     decimals: 0,
@@ -191,7 +239,7 @@ export function SignatureFlowStory() {
   });
 
   const kalTariff = useCountUp({
-    target: 2800,
+    target: metrics.kalTariff,
     duration: 1600,
     delay: 200,
     decimals: 0,
@@ -200,7 +248,7 @@ export function SignatureFlowStory() {
   });
 
   const kalWait = useCountUp({
-    target: 0,
+    target: metrics.kalWait,
     duration: 1600,
     delay: 300,
     decimals: 0,
@@ -218,12 +266,14 @@ export function SignatureFlowStory() {
         <img
           src="https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=2000&q=80"
           alt=""
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover object-center filter brightness-[0.75] contrast-[1.08] saturate-[1.1]"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/95 via-stone-950/90 to-stone-950/97" />
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/60 via-transparent to-stone-950/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/85 via-stone-950/70 to-stone-950/90" />
+        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/75 via-transparent to-stone-950/70" />
+        {/* Subtle warm amber ambient glow to eliminate cold dark void */}
+        <div className="absolute top-1/4 right-10 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         {/* Subtle grain texture */}
-        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
+        <div className="absolute inset-0 opacity-[0.04] mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")' }} />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 sm:pt-4 pb-20 sm:pb-28 space-y-12">

@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/animate-ui/components/buttons/button';
 import { RadioTower } from '@/components/animate-ui/icons/radio-tower';
+import { RuralModeToggle } from '@/components/RuralModeToggle';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -226,37 +227,49 @@ export const Navbar: React.FC = () => {
         className={cn(
           'sticky top-0 z-50 transition-all duration-300',
           scrolled
-            ? 'bg-[#FAF8F5]/95 dark:bg-[#0E131E]/95 backdrop-blur-xl border-b border-stone-300/80 dark:border-stone-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_25px_rgba(0,0,0,0.4)]'
-            : 'bg-[#F6F4F0] dark:bg-[#0C0F14] border-b border-stone-200/80 dark:border-stone-800/50'
+            ? 'bg-[#0A0D12]/90 backdrop-blur-2xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
+            : 'bg-[#0A0D12]/80 backdrop-blur-xl border-b border-white/10'
         )}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-[72px]">
 
-            {/* 1. Left: Brand Logo Lockup (Increased Logo & Crisp Prominence) */}
-            <Link href="/" className="flex items-center gap-3.5 group shrink-0">
-              <div className="w-[52px] h-[52px] rounded-2xl overflow-hidden shadow-sm transition-transform duration-300 group-hover:scale-105 border border-stone-300/80 dark:border-stone-700/80 bg-white dark:bg-stone-900 flex items-center justify-center p-1 ring-1 ring-stone-900/5 dark:ring-white/10">
-                <Image
-                  src="/logo.png"
-                  alt="Yatri Setu Logo"
-                  width={52}
-                  height={52}
-                  className="w-full h-full object-contain"
-                  priority
-                />
+            {/* 1. Left: Brand Logo Lockup (Radiant Glowing Emblem & Crisp Dark Contrast) */}
+            <Link href="/" className="flex items-center gap-3.5 group/logo shrink-0 cursor-pointer">
+              {/* Luminous Illuminated Logo Emblem with Multi-tier Ambient Halo */}
+              <div className="relative">
+                {/* Outer Ambient Amber Radiance Halo */}
+                <div className="absolute -inset-2 bg-gradient-to-r from-amber-500/50 via-amber-400/40 to-amber-600/35 rounded-2xl blur-md opacity-75 group-hover/logo:opacity-100 transition-all duration-500" />
+                <div className="absolute -inset-0.5 bg-amber-400/40 rounded-2xl blur-xs opacity-70 group-hover/logo:opacity-100 transition-all duration-300" />
+
+                {/* Sculpted Glassmorphic Shield with Metallic Gold Ring & Inner Backlight */}
+                <div className="relative w-[48px] h-[48px] sm:w-[52px] sm:h-[52px] rounded-2xl bg-gradient-to-br from-stone-900 via-[#131926] to-stone-950 border-2 border-amber-400/70 p-2 shadow-[0_0_20px_rgba(245,158,11,0.35)] ring-1 ring-white/25 flex items-center justify-center transition-all duration-300 group-hover/logo:scale-105 group-hover/logo:border-amber-300 group-hover/logo:shadow-[0_0_30px_rgba(245,158,11,0.6)] overflow-hidden">
+                  {/* Soft Radial Backlight Disc to ensure green & blue emblem elements pop vividly */}
+                  <div className="absolute inset-1 rounded-xl bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.18),rgba(245,158,11,0.14),transparent_70%)] pointer-events-none" />
+                  
+                  <Image
+                    src="/logo-emblem.png"
+                    alt="Yatri Setu Logo"
+                    width={52}
+                    height={52}
+                    className="relative z-10 w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(245,158,11,0.5)] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] brightness-110 contrast-105 transition-transform duration-300 group-hover/logo:scale-105"
+                    priority
+                  />
+                </div>
               </div>
+
               <div className="flex flex-col justify-center">
-                <span className="font-black text-[25px] sm:text-[27px] tracking-tight leading-none text-stone-950 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-400 transition-colors">
-                  Yatri<span className="font-editorial italic font-normal text-amber-700 dark:text-amber-400 ml-1">Setu</span>
+                <span className="font-black text-[25px] sm:text-[27px] tracking-tight leading-none text-white group-hover/logo:text-amber-200 transition-colors">
+                  Yatri<span className="font-editorial italic font-normal text-amber-400 ml-1 drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]">Setu</span>
                 </span>
-                <span className="text-[11px] sm:text-xs text-stone-600 dark:text-stone-400 tracking-wider font-semibold mt-0.5 hidden sm:block">
+                <span className="text-[11px] sm:text-xs text-stone-300 tracking-wider font-semibold mt-0.5 hidden sm:block">
                   Himalayan Flow Intelligence
                 </span>
               </div>
             </Link>
 
             {/* 2. Center: Explore | Plan | My Trip (Slimmer Pill Height & Bolder Legible Typography) */}
-            <nav className="hidden lg:flex items-center gap-1.5 bg-[#EDE9E2]/85 dark:bg-stone-900/90 p-1 sm:p-1.5 rounded-full border border-stone-300/90 dark:border-stone-700/80 shadow-xs backdrop-blur-md">
+            <nav className="hidden lg:flex items-center gap-1.5 bg-stone-900/90 p-1 sm:p-1.5 rounded-full border border-white/10 shadow-inner backdrop-blur-md">
 
               {/* EXPLORE DROPDOWN */}
               <div
@@ -499,8 +512,9 @@ export const Navbar: React.FC = () => {
 
             </nav>
 
-            {/* 3. Right: SOS Red Button (Continuous Infinite Wave Animation) + More Dropdown */}
+            {/* 3. Right: SOS Red Button + Rural Mode Toggle + More Dropdown */}
             <div className="flex items-center gap-2.5">
+              <RuralModeToggle />
 
               {/* SOS Emergency Button with Infinite Radio Tower Animation */}
               <Button
@@ -720,71 +734,6 @@ export const Navbar: React.FC = () => {
           </div>
         )}
       </header>
-
-      {/* Modern Mobile Bottom Navigation Dock */}
-      <div className="lg:hidden fixed bottom-3 left-4 right-4 z-40">
-        <div className="glass-panel rounded-2xl p-2 flex items-center justify-around shadow-xl border border-stone-300/80 dark:border-stone-700/80 bg-[#FAF8F5]/90 dark:bg-[#0E131F]/90 backdrop-blur-xl">
-          <Link
-            href="/"
-            className={cn(
-              'flex flex-col items-center py-1 px-3 rounded-xl transition-colors',
-              pathname === '/'
-                ? 'text-amber-700 dark:text-amber-400 font-bold'
-                : 'text-stone-600 hover:text-stone-950 dark:text-stone-400'
-            )}
-          >
-            <Compass className="w-4 h-4" />
-            <span className="text-[11px] font-medium mt-0.5">Explore</span>
-          </Link>
-
-          <Link
-            href="/itinerary"
-            className={cn(
-              'flex flex-col items-center py-1 px-3 rounded-xl transition-colors',
-              pathname === '/itinerary'
-                ? 'text-amber-700 dark:text-amber-400 font-bold'
-                : 'text-stone-600 hover:text-stone-950 dark:text-stone-400'
-            )}
-          >
-            <Calendar className="w-4 h-4" />
-            <span className="text-[11px] font-medium mt-0.5">Plan</span>
-          </Link>
-
-          <Link
-            href="/trips"
-            className={cn(
-              'flex flex-col items-center py-1 px-3 rounded-xl transition-colors',
-              pathname.startsWith('/trips')
-                ? 'text-amber-700 dark:text-amber-400 font-bold'
-                : 'text-stone-600 hover:text-stone-950 dark:text-stone-400'
-            )}
-          >
-            <Navigation className="w-4 h-4" />
-            <span className="text-[11px] font-medium mt-0.5">My Trip</span>
-          </Link>
-
-          <Link
-            href="/destinations/darjeeling/alternatives"
-            className={cn(
-              'flex flex-col items-center py-1 px-3 rounded-xl transition-colors',
-              pathname.includes('/alternatives')
-                ? 'text-amber-700 dark:text-amber-400 font-bold'
-                : 'text-stone-600 hover:text-stone-950 dark:text-stone-400'
-            )}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="text-[11px] font-medium mt-0.5">Alternatives</span>
-          </Link>
-
-          <Link
-            href="/safety/sos"
-            className="flex flex-col items-center py-1 px-3 rounded-xl text-rose-600 dark:text-rose-400 font-bold"
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span className="text-[11px] font-bold mt-0.5">SOS</span>
-          </Link>
-        </div>
-      </div>
     </>
   );
 };

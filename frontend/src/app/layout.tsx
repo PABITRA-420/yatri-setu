@@ -4,6 +4,12 @@ import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { SmoothScrollProvider } from '@/components/SmoothScrollProvider';
+import { PageTransition } from '@/components/PageTransition';
+import { ScrollProgress } from '@/components/ScrollProgress';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { GlobalKeyboardShortcuts } from '@/components/GlobalKeyboardShortcuts';
+import { OfflineDataToast } from '@/components/OfflineDataToast';
+import { RuralEmergencyDrawer } from '@/components/RuralEmergencyDrawer';
 import { cn } from "@/lib/utils";
 
 const sansFont = Plus_Jakarta_Sans({
@@ -41,13 +47,33 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", editorialFont.variable, sansFont.variable)}>
-      <body className="min-h-full flex flex-col bg-[#F6F4F0] text-stone-900 dark:bg-[#0C0F14] dark:text-stone-100 transition-colors font-sans selection:bg-amber-500/20 selection:text-amber-900 dark:selection:text-amber-200">
+    <html lang="en" className={cn("h-full dark", "antialiased", editorialFont.variable, sansFont.variable)} style={{ colorScheme: 'dark' }}>
+      <body className="min-h-full flex flex-col bg-[#0A0D12] text-stone-100 font-sans selection:bg-amber-500/20 selection:text-amber-200 pb-16 md:pb-0">
+        <ScrollProgress />
+        <GlobalKeyboardShortcuts />
+        <OfflineDataToast />
+        <RuralEmergencyDrawer />
         <SmoothScrollProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 bg-[#0A0D12] text-stone-100 flex flex-col">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
+          <MobileBottomNav />
         </SmoothScrollProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
+                    console.log('SW registration failed: ', err);
+                  });
+                });
+              }
+            `
+          }}
+        />
       </body>
     </html>
   );

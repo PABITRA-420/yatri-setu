@@ -6,6 +6,10 @@ import Link from 'next/link';
 import { createBooking, fetchHomestays, fetchHomestayAvailability, cancelBooking } from '@/lib/api';
 import { HomestayBookingResponse, Homestay, HomestayAvailabilitySnapshot } from '@/types';
 import { formatINR } from '@/lib/utils';
+import { ConfettiEffect } from '@/components/ConfettiEffect';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { DatePicker } from '@/components/DatePicker';
+import { motion } from 'motion/react';
 import { 
   CheckCircle2, 
   QrCode, 
@@ -125,6 +129,9 @@ function BookingConfirmationContent() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {booking && !cancelled && <ConfettiEffect />}
+      <Breadcrumbs />
+
       {/* If Booking is already confirmed */}
       {booking ? (
         <div className="space-y-6">
@@ -368,28 +375,21 @@ function BookingConfirmationContent() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Check-in Date
-                </label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="Check-in Date"
                   value={checkInDate}
-                  onChange={(e) => setCheckInDate(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  onChange={(d) => setCheckInDate(d)}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                  Check-out Date
-                </label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="Check-out Date"
                   value={checkOutDate}
-                  onChange={(e) => setCheckOutDate(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  onChange={(d) => setCheckOutDate(d)}
                 />
               </div>
+
             </div>
 
             {/* Green Credits In-Platform Voucher Box */}

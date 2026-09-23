@@ -33,6 +33,9 @@ import {
   Eye
 } from 'lucide-react';
 
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { CustomSelect } from '@/components/CustomSelect';
+
 function ItineraryPlannerContent() {
   const searchParams = useSearchParams();
   const initialDest = searchParams.get('destination') || 'kalimpong';
@@ -116,39 +119,40 @@ function ItineraryPlannerContent() {
     }
   };
 
-  // Initial load auto-generates for quick demo readiness
   useEffect(() => {
     handleGenerate();
   }, [destinationId]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-8 space-y-8">
+      <Breadcrumbs />
+
       {/* Page Header & AI Badge */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 font-bold text-xs uppercase tracking-wider mb-2">
             <Sparkles className="w-3.5 h-3.5" />
             <span>SIH 2026 • Tourist Flow & Adaptive AI Engine</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
             Adaptive AI Travel Intelligence
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl mt-1">
+          <p className="text-xs sm:text-sm text-stone-400 max-w-2xl mt-1">
             Genuinely adaptive multi-day planning powered by provider abstraction. Guardrails keep crowd scores, pricing, availability, and traveler safety strictly deterministic.
           </p>
         </div>
 
         {/* AI Provider Status Pill */}
-        <div className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-3.5 flex items-center gap-3 shrink-0 shadow-sm">
+        <div className="bg-stone-900/80 backdrop-blur-md border border-white/10 rounded-2xl p-3.5 flex items-center gap-3 shrink-0 shadow-md">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           <div className="text-xs">
-            <div className="font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <div className="font-extrabold text-stone-200 flex items-center gap-1.5">
               <span>AI Provider:</span>
-              <span className="text-amber-600 dark:text-amber-400 uppercase font-mono tracking-wide">
+              <span className="text-amber-400 uppercase font-mono tracking-wide">
                 {itinerary?.ai_provider_used || 'MOCK (ZERO-CONFIG)'}
               </span>
             </div>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] text-stone-400">
               Deterministic crowd & safety guardrails
             </span>
           </div>
@@ -158,31 +162,29 @@ function ItineraryPlannerContent() {
       {/* Preferences Form Card */}
       <form
         onSubmit={handleGenerate}
-        className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6"
+        className="bg-stone-900/70 backdrop-blur-xl rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl space-y-6"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Destination Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-              Destination
-            </label>
-            <select
+            <CustomSelect
+              label="Destination"
               value={destinationId}
-              onChange={(e) => setDestinationId(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs sm:text-sm font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            >
-              <option value="kalimpong">Kalimpong (Orchid Ridge • 42/100)</option>
-              <option value="lava">Lava (Misty Neora Pine • 24/100 • 🌧️ Rain Test)</option>
-              <option value="rishop">Rishop (360° Kanchenjunga • 15/100)</option>
-              <option value="lolegaon">Lolegaon (Canopy Forest • 18/100)</option>
-              <option value="mirik">Mirik (Sumendu Lake • 38/100)</option>
-              <option value="darjeeling">Darjeeling (High Demand • 88/100)</option>
-            </select>
+              onChange={(val) => setDestinationId(val)}
+              options={[
+                { value: 'kalimpong', label: 'Kalimpong (Orchid Ridge • 42/100)' },
+                { value: 'lava', label: 'Lava (Misty Neora Pine • 24/100)' },
+                { value: 'rishop', label: 'Rishop (360° Kanchenjunga • 15/100)' },
+                { value: 'lolegaon', label: 'Lolegaon (Canopy Forest • 18/100)' },
+                { value: 'mirik', label: 'Mirik (Sumendu Lake • 38/100)' },
+                { value: 'darjeeling', label: 'Darjeeling (High Demand • 88/100)' }
+              ]}
+            />
           </div>
 
           {/* Duration Days */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-bold text-stone-300 uppercase tracking-wider mb-1.5">
               Duration (Days)
             </label>
             <div className="flex items-center gap-2">
@@ -191,10 +193,10 @@ function ItineraryPlannerContent() {
                   key={d}
                   type="button"
                   onClick={() => setDurationDays(d)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex-1 py-2.5 rounded-2xl text-xs font-bold transition-all active:scale-95 ${
                     durationDays === d
-                      ? 'bg-amber-600 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                      ? 'bg-amber-400 text-stone-950 font-black shadow-md shadow-amber-500/20'
+                      : 'bg-stone-950/80 border border-white/10 text-stone-300 hover:bg-white/10'
                   }`}
                 >
                   {d}D
@@ -206,47 +208,46 @@ function ItineraryPlannerContent() {
           {/* Traveler Type & Number of Persons */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-stone-300 uppercase tracking-wider">
                 Party & Persons
               </label>
-              <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">
+              <span className="text-[10px] font-mono text-amber-400 font-bold">
                 {numberOfTravelers} {numberOfTravelers === 1 ? 'Person' : 'Persons'}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <select
+              <CustomSelect
                 value={travelerType}
-                onChange={(e) => {
-                  const val = e.target.value;
+                onChange={(val) => {
                   setTravelerType(val);
                   if (val === 'Solo') setNumberOfTravelers(1);
                   else if (val === 'Couple') setNumberOfTravelers(2);
                   else if (val === 'Family') setNumberOfTravelers(4);
                   else if (val === 'Friends') setNumberOfTravelers(4);
                 }}
-                className="w-full px-2.5 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900 dark:text-white"
-              >
-                <option value="Solo">Solo</option>
-                <option value="Couple">Couple</option>
-                <option value="Family">Family</option>
-                <option value="Friends">Friends</option>
-              </select>
+                options={[
+                  { value: 'Solo', label: 'Solo' },
+                  { value: 'Couple', label: 'Couple' },
+                  { value: 'Family', label: 'Family' },
+                  { value: 'Friends', label: 'Friends' }
+                ]}
+              />
 
-              <div className="flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-2 py-1 justify-between">
+              <div className="flex items-center bg-stone-950/80 rounded-2xl border border-white/10 px-2 py-1 justify-between">
                 <button
                   type="button"
                   onClick={() => setNumberOfTravelers(Math.max(1, numberOfTravelers - 1))}
-                  className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 font-black text-xs hover:bg-amber-600 hover:text-white transition-colors"
+                  className="w-7 h-7 rounded-xl bg-stone-800 text-stone-200 font-black text-xs hover:bg-amber-400 hover:text-stone-950 transition-colors"
                 >
                   -
                 </button>
-                <span className="text-xs font-bold font-mono text-slate-900 dark:text-white">
+                <span className="text-xs font-bold font-mono text-white">
                   {numberOfTravelers}p
                 </span>
                 <button
                   type="button"
                   onClick={() => setNumberOfTravelers(Math.min(12, numberOfTravelers + 1))}
-                  className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-700 font-black text-xs hover:bg-amber-600 hover:text-white transition-colors"
+                  className="w-7 h-7 rounded-xl bg-stone-800 text-stone-200 font-black text-xs hover:bg-amber-400 hover:text-stone-950 transition-colors"
                 >
                   +
                 </button>

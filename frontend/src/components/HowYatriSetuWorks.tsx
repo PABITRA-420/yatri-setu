@@ -1,27 +1,25 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
   ArrowUpRight,
   Sparkles,
   Shield,
-  Activity,
-  Flame,
-  RadioTower,
   MapPin,
   Clock,
-  Home as HomeIcon,
   CheckCircle2,
-  Compass,
-  Layers,
   Leaf,
   Users,
-  ChevronDown
+  AlertTriangle,
+  Compass,
+  Radio,
+  Coins,
+  TrendingDown
 } from 'lucide-react';
-import { motion, AnimatePresence, useInView } from 'motion/react';
-import { cn, formatINR } from '@/lib/utils';
+import { motion, useInView, useScroll, useTransform, useSpring } from 'motion/react';
+import { cn } from '@/lib/utils';
 
 // ============================================================================
 // DATA & TYPES
@@ -43,6 +41,13 @@ export interface FeatureChapter {
   metricSuffix?: string;
   metricSub?: string;
   technicalLabel: string;
+  image: string;
+  watermark: string;
+  floatingPill1: { icon: string; text: string };
+  floatingPill2: { icon: string; text: string };
+  floatingPill3: { icon: string; text: string };
+  textParallaxBadge: { icon: string; label: string; val: string };
+  accentMetric: { label: string; stat: string; sub: string };
 }
 
 const FEATURE_CHAPTERS: FeatureChapter[] = [
@@ -63,7 +68,18 @@ const FEATURE_CHAPTERS: FeatureChapter[] = [
     metricValue: 88,
     metricSuffix: ' / 100',
     metricSub: 'CRITICAL CONGESTION THRESHOLD',
-    technicalLabel: '6-FACTOR DECONGESTION TELEMETRY'
+    technicalLabel: '6-FACTOR DECONGESTION TELEMETRY',
+    image: '/hero-himalaya.jpg',
+    watermark: '01 DECONGESTION',
+    floatingPill1: { icon: '📍', text: 'Tiger Hill Saturation • 8,482 ft' },
+    floatingPill2: { icon: '⚠️', text: 'Hill Cart Road Corridor Delay' },
+    floatingPill3: { icon: '📊', text: '+74 min gridlock • Severe Peak Saturation' },
+    textParallaxBadge: { icon: '⚡', label: 'LIVE SENSOR SATURATION', val: '88% CAPACITY EXCEEDED' },
+    accentMetric: {
+      label: 'TIGER HILL BOTTLENECK TELEMETRY',
+      stat: '88 / 100',
+      sub: 'Multi-factor choke point alert triggered along Hill Cart Road corridor'
+    }
   },
   {
     id: 'similarity-match',
@@ -82,7 +98,18 @@ const FEATURE_CHAPTERS: FeatureChapter[] = [
     metricValue: 87,
     metricSuffix: '%',
     metricSub: 'MATCHED WITH KALIMPONG RIDGE',
-    technicalLabel: 'CAPACITY-BALANCED REDIRECTION'
+    technicalLabel: 'CAPACITY-BALANCED REDIRECTION',
+    image: '/experience_bg.jpg',
+    watermark: '02 AFFINITY',
+    floatingPill1: { icon: '🏔️', text: '360° Kanchenjunga • Zero Queues' },
+    floatingPill2: { icon: '💰', text: '42% Lower Daily Tariff • Rural Direct' },
+    floatingPill3: { icon: '✨', text: 'Rishop Ridge Sanctuary • 87% Experiential Match' },
+    textParallaxBadge: { icon: '🌿', label: 'AFFINITY REDIRECTION', val: 'KALIMPONG RIDGE • 87% MATCH' },
+    accentMetric: {
+      label: 'ECOLOGICAL SISTER SANCTUARY',
+      stat: '87% MATCH',
+      sub: '42% lower daily tariff · Zero queues · Preserves fragile ridge ecosystems'
+    }
   },
   {
     id: 'crowd-smart-itinerary',
@@ -101,7 +128,18 @@ const FEATURE_CHAPTERS: FeatureChapter[] = [
     metricValue: 65,
     metricSuffix: '%',
     metricSub: 'OPTIMIZED TIME-BLOCKING',
-    technicalLabel: 'TEMPORAL FLOW OPTIMIZATION'
+    technicalLabel: 'TEMPORAL FLOW OPTIMIZATION',
+    image: '/demo_flow_bg.jpg',
+    watermark: '03 EXPEDITION',
+    floatingPill1: { icon: '⏰', text: '05:45 AM Off-Peak Sunrise Window' },
+    floatingPill2: { icon: '🚶', text: 'Lepcha Craft Trail • Staggered Flow' },
+    floatingPill3: { icon: '⏳', text: '-65% Peak Wait Times • Algorithmic Pacing' },
+    textParallaxBadge: { icon: '⏱️', label: 'TEMPORAL FLOW PACING', val: '05:45 AM OFF-PEAK STAGGERING' },
+    accentMetric: {
+      label: 'TEMPORAL QUEUE ELIMINATION',
+      stat: '-65% WAIT',
+      sub: 'Dynamically shifts excursion windows 45 mins ahead of mass tourist buses'
+    }
   },
   {
     id: 'panchayat-booking',
@@ -120,13 +158,24 @@ const FEATURE_CHAPTERS: FeatureChapter[] = [
     metricValue: 90,
     metricSuffix: '%',
     metricSub: 'VERIFIED PANCHAYAT LEDGER',
-    technicalLabel: 'COMMUNITY LEDGER SETTLEMENT'
+    technicalLabel: 'COMMUNITY LEDGER SETTLEMENT',
+    image: '/sanctuaries_bg.jpg',
+    watermark: '04 COMMUNITY',
+    floatingPill1: { icon: '🏡', text: 'Gurung Family Unit #14 • Panchayat Verified' },
+    floatingPill2: { icon: '🪙', text: '+120 Green Coins • Village Fund' },
+    floatingPill3: { icon: '🌱', text: 'Gram Panchayat Eco-Audit #WB-409 • Verified' },
+    textParallaxBadge: { icon: '🤝', label: 'COMMUNITY LEDGER', val: '90% DIRECT TO GURUNG COTTAGE' },
+    accentMetric: {
+      label: 'DIRECT HOST REVENUE SHARE',
+      stat: '90% DIRECT',
+      sub: 'Zero intermediary cut · Funds local youth guides and village conservation'
+    }
   },
   {
     id: 'emergency-net',
     step: '05',
     badge: 'National 112 & GPS',
-    navTitle: 'Yatri Mitra Emergency Net (SOS)',
+    navTitle: 'Emergency SOS Net',
     chapterTitle: 'YATRI MITRA EMERGENCY NET (SOS)',
     storyHeading: 'Peace of mind in every valley, with location-aware safety.',
     storyLead:
@@ -139,7 +188,18 @@ const FEATURE_CHAPTERS: FeatureChapter[] = [
     metricValue: 112,
     metricSuffix: ' READY',
     metricSub: 'GPS + VILLAGE MESH BACKBONE',
-    technicalLabel: 'CIVIC SAFETY NETWORK'
+    technicalLabel: 'CIVIC SAFETY NETWORK',
+    image: '/image2.png',
+    watermark: '05 CIVIC SAFETY',
+    floatingPill1: { icon: '📡', text: '4 Yatri Mitras within 1.4km' },
+    floatingPill2: { icon: '🛰️', text: 'GPS 27.0594° N, 88.2625° E • Cached Fix' },
+    floatingPill3: { icon: '🚨', text: 'National 112 Integration • Satellite Relay' },
+    textParallaxBadge: { icon: '🛡️', label: 'CIVIC SAFETY MESH', val: '4 WARDENS WITHIN 1.4 KM' },
+    accentMetric: {
+      label: 'RAPID DISPATCH & MESH SATELLITE',
+      stat: '112 READY',
+      sub: 'Real-time GPS coordinate caching with local community wardens & police dispatch'
+    }
   }
 ];
 
@@ -147,14 +207,11 @@ const FEATURE_CHAPTERS: FeatureChapter[] = [
 // ANIMATED COUNTER HOOK
 // ============================================================================
 
-function useSmoothCounter(target: number | undefined, duration = 650, active = false) {
+function useSmoothCounter(target: number | undefined, duration = 750, active = false) {
   const [val, setVal] = useState<number>(0);
-  const prevTargetRef = useRef<number>(0);
 
   useEffect(() => {
     if (!active || target === undefined) {
-      setVal(0);
-      prevTargetRef.current = 0;
       return;
     }
 
@@ -166,15 +223,12 @@ function useSmoothCounter(target: number | undefined, duration = 650, active = f
     const tick = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
-      // easeOutExpo
       const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
       const current = Math.round(startVal + diff * ease);
       setVal(current);
 
       if (progress < 1) {
         animId = requestAnimationFrame(tick);
-      } else {
-        prevTargetRef.current = target;
       }
     };
 
@@ -186,106 +240,612 @@ function useSmoothCounter(target: number | undefined, duration = 650, active = f
 }
 
 // ============================================================================
-// MAIN COMPONENT
+// CHAPTER ROW COMPONENT WITH MULTI-LAYER PARALLAX (IMAGE, TEXT, AND WATERMARKS)
 // ============================================================================
 
-export function HowYatriSetuWorks() {
-  const [activeChapter, setActiveChapter] = useState<number>(0);
+interface ChapterRowProps {
+  chapter: FeatureChapter;
+  index: number;
+  onVisible: (idx: number) => void;
+}
+
+function ChapterRow({ chapter, index, onVisible }: ChapterRowProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(rowRef, { amount: 0.25 });
   const [mouseParallax, setMouseParallax] = useState({ x: 0, y: 0 });
-  const [isReducedMotion, setIsReducedMotion] = useState(false);
 
-  const containerRef = useRef<HTMLElement>(null);
-  const stickyRef = useRef<HTMLDivElement>(null);
-  const chapterRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // SCROLL-DRIVEN DYNAMIC MULTI-LAYER PARALLAX
+  const { scrollYProgress } = useScroll({
+    target: rowRef,
+    offset: ['start end', 'end start']
+  });
 
-  const isInView = useInView(containerRef, { once: true, amount: 0.15 });
+  const smoothProgress = useSpring(scrollYProgress, { stiffness: 90, damping: 20, mass: 0.18 });
 
-  // Detect reduced motion preferences
+  // 1. Image vertical parallax drift inside the container
+  const imageY = useTransform(smoothProgress, [0, 1], ['-12%', '12%']);
+  const imageScale = useTransform(smoothProgress, [0, 0.5, 1], [1.14, 1.05, 1.14]);
+
+  // 2. Large decorative ghost typography watermark floats with counter-motion
+  const watermarkY = useTransform(smoothProgress, [0, 1], ['-45px', '45px']);
+
+  // 3. Floating telemetry badges layered across the image glide with differential parallax
+  const floatingBadge1Y = useTransform(smoothProgress, [0, 1], ['32px', '-32px']);
+  const floatingBadge2Y = useTransform(smoothProgress, [0, 1], ['-26px', '26px']);
+  const floatingBadge3Y = useTransform(smoothProgress, [0, 1], ['42px', '-18px']);
+
+  // 4. Parallax Text beside the images (Chapters 1, 2, 3, 4, 5):
+  // - Large Step numeral (01, 02, 03, 04, 05) glides with its own vertical parallax offset
+  const stepNumY = useTransform(smoothProgress, [0, 1], ['-28px', '28px']);
+  // - Heading and editorial quote glide with subtle counter-parallax
+  const headingY = useTransform(smoothProgress, [0, 1], ['14px', '-14px']);
+  // - Floating highlight badge beside the chapter text glides at independent speed
+  const textBadgeY = useTransform(smoothProgress, [0, 1], ['-22px', '22px']);
+  // - Accent metric card glides with subtle elevation
+  const textAccentY = useTransform(smoothProgress, [0, 1], ['18px', '-18px']);
+  // - Right column overall smooth glide
+  const textColY = useTransform(smoothProgress, [0, 1], ['16px', '-16px']);
+
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setIsReducedMotion(mq.matches);
-      const handler = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
+    if (isInView) {
+      onVisible(index);
     }
-  }, []);
+  }, [isInView, index, onVisible]);
 
-  // Desktop Mouse Parallax (6-10px max, disabled on touch/reduced motion)
+  // Smooth animated counter for this specific chapter
+  const counterValue = useSmoothCounter(chapter.metricValue, 800, isInView);
+
+  // Mouse Parallax 3D tilt calculations
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isReducedMotion || !stickyRef.current) return;
-    if (typeof window !== 'undefined' && window.matchMedia && !window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      return;
-    }
-    const rect = stickyRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 16; // -8 to +8px
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 16;
     const y = ((e.clientY - rect.top) / rect.height - 0.5) * 16;
     setMouseParallax({ x, y });
-  }, [isReducedMotion]);
+  }, []);
 
   const handleMouseLeave = useCallback(() => {
     setMouseParallax({ x: 0, y: 0 });
   }, []);
 
-  // Scroll Synchronization via IntersectionObserver
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-    chapterRefs.current.forEach((el, index) => {
-      if (!el) return;
-      const obs = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveChapter(index);
-            }
-          });
-        },
-        {
-          rootMargin: '-25% 0px -45% 0px',
-          threshold: 0.1
-        }
-      );
-      obs.observe(el);
-      observers.push(obs);
-    });
+  return (
+    <div
+      id={chapter.id}
+      ref={rowRef}
+      className="scroll-mt-32 py-8 sm:py-12 lg:py-14 border-b border-stone-800/60 last:border-b-0"
+    >
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-center">
+        
+        {/* ------------------------------------------------------------------ */}
+        {/* VISUAL SHOWCASE CARD WITH MULTI-LAYER PARALLAX (LEFT ~58%)         */}
+        {/* ------------------------------------------------------------------ */}
+        <div className="lg:col-span-7 order-2 lg:order-1">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0.4, y: 15 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            className="group relative w-full h-[480px] sm:h-[540px] lg:h-[600px] rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-stone-950 flex flex-col justify-between p-6 sm:p-8 select-none transition-all duration-300 hover:border-amber-400/40 hover:shadow-amber-500/10"
+            style={{ perspective: 1000 }}
+          >
+            {/* 1. PARALLAX BACKGROUND IMAGE */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <motion.img
+                src={chapter.image}
+                alt={chapter.chapterTitle}
+                loading="eager"
+                decoding="async"
+                style={{
+                  y: imageY,
+                  scale: imageScale,
+                  x: mouseParallax.x * -0.6,
+                  transition: 'x 0.25s ease-out'
+                }}
+                className="w-full h-full object-cover filter brightness-[0.78] group-hover:brightness-[0.84] transition-all duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-stone-950/25" />
+              <div className="absolute inset-0 bg-gradient-to-r from-stone-950/85 via-stone-950/30 to-transparent" />
+            </div>
 
-    return () => {
-      observers.forEach((obs) => obs.disconnect());
-    };
+            {/* 2. PARALLAX FLOATING GHOST TYPOGRAPHY WATERMARK */}
+            <motion.div
+              style={{
+                y: watermarkY,
+                x: mouseParallax.x * 0.5,
+                transition: 'x 0.25s ease-out'
+              }}
+              className="absolute top-1/3 left-6 right-6 pointer-events-none select-none z-10 opacity-[0.14] group-hover:opacity-[0.22] transition-opacity duration-500"
+            >
+              <span className="font-mono font-black text-5xl sm:text-7xl lg:text-8xl tracking-tighter uppercase text-white block leading-none">
+                {chapter.watermark}
+              </span>
+            </motion.div>
+
+            {/* 3. PARALLAX FLOATING TELEMETRY PILLS (ACTIVE OVER IMAGE) */}
+            <div className="absolute inset-x-6 top-18 pointer-events-none z-15 flex flex-col items-end gap-2">
+              {/* Floating Pill 1 (Glides with positive parallax) */}
+              <motion.div
+                style={{
+                  y: floatingBadge1Y,
+                  x: mouseParallax.x * 1.2,
+                  transition: 'x 0.25s ease-out'
+                }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] sm:text-[11px] font-mono font-bold text-amber-200 shadow-xl"
+              >
+                <span>{chapter.floatingPill1.icon}</span>
+                <span>{chapter.floatingPill1.text}</span>
+              </motion.div>
+
+              {/* Floating Pill 2 (Glides with counter parallax) */}
+              <motion.div
+                style={{
+                  y: floatingBadge2Y,
+                  x: mouseParallax.x * 0.9,
+                  transition: 'x 0.25s ease-out'
+                }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[10px] sm:text-[11px] font-mono font-bold text-emerald-200 shadow-xl"
+              >
+                <span>{chapter.floatingPill2.icon}</span>
+                <span>{chapter.floatingPill2.text}</span>
+              </motion.div>
+
+              {/* Floating Pill 3 (Glides with tertiary parallax depth) */}
+              <motion.div
+                style={{
+                  y: floatingBadge3Y,
+                  x: mouseParallax.x * 1.4,
+                  transition: 'x 0.25s ease-out'
+                }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/80 backdrop-blur-md border border-amber-400/30 text-[10px] sm:text-[11px] font-mono font-bold text-amber-300 shadow-xl"
+              >
+                <span>{chapter.floatingPill3.icon}</span>
+                <span>{chapter.floatingPill3.text}</span>
+              </motion.div>
+            </div>
+
+            {/* 4. TOP HUD BAR */}
+            <div className="relative z-20 flex items-center justify-between pointer-events-auto">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[11px] font-mono tracking-widest uppercase text-stone-200 shadow-md">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span>PHASE {chapter.step} OF 05</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 shadow-md">
+                <span>{chapter.badge}</span>
+              </div>
+            </div>
+
+            {/* 5. BOTTOM INTERACTIVE PANEL (CHAPTER SPECIFIC WITH GLASSMORPHISM) */}
+            <div
+              className="relative z-20 space-y-4 pointer-events-auto min-h-[220px] sm:min-h-[240px] flex flex-col justify-end"
+              style={{
+                transform: `translate3d(${mouseParallax.x * 0.8}px, ${mouseParallax.y * 0.8}px, 0)`,
+                transition: 'transform 0.25s ease-out'
+              }}
+            >
+              
+              {/* SCENE 01: Bottleneck Alert */}
+              {index === 0 && (
+                <>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                    <span>SATURATION ALERT DETECTED</span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-white">
+                      DARJEELING RIDGE
+                    </h4>
+                    <p className="text-xs font-mono text-stone-300 uppercase tracking-wider mt-1">
+                      Hill Cart Road Corridor · Eastern Himalayas
+                    </p>
+                  </div>
+
+                  <div className="p-4 sm:p-5 rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 flex items-center justify-between gap-4">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-stone-400 block font-semibold tracking-wider">
+                        CROWD CONGESTION LEVEL
+                      </span>
+                      <span className="text-3xl sm:text-4xl font-mono font-black text-rose-400 mt-1 block">
+                        {counterValue} / 100
+                      </span>
+                      <span className="text-[10px] font-mono text-stone-300">
+                        Severe peak holiday traffic delay risk
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono uppercase text-stone-400 block font-semibold tracking-wider">
+                        RECOMMENDATION:
+                      </span>
+                      <span className="text-xs font-mono font-bold text-amber-300 mt-1 block uppercase">
+                        DIVERT TO SISTER RIDGE
+                      </span>
+                      <span className="text-[10px] text-stone-400 block mt-0.5">
+                        6-Factor capacity trigger
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* SCENE 02: AI Similarity & Capacity Match */}
+              {index === 1 && (
+                <>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>CAPACITY-BALANCED REDIRECTION</span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-white">
+                      HIGH PRESSURE → SIMILAR ALTERNATIVE
+                    </h4>
+                    <p className="text-xs font-mono text-stone-300 uppercase tracking-wider mt-1">
+                      Sister Sanctuary Ecological & Experiential Pairing
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-3 items-center">
+                      <div className="p-3.5 rounded-xl bg-black/65 backdrop-blur-md border border-rose-500/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-mono uppercase text-rose-400 font-bold tracking-wider">
+                            DARJEELING
+                          </span>
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">
+                            VERY HIGH
+                          </span>
+                        </div>
+                        <span className="text-xl font-mono font-black text-rose-400 mt-0.5 block">
+                          88 / 100
+                        </span>
+                        <span className="text-[10px] font-mono text-stone-400">
+                          Saturated Ridge
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-amber-500/20 backdrop-blur-md border border-amber-400/80 shadow-lg ring-1 ring-amber-400/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-mono uppercase text-amber-300 font-bold tracking-wider">
+                            KALIMPONG
+                          </span>
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            MEDIUM
+                          </span>
+                        </div>
+                        <span className="text-xl font-mono font-black text-emerald-400 mt-0.5 block">
+                          42 / 100
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-300 font-bold">
+                          {counterValue}% SIMILAR
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 text-xs font-mono text-stone-300 flex items-center justify-between">
+                      <span className="text-stone-400">ECOLOGICALLY MATCHED RIDGE</span>
+                      <span className="text-amber-400 font-bold">42% TARIFF SAVINGS · ZERO QUEUES</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* SCENE 03: Adaptive Crowd-Smart Itinerary */}
+              {index === 2 && (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                      DAY-BY-DAY FLOW
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                      LOWER-PRESSURE WINDOW
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full bg-sky-500/20 border border-sky-500/40 text-sky-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                      LOCAL EXPERIENCE
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-white">
+                      ADAPTIVE CROWD-SMART ITINERARY
+                    </h4>
+                    <p className="text-xs font-mono text-stone-300 uppercase tracking-wider mt-1">
+                      Editorial Flow Route & Temporal Pacing
+                    </p>
+                  </div>
+
+                  <div className="p-4 sm:p-5 rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 space-y-2.5 font-mono">
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-bold text-white mb-1">
+                        <span className="text-amber-400">DAY 01 · ARRIVE</span>
+                        <span className="text-[10px] text-stone-400 font-normal">11:30 AM</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-stone-300 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                        <span>ARRIVAL</span>
+                        <span className="text-amber-400/60">●────────●</span>
+                        <span className="text-amber-300 font-bold">HOMESTAY</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between text-xs font-bold text-white mb-1">
+                        <span className="text-emerald-400">DAY 02 · LOCAL EXPERIENCE</span>
+                        <span className="text-[10px] text-stone-400 font-normal">08:30 AM</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-stone-300 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                        <span>LOCAL</span>
+                        <span className="text-emerald-400/60">●────────●</span>
+                        <span className="text-emerald-300 font-bold">EXPERIENCE</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-stone-400">
+                      <span>TEMPORAL FLOW OPTIMIZATION</span>
+                      <span className="text-emerald-400 font-bold">-{counterValue}% PEAK QUEUE REDUCTION</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* SCENE 04: Direct Panchayat Host Booking */}
+              {index === 3 && (
+                <>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
+                    <Leaf className="w-3.5 h-3.5" />
+                    <span>DIRECT HOST CONNECTION</span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-white">
+                      DIRECT PANCHAYAT HOST BOOKING
+                    </h4>
+                    <p className="text-xs font-mono text-stone-300 uppercase tracking-wider mt-1">
+                      Pineview Orchid Cottage · Hosted by Gurung Family
+                    </p>
+                  </div>
+
+                  <div className="p-4 sm:p-5 rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 space-y-3 font-mono">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-center gap-1.5">
+                      <div className="flex-1 py-1.5 px-2 rounded-lg bg-white/5 border border-white/10 text-stone-300">
+                        TRAVELER
+                      </div>
+                      <span className="text-amber-400 font-black">→</span>
+                      <div className="flex-1 py-1.5 px-2 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-300">
+                        DIRECT LINK
+                      </div>
+                      <span className="text-amber-400 font-black">→</span>
+                      <div className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300">
+                        LOCAL HOST
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] uppercase text-stone-400 block font-semibold tracking-wider">
+                          DIRECT HOST SHARE
+                        </span>
+                        <span className="text-2xl sm:text-3xl font-black text-emerald-400 mt-0.5 block">
+                          {counterValue}% DIRECT SHARE
+                        </span>
+                        <span className="text-[10px] text-stone-300">
+                          Verified Panchayat ledger · Bypasses middlemen
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[9px] uppercase text-stone-400 block font-semibold tracking-wider">
+                          VILLAGE FUND
+                        </span>
+                        <span className="text-xs font-bold text-amber-300 mt-1 block">
+                          +120 GREEN COINS
+                        </span>
+                        <span className="text-[10px] text-stone-400">
+                          Trail & Youth Guide Fund
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* SCENE 05: Yatri Mitra Emergency Net */}
+              {index === 4 && (
+                <>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>TRAVELER SAFETY NET</span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-white">
+                      YATRI MITRA EMERGENCY NET
+                    </h4>
+                    <p className="text-xs font-mono text-stone-300 uppercase tracking-wider mt-1">
+                      Calm High-Altitude Safety Infrastructure
+                    </p>
+                  </div>
+
+                  <div className="p-4 sm:p-5 rounded-2xl bg-black/75 backdrop-blur-xl border border-white/15 space-y-3 font-mono text-xs">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-500/40 animate-pulse" />
+                        <span className="text-white font-bold tracking-wider">{counterValue}</span>
+                        <span className="text-stone-300">· SOS READY</span>
+                      </div>
+                      <span className="text-[10px] text-emerald-400 font-semibold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        DISPATCH ONLINE
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-stone-300">
+                      <span className="text-stone-400">GPS LOCATION:</span>
+                      <span className="text-white font-bold">27.0594° N, 88.2625° E</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-stone-300">
+                      <span className="text-stone-400">TRUSTED CONTACT:</span>
+                      <span className="text-amber-300 font-bold">SYNCED · 4 WARDENS WITHIN 1.4KM</span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ------------------------------------------------------------------ */}
+        {/* EDITORIAL STORY COPY WITH MULTI-LAYER PARALLAX (RIGHT COLUMN ~42%) */}
+        {/* ------------------------------------------------------------------ */}
+        <motion.div
+          style={{ y: textColY }}
+          className="lg:col-span-5 order-1 lg:order-2 flex flex-col justify-center space-y-6 min-h-[480px] sm:min-h-[540px] lg:min-h-[600px]"
+        >
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0.5, x: 10 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {/* Step Number & Parallax Floating Highlight Badge Beside Text */}
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-center gap-3">
+                <motion.span
+                  style={{ y: stepNumY }}
+                  className="text-4xl sm:text-5xl lg:text-6xl font-mono font-black text-amber-400 drop-shadow-[0_2px_12px_rgba(245,158,11,0.25)] select-none"
+                >
+                  {chapter.step}
+                </motion.span>
+                <span className="text-[11px] font-mono tracking-widest uppercase text-stone-300 font-bold bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 backdrop-blur-sm">
+                  {chapter.technicalLabel}
+                </span>
+              </div>
+
+              {/* Floating Parallax Pill beside text (Chapters 1, 2, 3, 4, 5) */}
+              <motion.div
+                style={{ y: textBadgeY }}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider shadow-md backdrop-blur-md"
+              >
+                <span>{chapter.textParallaxBadge.icon}</span>
+                <span className="truncate max-w-[175px]">{chapter.textParallaxBadge.val}</span>
+              </motion.div>
+            </div>
+
+            {/* Mobile Parallax Pill */}
+            <div className="sm:hidden mb-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+                <span>{chapter.textParallaxBadge.icon}</span>
+                <span>{chapter.textParallaxBadge.val}</span>
+              </div>
+            </div>
+
+            {/* Chapter Heading with Parallax Depth */}
+            <motion.h3
+              style={{ y: headingY }}
+              className="text-2xl sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight text-white leading-tight"
+            >
+              {chapter.chapterTitle}
+            </motion.h3>
+
+            {/* Story Lead Sentence */}
+            <p className="text-lg sm:text-xl text-amber-200/90 font-serif italic mt-3 leading-snug">
+              {chapter.storyHeading}
+            </p>
+
+            {/* Story Body Copy */}
+            <div className="mt-4 space-y-3 text-sm sm:text-base text-stone-300 font-normal leading-relaxed">
+              <p>{chapter.storyLead}</p>
+              <p className="text-xs sm:text-sm text-stone-400 font-light">{chapter.storyDetail}</p>
+            </div>
+
+            {/* Parallax Accent Telemetry Card Beside Text */}
+            <motion.div
+              style={{ y: textAccentY }}
+              className="mt-5 p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-stone-900/90 via-stone-950/80 to-stone-900/60 border border-white/10 border-l-2 border-l-amber-400/80 backdrop-blur-md shadow-lg"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-stone-400">
+                  {chapter.accentMetric.label}
+                </span>
+                <span className="text-xs font-mono font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/20">
+                  {chapter.accentMetric.stat}
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-stone-300 font-mono mt-1 leading-snug">
+                {chapter.accentMetric.sub}
+              </p>
+            </motion.div>
+
+            {/* Action Link & Direct Launch Button */}
+            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
+              <Link
+                href={chapter.actionUrl}
+                className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs font-mono uppercase tracking-wider transition-all duration-300 shadow-md hover:shadow-amber-400/20 active:scale-95 group"
+              >
+                <span>{chapter.actionText}</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
+
+              <span className="text-[10px] font-mono text-stone-500 uppercase tracking-widest hidden sm:inline">
+                CHAPTER {chapter.step} OF 05
+              </span>
+            </div>
+          </motion.div>
+        </motion.div>
+
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// MAIN HOW YATRI SETU WORKS COMPONENT
+// ============================================================================
+
+export function HowYatriSetuWorks() {
+  const [activeChapter, setActiveChapter] = useState<number>(0);
+  const containerRef = useRef<HTMLElement>(null);
+  const isInView = useInView(containerRef, { once: true, amount: 0.1 });
+
+  // Preload all visual assets
+  useEffect(() => {
+    FEATURE_CHAPTERS.forEach((ch) => {
+      if (typeof window !== 'undefined') {
+        const img = new window.Image();
+        img.src = ch.image;
+      }
+    });
   }, []);
 
-  // Smooth scroll to chapter when clicking navigation
-  const scrollToChapter = (idx: number) => {
-    const el = chapterRefs.current[idx];
+  const scrollToChapter = (id: string, idx: number) => {
+    setActiveChapter(idx);
+    const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
-
-  const current = FEATURE_CHAPTERS[activeChapter];
-  const animatedScore = useSmoothCounter(current.metricValue, 650, true);
 
   return (
     <section
       ref={containerRef}
-      className="relative w-full bg-[#0C0F14] text-white py-24 sm:py-32 overflow-hidden border-t border-stone-800/80"
+      className="relative w-full bg-[#0A0D12] text-white py-12 sm:py-16 overflow-hidden border-t border-stone-800/80"
       aria-label="How Yatri Setu Works — The Journey"
     >
       {/* Background ambient lighting and subtle texture */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(245,158,11,0.06),transparent)] pointer-events-none" />
       <div className="absolute inset-0 bg-[radial-gradient(#ffffff_0.5px,transparent_0.5px)] opacity-[0.025] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 relative z-10">
         
         {/* ==================================================================== */}
         {/* SECTION HEADER (Large, Editorial, Premium)                           */}
         {/* ==================================================================== */}
-        <div className="max-w-4xl mb-14 sm:mb-20">
+        <div className="max-w-4xl mb-8 sm:mb-10">
           <motion.div
-            initial={isReducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center gap-2 mb-4"
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-2 mb-3"
           >
             <span className="w-2 h-2 rounded-full bg-amber-400" />
             <span className="text-xs font-mono font-bold tracking-widest uppercase text-amber-400">
@@ -294,9 +854,9 @@ export function HowYatriSetuWorks() {
           </motion.div>
 
           <motion.h2
-            initial={isReducedMotion ? {} : { opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
             className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.06] text-white uppercase"
           >
             FROM DESTINATION PRESSURE
@@ -307,9 +867,9 @@ export function HowYatriSetuWorks() {
           </motion.h2>
 
           <motion.p
-            initial={isReducedMotion ? {} : { opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
             className="text-base sm:text-lg text-stone-300 mt-4 leading-relaxed font-normal max-w-2xl text-balance"
           >
             Yatri Setu connects destination intelligence, smarter alternatives, local hosts and traveler safety into one continuous travel journey.
@@ -317,11 +877,10 @@ export function HowYatriSetuWorks() {
         </div>
 
         {/* ==================================================================== */}
-        {/* FEATURE NAVIGATION / JOURNEY CONTROL BAR (5 Cards)                   */}
+        {/* STICKY FEATURE NAVIGATION BAR (5 Chapters)                           */}
         {/* ==================================================================== */}
-        <div className="mb-16 lg:mb-24">
-          {/* Mobile horizontal scroll / Desktop 5-column layout */}
-          <div className="flex lg:grid lg:grid-cols-5 gap-3 overflow-x-auto pb-4 lg:pb-0 scrollbar-none no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="sticky top-16 sm:top-[72px] z-30 mb-6 py-3 bg-[#0A0D12]/85 backdrop-blur-2xl border-y border-stone-800/80 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-12 lg:px-12">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto scrollbar-none no-scrollbar">
             {FEATURE_CHAPTERS.map((f, idx) => {
               const isActive = activeChapter === idx;
 
@@ -329,57 +888,20 @@ export function HowYatriSetuWorks() {
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => scrollToChapter(idx)}
+                  onClick={() => scrollToChapter(f.id, idx)}
                   className={cn(
-                    'shrink-0 w-[240px] sm:w-[260px] lg:w-auto p-4 sm:p-5 rounded-2xl border text-left transition-all duration-400 ease-out flex flex-col justify-between select-none cursor-pointer',
+                    'shrink-0 px-4 py-2.5 rounded-xl border text-left transition-all duration-300 ease-out flex items-center gap-3 select-none cursor-pointer',
                     isActive
-                      ? 'bg-amber-500/10 border-amber-400/90 shadow-xl shadow-amber-500/5 ring-1 ring-amber-400/40 -translate-y-1'
-                      : 'bg-stone-900/60 border-stone-800/90 hover:bg-stone-900 hover:border-stone-700 text-stone-400'
+                      ? 'bg-amber-500/15 border-amber-400 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/40'
+                      : 'bg-stone-900/60 border-stone-800/80 hover:bg-stone-900 hover:border-stone-700 text-stone-400'
                   )}
                 >
-                  <div className="w-full">
-                    {/* Top Row: Number + Badge */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <span
-                        className={cn(
-                          'text-2xl font-black font-mono tracking-tight',
-                          isActive ? 'text-amber-400' : 'text-stone-500'
-                        )}
-                      >
-                        {f.step}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-wider',
-                          isActive
-                            ? 'bg-amber-400/20 text-amber-200 border border-amber-400/40'
-                            : 'bg-white/5 text-stone-400 border border-white/5'
-                        )}
-                      >
-                        {f.badge}
-                      </span>
-                    </div>
-
-                    {/* Feature Title */}
-                    <h3
-                      className={cn(
-                        'text-xs sm:text-sm font-bold tracking-tight leading-snug transition-colors',
-                        isActive ? 'text-white' : 'text-stone-300'
-                      )}
-                    >
-                      {f.navTitle}
-                    </h3>
-                  </div>
-
-                  {/* Active Indicator Bar */}
-                  <div className="w-full mt-4 h-[2px] rounded-full overflow-hidden bg-stone-800">
-                    <div
-                      className={cn(
-                        'h-full transition-all duration-500',
-                        isActive ? 'w-full bg-amber-400' : 'w-0'
-                      )}
-                    />
-                  </div>
+                  <span className={cn('text-sm font-black font-mono', isActive ? 'text-amber-400' : 'text-stone-500')}>
+                    {f.step}
+                  </span>
+                  <span className="text-xs font-bold tracking-tight whitespace-nowrap">
+                    {f.navTitle}
+                  </span>
                 </button>
               );
             })}
@@ -387,490 +909,25 @@ export function HowYatriSetuWorks() {
         </div>
 
         {/* ==================================================================== */}
-        {/* MAIN STORY EXPERIENCE (Sticky Visual Left + Scrolling Story Right)   */}
+        {/* 5 CHAPTER ROWS (EACH CHAPTER HAS ITS OWN VISUAL BESIDE ITS TEXT)     */}
         {/* ==================================================================== */}
-        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-          
-          {/* ------------------------------------------------------------------ */}
-          {/* LEFT: STICKY CINEMATIC VISUAL (~55% Desktop Width)                */}
-          {/* ------------------------------------------------------------------ */}
-          <div className="lg:col-span-7 hidden lg:block sticky top-24 self-start">
-            <div
-              ref={stickyRef}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
-              className="relative w-full h-[640px] rounded-3xl overflow-hidden border border-stone-800 shadow-2xl bg-stone-950 flex flex-col justify-between p-8 select-none"
-            >
-              {/* LAYER 1 & 2: Background Cinematic Photography with Parallax */}
-              <div className="absolute inset-0 overflow-hidden">
-                <AnimatePresence mode="wait">
-                  {activeChapter === 0 && (
-                    <motion.img
-                      key="darjeeling-bottleneck"
-                      src="https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=1600&q=85"
-                      alt="Darjeeling ridge congested corridor"
-                      initial={{ opacity: 0, scale: 1.06 }}
-                      animate={{ opacity: 1, scale: 1.02 }}
-                      exit={{ opacity: 0, scale: 1 }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        transform: `translate3d(${mouseParallax.x}px, ${mouseParallax.y}px, 0) scale(1.02)`,
-                        transition: 'transform 0.15s ease-out'
-                      }}
-                      className="w-full h-full object-cover filter brightness-[0.82]"
-                    />
-                  )}
-                  {activeChapter === 1 && (
-                    <motion.img
-                      key="kalimpong-alternative"
-                      src="https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1600&q=85"
-                      alt="Kalimpong serene orchid ridge"
-                      initial={{ opacity: 0, scale: 1.06 }}
-                      animate={{ opacity: 1, scale: 1.02 }}
-                      exit={{ opacity: 0, scale: 1 }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        transform: `translate3d(${mouseParallax.x}px, ${mouseParallax.y}px, 0) scale(1.02)`,
-                        transition: 'transform 0.15s ease-out'
-                      }}
-                      className="w-full h-full object-cover filter brightness-[0.85]"
-                    />
-                  )}
-                  {activeChapter === 2 && (
-                    <motion.img
-                      key="itinerary-path"
-                      src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1600&q=85"
-                      alt="Himalayan mountain trails"
-                      initial={{ opacity: 0, scale: 1.06 }}
-                      animate={{ opacity: 1, scale: 1.02 }}
-                      exit={{ opacity: 0, scale: 1 }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        transform: `translate3d(${mouseParallax.x}px, ${mouseParallax.y}px, 0) scale(1.02)`,
-                        transition: 'transform 0.15s ease-out'
-                      }}
-                      className="w-full h-full object-cover filter brightness-[0.82]"
-                    />
-                  )}
-                  {activeChapter === 3 && (
-                    <motion.img
-                      key="panchayat-homestay"
-                      src="https://images.unsplash.com/photo-1511497584788-87676104235f?auto=format&fit=crop&w=1600&q=85"
-                      alt="Village homestay wooden sanctuary"
-                      initial={{ opacity: 0, scale: 1.06 }}
-                      animate={{ opacity: 1, scale: 1.02 }}
-                      exit={{ opacity: 0, scale: 1 }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        transform: `translate3d(${mouseParallax.x}px, ${mouseParallax.y}px, 0) scale(1.02)`,
-                        transition: 'transform 0.15s ease-out'
-                      }}
-                      className="w-full h-full object-cover filter brightness-[0.80]"
-                    />
-                  )}
-                  {activeChapter === 4 && (
-                    <motion.img
-                      key="safety-guardian"
-                      src="https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1600&q=85"
-                      alt="Misty protected pine valley"
-                      initial={{ opacity: 0, scale: 1.06 }}
-                      animate={{ opacity: 1, scale: 1.02 }}
-                      exit={{ opacity: 0, scale: 1 }}
-                      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-                      style={{
-                        transform: `translate3d(${mouseParallax.x}px, ${mouseParallax.y}px, 0) scale(1.02)`,
-                        transition: 'transform 0.15s ease-out'
-                      }}
-                      className="w-full h-full object-cover filter brightness-[0.82]"
-                    />
-                  )}
-                </AnimatePresence>
-
-                {/* Layered gradients for legibility */}
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-stone-950/30" />
-                <div className="absolute inset-0 bg-gradient-to-r from-stone-950/80 via-transparent to-stone-950/50" />
-              </div>
-
-              {/* LAYER 3: Chapter Header Stamp & Scroll Progress Bar */}
-              <div className="relative z-10 flex items-start justify-between">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/55 backdrop-blur-md border border-white/10 text-[11px] font-mono tracking-widest uppercase text-stone-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  <span>PHASE {current.step} OF 05</span>
-                </div>
-
-                {/* Subtle Vertical Progress Indicator (01 ● │ 02 ○ ...) */}
-                <div className="flex flex-col items-center gap-1 bg-black/55 backdrop-blur-md px-2.5 py-2 rounded-2xl border border-white/10 text-[10px] font-mono">
-                  {FEATURE_CHAPTERS.map((ch, idx) => (
-                    <React.Fragment key={ch.id}>
-                      <button
-                        type="button"
-                        onClick={() => scrollToChapter(idx)}
-                        className={cn(
-                          'flex items-center gap-1.5 transition-colors cursor-pointer py-0.5',
-                          activeChapter === idx ? 'text-amber-300 font-bold' : 'text-stone-500 hover:text-stone-300'
-                        )}
-                      >
-                        <span>{ch.step}</span>
-                        <span
-                          className={cn(
-                            'w-2 h-2 rounded-full transition-all duration-300',
-                            activeChapter === idx
-                              ? 'bg-amber-400 ring-2 ring-amber-400/40 scale-125'
-                              : 'bg-stone-700'
-                          )}
-                        />
-                      </button>
-                      {idx < FEATURE_CHAPTERS.length - 1 && (
-                        <span className="w-[1px] h-2 bg-stone-800" />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-
-              {/* LAYER 4: Continuous Evolving Intelligence Transformations */}
-              <div className="relative z-10 mt-auto pt-6">
-                <AnimatePresence mode="wait">
-                  
-                  {/* CHAPTER 01 TRANSFORMATION: DETECT BOTTLENECK */}
-                  {activeChapter === 0 && (
-                    <motion.div
-                      key="vis-01"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold">
-                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                        <span>SATURATION ALERT DETECTED</span>
-                      </div>
-
-                      <div>
-                        <h4 className="text-3xl font-extrabold uppercase tracking-tight text-white">
-                          Darjeeling Ridge
-                        </h4>
-                        <p className="text-xs font-mono text-stone-300 uppercase tracking-wider mt-0.5">
-                          Hill Cart Road Corridor · Eastern Himalayas
-                        </p>
-                      </div>
-
-                      {/* Barometer & Metric Display */}
-                      <div className="p-4 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between gap-4">
-                        <div>
-                          <span className="text-[10px] font-mono uppercase text-stone-400 block font-semibold">
-                            CROWD CONGESTION LEVEL
-                          </span>
-                          <span className="text-3xl font-mono font-black text-rose-400 mt-1 block">
-                            {animatedScore} / 100
-                          </span>
-                          <span className="text-[10px] font-mono text-stone-300">
-                            Severe peak holiday traffic delay
-                          </span>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-[10px] font-mono uppercase text-stone-400 block font-semibold">
-                            RECOMMENDATION
-                          </span>
-                          <span className="text-xs font-mono font-bold text-amber-300 mt-1 block uppercase">
-                            Divert to Sister Ridge
-                          </span>
-                          <span className="text-[10px] text-stone-400">
-                            6-Factor capacity trigger
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* CHAPTER 02 TRANSFORMATION: REDIRECT & CAPACITY MATCH */}
-                  {activeChapter === 1 && (
-                    <motion.div
-                      key="vis-02"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>AI CAPACITY MATCH FOUND</span>
-                      </div>
-
-                      {/* Receding vs Advancing Destinations */}
-                      <div className="grid grid-cols-2 gap-3 items-center">
-                        {/* Crowded (Receding) */}
-                        <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 opacity-50 scale-95 transition-all">
-                          <span className="text-[9px] font-mono uppercase text-rose-400 block font-bold">
-                            OVERBURDENED
-                          </span>
-                          <h5 className="text-sm font-bold text-stone-300 uppercase">Darjeeling</h5>
-                          <span className="text-xs font-mono text-stone-400 mt-1 block">
-                            88 / 100 Pressure
-                          </span>
-                        </div>
-
-                        {/* Better Fit Alternative (Advancing) */}
-                        <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-400/80 shadow-lg ring-1 ring-amber-400/30 scale-100 transition-all">
-                          <span className="text-[9px] font-mono uppercase text-amber-300 block font-bold">
-                            OPTIMAL SANCTUARY
-                          </span>
-                          <h5 className="text-lg font-extrabold text-white uppercase">Kalimpong</h5>
-                          <div className="flex items-center justify-between text-xs font-mono text-emerald-300 mt-1">
-                            <span>42 / 100 Flow</span>
-                            <span className="font-bold">{animatedScore}% Match</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-black/50 backdrop-blur-md border border-white/10 text-xs font-mono text-stone-300 flex items-center justify-between">
-                        <span>ESTIMATED DAILY SAVINGS: 42%</span>
-                        <span className="text-amber-400 font-bold">ZERO QUEUES</span>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* CHAPTER 03 TRANSFORMATION: ADAPTIVE ITINERARY FLOW */}
-                  {activeChapter === 2 && (
-                    <motion.div
-                      key="vis-03"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
-                        <Compass className="w-3.5 h-3.5" />
-                        <span>FLOW-OPTIMIZED EXPEDITION</span>
-                      </div>
-
-                      {/* Flowing Journey Path Waypoints */}
-                      <div className="p-4 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 space-y-3 font-mono">
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-amber-400 text-stone-950 font-black text-xs flex items-center justify-center">
-                            1
-                          </span>
-                          <div>
-                            <span className="text-xs font-bold text-white block">DAY 01 · 11:30 AM · ARRIVE RIDGE</span>
-                            <span className="text-[10px] text-stone-400">Panchayat homestay check-in avoiding noon highway jam</span>
-                          </div>
-                        </div>
-
-                        <div className="w-[1px] h-3 bg-amber-400/60 ml-3" />
-
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-amber-400 text-stone-950 font-black text-xs flex items-center justify-center">
-                            2
-                          </span>
-                          <div>
-                            <span className="text-xs font-bold text-white block">DAY 02 · 08:30 AM · BOTANICAL DISCOVERY</span>
-                            <span className="text-[10px] text-stone-400">Pine View Orchid Sanctuary during zero-footfall window</span>
-                          </div>
-                        </div>
-
-                        <div className="w-[1px] h-3 bg-amber-400/60 ml-3" />
-
-                        <div className="flex items-center gap-3">
-                          <span className="w-6 h-6 rounded-full bg-amber-400 text-stone-950 font-black text-xs flex items-center justify-center">
-                            3
-                          </span>
-                          <div>
-                            <span className="text-xs font-bold text-white block">DAY 03 · 05:45 AM · KANCHENJUNGA SUNRISE</span>
-                            <span className="text-[10px] text-stone-400">Rishop 360° ridge without 3-hour Tiger Hill vehicle queue</span>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* CHAPTER 04 TRANSFORMATION: PANCHAYAT HOST BOOKING */}
-                  {activeChapter === 3 && (
-                    <motion.div
-                      key="vis-04"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
-                        <Leaf className="w-3.5 h-3.5" />
-                        <span>VERIFIED PANCHAYAT LEDGER</span>
-                      </div>
-
-                      <div>
-                        <h4 className="text-2xl font-extrabold uppercase tracking-tight text-white">
-                          Pineview Orchid Cottage
-                        </h4>
-                        <p className="text-xs font-mono text-stone-300 uppercase mt-0.5">
-                          Upper Cart Road · Hosted by Gurung Family
-                        </p>
-                      </div>
-
-                      {/* 90% Host Share Metric Highlight */}
-                      <div className="p-4 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between gap-4">
-                        <div>
-                          <span className="text-[10px] font-mono uppercase text-stone-400 block font-semibold">
-                            DIRECT SETTLEMENT SHARE
-                          </span>
-                          <span className="text-3xl font-mono font-black text-emerald-400 mt-1 block">
-                            {animatedScore}% DIRECT
-                          </span>
-                          <span className="text-[10px] font-mono text-stone-300">
-                            Transparent village community split
-                          </span>
-                        </div>
-
-                        <div className="text-right">
-                          <span className="text-[10px] font-mono uppercase text-stone-400 block font-semibold">
-                            ECO CREDITS
-                          </span>
-                          <span className="text-xs font-mono font-bold text-amber-300 mt-1 block">
-                            +120 GREEN COINS
-                          </span>
-                          <span className="text-[10px] text-stone-400">
-                            Responsible travel reward
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* CHAPTER 05 TRANSFORMATION: YATRI MITRA SAFETY GUARDIAN */}
-                  {activeChapter === 4 && (
-                    <motion.div
-                      key="vis-05"
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-4"
-                    >
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold">
-                        <RadioTower className="w-3.5 h-3.5" />
-                        <span>ACTIVE TELEMETRY GUARDIAN</span>
-                      </div>
-
-                      <div>
-                        <h4 className="text-2xl font-extrabold uppercase tracking-tight text-white">
-                          Yatri Mitra Emergency Net
-                        </h4>
-                        <p className="text-xs font-mono text-stone-300 uppercase mt-0.5">
-                          High-Altitude Safety Infrastructure
-                        </p>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 space-y-2.5 font-mono text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="text-stone-400">NATIONAL 112 DISPATCH:</span>
-                          <span className="text-emerald-400 font-bold">ONLINE & SYNCED</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-stone-400">GPS TELEMETRY (DEMO):</span>
-                          <span className="text-white font-bold">27.0594° N, 88.2625° E</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-stone-400">LOCAL VOLUNTEER MESH:</span>
-                          <span className="text-amber-300 font-bold">4 Wardens Within 1.4km</span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                </AnimatePresence>
-              </div>
-            </div>
-          </div>
-
-          {/* ------------------------------------------------------------------ */}
-          {/* RIGHT: SCROLLING EDITORIAL STORY (5 Chapters, ~45% Desktop Width)  */}
-          {/* ------------------------------------------------------------------ */}
-          <div className="lg:col-span-5 flex flex-col space-y-24 sm:space-y-36 pb-12">
-            {FEATURE_CHAPTERS.map((f, idx) => {
-              const isActive = activeChapter === idx;
-
-              return (
-                <div
-                  key={f.id}
-                  ref={(el) => {
-                    chapterRefs.current[idx] = el;
-                  }}
-                  className={cn(
-                    'transition-opacity duration-500 ease-out flex flex-col justify-center min-h-[50vh] lg:min-h-[70vh]',
-                    isActive ? 'opacity-100' : 'opacity-35'
-                  )}
-                >
-                  {/* Step Number & Technical Label */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-4xl sm:text-5xl font-mono font-black text-amber-400">
-                      {f.step}
-                    </span>
-                    <span className="text-[10px] font-mono tracking-widest uppercase text-stone-400 font-semibold bg-white/5 px-2.5 py-1 rounded-md border border-white/5">
-                      {f.technicalLabel}
-                    </span>
-                  </div>
-
-                  {/* Chapter Heading */}
-                  <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold uppercase tracking-tight text-white leading-tight">
-                    {f.chapterTitle}
-                  </h3>
-
-                  {/* Story Lead Sentence */}
-                  <p className="text-base sm:text-lg text-amber-200/90 font-serif italic mt-3 leading-snug">
-                    {f.storyHeading}
-                  </p>
-
-                  {/* Story Body Copy */}
-                  <div className="mt-4 space-y-3 text-sm sm:text-base text-stone-300 font-normal leading-relaxed">
-                    <p>{f.storyLead}</p>
-                    <p className="text-xs sm:text-sm text-stone-400 font-light">{f.storyDetail}</p>
-                  </div>
-
-                  {/* Action Link & Direct Launch Button */}
-                  <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-4">
-                    <Link
-                      href={f.actionUrl}
-                      className="inline-flex items-center gap-2 text-xs font-bold font-mono uppercase tracking-wider text-amber-400 hover:text-amber-300 transition-colors group"
-                    >
-                      <span>{f.actionText}</span>
-                      <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-
-                    {/* Numeric Tag */}
-                    <span className="text-[10px] font-mono text-stone-500 uppercase tracking-widest hidden sm:inline">
-                      CHAPTER {f.step} OF 05
-                    </span>
-                  </div>
-
-                  {/* Mobile-Only Inline Visual Transformation Block */}
-                  <div className="mt-6 lg:hidden p-5 rounded-2xl bg-stone-900 border border-stone-800 text-xs font-mono space-y-2">
-                    <div className="flex items-center justify-between text-amber-400 font-bold">
-                      <span>{f.metricLabel}</span>
-                      <span>
-                        {f.metricValue}
-                        {f.metricSuffix}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-stone-400 font-sans">{f.metricSub}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
+        <div className="space-y-4">
+          {FEATURE_CHAPTERS.map((chapter, idx) => (
+            <ChapterRow
+              key={chapter.id}
+              chapter={chapter}
+              index={idx}
+              onVisible={setActiveChapter}
+            />
+          ))}
         </div>
 
         {/* ==================================================================== */}
         {/* FUTURE-READY CINEMATIC CLOSING CTA                                   */}
         {/* ==================================================================== */}
-        <div className="mt-28 sm:mt-36 pt-12 border-t border-stone-800/80">
-          <div className="relative rounded-3xl overflow-hidden border border-stone-800 bg-stone-900/80 p-8 sm:p-14 lg:p-20 text-center shadow-2xl">
-            {/* Background Himalayan visual with slow zoom */}
-            <div className="absolute inset-0 overflow-hidden">
+        <div className="mt-20 sm:mt-28 pt-8">
+          <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-stone-900/80 p-8 sm:p-14 lg:p-20 text-center shadow-2xl">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <img
                 src="/hero-himalaya.jpg"
                 alt="End of journey Himalayan landscape"
@@ -880,9 +937,7 @@ export function HowYatriSetuWorks() {
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/70 to-stone-950/40" />
             </div>
 
-            {/* Content Container */}
             <div className="relative z-10 max-w-3xl mx-auto space-y-6">
-              {/* Journey Convergence Trail */}
               <div className="inline-flex flex-wrap items-center justify-center gap-2 text-[10px] sm:text-xs font-mono font-bold tracking-widest uppercase text-amber-300/90 bg-black/60 px-4 py-2 rounded-full border border-amber-400/30 shadow-md">
                 <span>DETECT</span>
                 <span className="text-stone-500">→</span>
@@ -895,17 +950,14 @@ export function HowYatriSetuWorks() {
                 <span>TRAVEL SAFELY</span>
               </div>
 
-              {/* Headline */}
               <h3 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight uppercase">
                 READY TO TRAVEL DIFFERENTLY?
               </h3>
 
-              {/* Supporting Text */}
               <p className="text-sm sm:text-base text-stone-300 max-w-xl mx-auto leading-relaxed">
                 Choose a destination, understand the pressure, and discover a journey that fits you.
               </p>
 
-              {/* Action Buttons */}
               <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
                 <Link
                   href="/destinations"
@@ -924,7 +976,6 @@ export function HowYatriSetuWorks() {
                 </Link>
               </div>
 
-              {/* Trust & Architecture Strip */}
               <div className="pt-8 border-t border-white/10 flex flex-wrap items-center justify-center gap-6 text-[10px] font-mono uppercase text-stone-400">
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />

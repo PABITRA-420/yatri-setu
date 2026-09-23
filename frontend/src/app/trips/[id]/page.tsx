@@ -56,9 +56,9 @@ export default function TripDashboardPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12 py-10 space-y-8">
       {/* Active Trip Header */}
-      <div className="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-stone-900/90 backdrop-blur-xl text-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -69,7 +69,7 @@ export default function TripDashboardPage() {
           <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
             Journey to {trip.destination_name}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-300 flex items-center gap-1.5">
+          <p className="text-xs sm:text-sm text-stone-300 flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-amber-400" />
             <span>{trip.homestay_name} • {trip.dates}</span>
           </p>
@@ -88,23 +88,23 @@ export default function TripDashboardPage() {
       {/* Main Grid: Digital Pass & Live Safety Info */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Digital Pass Card (Left 5 Cols) */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-stone-900/70 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
                 Panchayat Pass Verification
               </span>
-              <span className="text-xs font-mono font-bold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+              <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/30">
                 {trip.digital_pass_code}
               </span>
             </div>
 
             {/* QR Visual */}
-            <div className="w-40 h-40 bg-white p-3 rounded-2xl border border-slate-200 shadow-inner mx-auto flex items-center justify-center">
-              <QrCode className="w-32 h-32 text-slate-900" />
+            <div className="w-40 h-40 bg-white p-3 rounded-2xl border border-white/20 shadow-inner mx-auto flex items-center justify-center">
+              <QrCode className="w-32 h-32 text-slate-950" />
             </div>
 
-            <p className="text-center text-[11px] text-slate-400 mt-3">
+            <p className="text-center text-[11px] text-stone-400 mt-3">
               Valid at Teesta Checkpost, Forest Entry Gates & Homestay Check-in
             </p>
 

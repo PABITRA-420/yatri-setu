@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ArrowRight, Activity, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { fetchDestinations } from '@/lib/api';
 
 export interface IntelligenceDestination {
   id: string;
@@ -147,6 +148,7 @@ interface LiveFlowIntelligenceProps {
 }
 
 export function LiveFlowIntelligence({ onOpenCalculator }: LiveFlowIntelligenceProps) {
+  const [destinations, setDestinations] = useState<IntelligenceDestination[]>(FLOW_DESTINATIONS);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [displayScore, setDisplayScore] = useState(FLOW_DESTINATIONS[0].score);
@@ -154,7 +156,72 @@ export function LiveFlowIntelligence({ onOpenCalculator }: LiveFlowIntelligenceP
   const [touchEndX, setTouchEndX] = useState<number | null>(null);
   const autoplayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const activeDestination = FLOW_DESTINATIONS[activeIndex];
+  const activeDestination = destinations[activeIndex] || destinations[0];
+
+  // Fetch real telemetry data on mount to supersede mock fallbacks
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFlowTelemetry() {
+      try {
+        const liveList = await fetchDestinations();
+        if (!isMounted || !liveList || liveList.length === 0) return;
+
+        setDestinations((prev) =>
+          prev.map((dest) => {
+            const liveMatch = liveList.find((d) => d.id.toLowerCase() === dest.id.toLowerCase());
+            let updatedScore = dest.score;
+            let updatedPressure = dest.pressureLevel;
+
+            if (liveMatch) {
+              updatedScore = liveMatch.crowd_score;
+              if (liveMatch.crowd_level === 'VERY HIGH' || liveMatch.crowd_level === 'HIGH') {
+                updatedPressure = 'HIGH PRESSURE';
+              } else if (liveMatch.crowd_level === 'MEDIUM') {
+                updatedPressure = 'MODERATE';
+              } else if (liveMatch.crowd_score <= 18) {
+                updatedPressure = 'SERENE';
+              } else {
+                updatedPressure = 'CALM';
+              }
+            }
+
+            // Also update alternative score if present
+            let updatedAlt = dest.alternative;
+            if (dest.alternative) {
+              const altMatch = liveList.find((d) => d.id.toLowerCase() === dest.alternative?.id.toLowerCase());
+              if (altMatch) {
+                let altPressure: 'MODERATE' | 'CALM' | 'SERENE' = 'MODERATE';
+                if (altMatch.crowd_score <= 18) {
+                  altPressure = 'SERENE';
+                } else if (altMatch.crowd_score <= 30) {
+                  altPressure = 'CALM';
+                }
+                updatedAlt = {
+                  ...dest.alternative,
+                  score: altMatch.crowd_score,
+                  pressureLevel: altPressure
+                };
+              }
+            }
+
+            return {
+              ...dest,
+              score: updatedScore,
+              pressureLevel: updatedPressure,
+              alternative: updatedAlt
+            };
+          })
+        );
+      } catch (err) {
+        console.warn('LiveFlowIntelligence fetch fallback active:', err);
+      }
+    }
+
+    loadFlowTelemetry();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Animated score counter transition
   useEffect(() => {
@@ -184,12 +251,12 @@ export function LiveFlowIntelligence({ onOpenCalculator }: LiveFlowIntelligenceP
 
   // Autoplay cycle every 4.5 seconds
   const nextSlide = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % FLOW_DESTINATIONS.length);
-  }, []);
+    setActiveIndex((prev) => (prev + 1) % destinations.length);
+  }, [destinations.length]);
 
   const prevSlide = useCallback(() => {
-    setActiveIndex((prev) => (prev - 1 + FLOW_DESTINATIONS.length) % FLOW_DESTINATIONS.length);
-  }, []);
+    setActiveIndex((prev) => (prev - 1 + destinations.length) % destinations.length);
+  }, [destinations.length]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -300,7 +367,7 @@ export function LiveFlowIntelligence({ onOpenCalculator }: LiveFlowIntelligenceP
             <div className="text-xs font-mono text-stone-500 hidden sm:block">
               <span className="text-white font-bold">{String(activeIndex + 1).padStart(2, '0')}</span>
               <span className="mx-1">/</span>
-              <span>{String(FLOW_DESTINATIONS.length).padStart(2, '0')}</span>
+              <span>{String(destinations.length).padStart(2, '0')}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -455,7 +522,7 @@ export function LiveFlowIntelligence({ onOpenCalculator }: LiveFlowIntelligenceP
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3 overflow-hidden">
-              {FLOW_DESTINATIONS.map((dest, idx) => {
+              {destinations.map((dest, idx) => {
                 const isActive = idx === activeIndex;
                 const badge = getStatusBadge(dest.pressureLevel);
 
