@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import { Homestay } from '@/types';
 import { fetchHomestays } from '@/lib/api';
 import { HomestayCard } from '@/components/HomestayCard';
+import { SkeletonCard, FetchProgressBar } from '@/components/SkeletonCard';
 import { EmptyState } from '@/components/EmptyState';
 import { 
   Home, 
@@ -106,11 +106,13 @@ function HomestaysContent() {
         ))}
       </div>
 
+      <FetchProgressBar loading={loading} />
+
       {/* Homestay Listings Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-96 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => (
+            <SkeletonCard key={i} index={i} />
           ))}
         </div>
       ) : homestays.length === 0 ? (

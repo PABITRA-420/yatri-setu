@@ -21,6 +21,8 @@ const editorialFont = Cormorant_Garamond({
   weight: ['400', '500', '600', '700']
 });
 
+import { PageTransition } from '@/components/PageTransition';
+
 export const metadata: Metadata = {
   title: 'Yatri Setu | Himalayan Flow Intelligence & Hyperlocal Tourism',
   description:
@@ -45,7 +47,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#0A0D12] text-stone-100 font-sans selection:bg-amber-500/20 selection:text-amber-200">
         <SmoothScrollProvider>
           <Navbar />
-          <main className="flex-1 bg-[#0A0D12] text-stone-100">{children}</main>
+          <main className="flex-1 bg-[#0A0D12] text-stone-100 flex flex-col">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <Footer />
         </SmoothScrollProvider>
       </body>

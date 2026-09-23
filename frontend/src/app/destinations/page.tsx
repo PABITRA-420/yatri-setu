@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { DestinationSummary, CrowdLevel } from '@/types';
 import { fetchDestinations } from '@/lib/api';
 import { DestinationCard } from '@/components/DestinationCard';
+import { SkeletonCard, FetchProgressBar } from '@/components/SkeletonCard';
 import { Search, Flame, Filter, SlidersHorizontal, ArrowRight, Compass } from 'lucide-react';
 import Link from 'next/link';
 
@@ -110,11 +111,13 @@ function DestinationsContent() {
         </div>
       </div>
 
+      <FetchProgressBar loading={loading} />
+
       {/* Destination Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-96 bg-stone-200 dark:bg-stone-800 rounded-3xl" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <SkeletonCard key={i} index={i} />
           ))}
         </div>
       ) : destinations.length === 0 ? (
